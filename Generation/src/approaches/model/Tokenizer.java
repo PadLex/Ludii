@@ -33,11 +33,12 @@ public class Tokenizer {
 	static final int booleanTokens = 2;
 	static final int stringTokens = 11;
 
-	private HashMap<String, Integer> clauseToId = new HashMap<>();
-	private HashMap<Integer, String> idToClause = new HashMap<>();
-
 	private HashMap<String, Integer> symbolToId = new HashMap<>();
 	private HashMap<Integer, String> idToSymbol = new HashMap<>();
+
+	private HashMap<String, Integer> clauseToId = new HashMap<>();
+	private HashMap<Integer, String> idToClause = new HashMap<>();
+	
 
 	public Tokenizer(List<Symbol> symbols) {
 		// TODO sort rules
@@ -67,8 +68,9 @@ public class Tokenizer {
 						if (args.label() != null) {
 							if (!clauseToId.containsKey(args.label())) {
 								int id = clauseToId.size();
-								clauseToId.put(args.label(), id);
-								idToClause.put(id, args.label());
+								clauseToId.put(args.label().toLowerCase(), id);
+								idToClause.put(id, args.label().toLowerCase()); // TODO Why is If uppercase?
+								//System.out.println(symbol.token() + ", " + args.label());
 							}
 						}
 					}
@@ -82,7 +84,10 @@ public class Tokenizer {
 
 		}
 	}
+	
 
+	/* Tokenizer functions, LudiiToken to NumericToken */
+	
 	public List<Integer> tokenizeGame(Game game) {
 		List<Integer> tokens = new ArrayList<>();
 		StringTokenizer stringTokenizer = new StringTokenizer();
@@ -98,6 +103,11 @@ public class Tokenizer {
 		// System.out.print(" < ");
 
 		for (Token token : tree) {
+			
+			if (token.parameterLabel() != null) {
+				//System.out.println(token + ", " + token.parameterLabel());
+				tokens.add(clauseStart() + clauseToId.get(token.parameterLabel()));
+			}
 
 			if (token.isClass())
 				tokens.add(openClassToken);
@@ -122,36 +132,13 @@ public class Tokenizer {
 		// System.out.print(" > ");
 	}
 
-	public Game restoreGame(List<Integer> tokens) {
-		StringBuilder str = new StringBuilder();
-		for (int i = 0; i < tokens.size(); i++) {
-			str.append(restoreToken(tokens.get(i)));
-			if (tokens.get(i) > baseTokens | (i + 1 < tokens.size() && tokens.get(i) != tokens.get(i + 1)))
-				str.append(' ');
-		}
-
-		System.out.println(str);
-
-		try {
-			return (Game) Compiler.compileTest(new Description(str.toString()), false);
-		} catch (final Exception e) {
-		}
-
-		return null;
-	}
-
-	
-
-	/* Tokenizer functions, LudiiToken to NumericToken */
-
 	private int tokenizeLudiiToken(Token ludiiToken, StringTokenizer stringTokenizer) {
 		// TODO get symbol from token instead of using strings
 		String name = ludiiToken.name();
-		int id = symbolToId.getOrDefault(name, -1);
 
-		if (id >= 0) {
-			return symbolStart() + id;
-		}
+		try {
+			return symbolStart() + symbolToId.get(name);
+		} catch (NullPointerException ignored) {};
 
 		if (name.charAt(0) == '"') {
 			return stringTokenizer.tokenizeString(name);
@@ -211,7 +198,25 @@ public class Tokenizer {
 
 	/* Restore functions, NumericToken to LudiiToken */
 	
-	private String restoreToken(int token) {
+	public Game restoreGame(List<Integer> tokens) {
+		StringBuilder str = new StringBuilder();
+		for (int i = 0; i < tokens.size(); i++) {
+			str.append(restoreNumericToken(tokens.get(i)));
+			if (tokens.get(i) > baseTokens | (i + 1 < tokens.size() && tokens.get(i) != tokens.get(i + 1)))
+				str.append(' ');
+		}
+
+		System.out.println(str);
+
+		try {
+			return (Game) Compiler.compileTest(new Description(str.toString()), false);
+		} catch (final Exception e) {
+		}
+
+		return null;
+	}
+	
+	private String restoreNumericToken(int token) {
 		if (token == openClassToken)
 			return "(";
 		if (token == closeClassToken)
@@ -229,8 +234,10 @@ public class Tokenizer {
 			return Boolean.toString(restoreBoolean(token));
 		if (token < symbolStart())
 			return restoreString(token);
-		if (token < tokenCount())
+		if (token < clauseStart())
 			return idToSymbol.get(token - symbolStart());
+		if (token < tokenCount())
+			return idToClause.get(token - clauseStart()) + ':';
 
 		throw new RuntimeException(token + " token is too large");
 	}
@@ -273,9 +280,13 @@ public class Tokenizer {
 	public int symbolStart() {
 		return stringStart() + stringTokens;
 	}
+	
+	public int clauseStart() {
+		return symbolStart() + symbolToId.size();
+	}
 
 	public int tokenCount() {
-		return symbolStart() + symbolToId.size();
+		return clauseStart() + clauseToId.size();
 	}
 	
 	/* Debugging functions */
@@ -287,7 +298,7 @@ public class Tokenizer {
 			String str = "null";
 			
 			try {
-				str = restoreToken(i);
+				str = restoreNumericToken(i);
 			} catch(RuntimeException ignored) {}
 			
 			sb.append(str).append(", ");
@@ -308,6 +319,8 @@ public class Tokenizer {
 		Tokenizer tokenizer = new Tokenizer(Grammar.grammar().symbols());
 		System.out.println("\ntokenizer. Vocabulary size: " + tokenizer.tokenCount() + " tokens");
 		System.out.println("Dictionary: " + tokenizer.dictionary());
+		System.out.println("caluses: " + tokenizer.clauseToId);
+
 
 		Game originalGame = GameLoader.loadGameFromFile(new File(
 				"/Users/alex/Documents/Marble/Ludii/Common/res/lud/board/war/leaping/diagonal/American Pool Checkers.lud"));
