@@ -56,7 +56,7 @@ public class Tokenizer {
 			if (!symbolToId.containsKey(symbolName)) {
 				int id = symbolToId.size();
 				symbolToId.put(symbolName, id);
-				idToSymbol.put(id, symbol.token());
+				idToSymbol.put(id, symbolName);
 			}
 
 			if (symbol.rule() != null) {
@@ -66,10 +66,12 @@ public class Tokenizer {
 
 					for (ClauseArg args : clause.args()) {
 						if (args.label() != null) {
-							if (!clauseToId.containsKey(args.label())) {
+							String clauseLabel = args.label().toLowerCase(); // TODO Why is If uppercase?
+
+							if (!clauseToId.containsKey(clauseLabel)) {
 								int id = clauseToId.size();
-								clauseToId.put(args.label().toLowerCase(), id);
-								idToClause.put(id, args.label().toLowerCase()); // TODO Why is If uppercase?
+								clauseToId.put(clauseLabel, id);
+								idToClause.put(id, clauseLabel);
 								//System.out.println(symbol.token() + ", " + args.label());
 							}
 						}
@@ -202,14 +204,23 @@ public class Tokenizer {
 		StringBuilder str = new StringBuilder();
 		for (int i = 0; i < tokens.size(); i++) {
 			str.append(restoreNumericToken(tokens.get(i)));
-			if (tokens.get(i) > baseTokens | (i + 1 < tokens.size() && tokens.get(i) != tokens.get(i + 1)))
-				str.append(' ');
+			//if (tokens.get(i) > baseTokens | (i + 1 < tokens.size() && tokens.get(i) != tokens.get(i + 1)))
+				//str.append(' ');
 		}
+		
+		// TODO Why do I need "Counter1" ?
+		String desc = str.toString();
+		desc = desc.replace("string 0", "American Pool Checkers");
+		desc = desc.replace("string 1", "Counter");
+		desc = desc.replace("string 2", "DoubleCounter");
+		desc = desc.replace("string 3", "Counter1");
+		desc = desc.replace("string 4", "Counter2");
+		desc = squishSpaces(desc);
+		System.out.println(desc);
 
-		System.out.println(str);
 
 		try {
-			return (Game) Compiler.compileTest(new Description(str.toString()), false);
+			return (Game) Compiler.compileTest(new Description(desc), false);
 		} catch (final Exception e) {
 		}
 
@@ -220,22 +231,22 @@ public class Tokenizer {
 		if (token == openClassToken)
 			return "(";
 		if (token == closeClassToken)
-			return ")";
+			return ") ";
 		if (token == openArrayToken)
 			return "{";
 		if (token == closeArrayToken)
-			return "}";
+			return "} ";
 
 		if (token < floatStart())
-			return Integer.toString(restoreInt(token));
+			return Integer.toString(restoreInt(token)) + ' ';
 		if (token < booleanStart())
-			return Float.toString(restoreFloat(token));
+			return Float.toString(restoreFloat(token)) + ' ';
 		if (token < stringStart())
-			return Boolean.toString(restoreBoolean(token));
+			return Boolean.toString(restoreBoolean(token)) + ' ';
 		if (token < symbolStart())
-			return restoreString(token);
+			return restoreString(token) + ' ';
 		if (token < clauseStart())
-			return idToSymbol.get(token - symbolStart());
+			return idToSymbol.get(token - symbolStart()) + ' ';
 		if (token < tokenCount())
 			return idToClause.get(token - clauseStart()) + ':';
 
@@ -306,6 +317,16 @@ public class Tokenizer {
 		
 		return sb.toString();
 	}
+	
+	public static String squishSpaces(String str) {
+		str = str.replaceAll("\\s+", " ");
+		str = str.replace(" )", ")");
+		str = str.replace(" )", ")");
+		str = str.replace(" }", "}");
+		str = str.replace("( ", "(");
+		str = str.replace("{ ", "{");
+		return str;
+	}
 
 	public static void main(String[] args) {
 		// System.out.println(Grammar.grammar().symbols());
@@ -325,7 +346,7 @@ public class Tokenizer {
 		Game originalGame = GameLoader.loadGameFromFile(new File(
 				"/Users/alex/Documents/Marble/Ludii/Common/res/lud/board/war/leaping/diagonal/American Pool Checkers.lud"));
 		System.out.println("\ngame loaded");
-		System.out.println(originalGame.description().tokenForest().tokenTrees().toString().replaceAll("\\s+", " "));
+		System.out.println(squishSpaces(originalGame.description().tokenForest().tokenTrees().get(0).toString()));
 
 		List<Integer> tokens = tokenizer.tokenizeGame(originalGame);
 		HashSet<Integer> uniqueTokens = new HashSet<>(tokens);
@@ -337,7 +358,7 @@ public class Tokenizer {
 																				// making sure that it also works with a
 																				// fresh one
 		Game restoredGame = freshTokenizer.restoreGame(tokens);
-		System.out.println("\nrestored game " + restoredGame);
+		System.out.println("\nrestored game: " + originalGame.description().tokenForest().tokenTrees().toString().equals(restoredGame.description().tokenForest().tokenTrees().toString()));
 
 		// File out = new File("/Users/alex/Downloads/tokens.json");
 		//[0, 80, 1520, 0, 84, 1488, 1, 0, 733, 2, 0, 745, 0, 347, 1494, 1, 1, 0, 37, 1521, 1044, 1099, 1, 0, 37, 1521, 1045, 1107, 1, 0, 37, 1522, 1077, 1, 0, 736, 1044, 0, 574, 1271, 1, 1, 0, 736, 1045, 0, 574, 1270, 1, 1, 3, 1, 0, 141, 0, 121, 2, 0, 116, 1523, 0, 269, 0, 517, 0, 574, 1271, 1, 0, 273, 1489, 1487, 1, 1, 0, 574, 1171, 1487, 1, 1, 1, 0, 116, 1524, 0, 269, 0, 517, 0, 574, 1270, 1, 0, 273, 1489, 1487, 1, 1, 0, 574, 1171, 1487, 1, 1, 1, 3, 1, 0, 266, 0, 134, 0, 389, 1081, 1079, 1, 0, 134, 0, 486, 0, 692, 0, 512, 1293, 1, 1, 0, 623, 1521, 1079, 1, 1, 0, 250, 1206, 0, 38, 0, 512, 1293, 1, 1, 941, 0, 42, 0, 159, 0, 484, 0, 389, 1097, 0, 42, 1, 0, 574, 1280, 1, 1, 1, 0, 389, 949, 0, 700, 0, 42, 1, 1, 1, 1, 0, 194, 0, 168, 0, 42, 1, 1088, 1, 1, 1, 0, 39, 0, 389, 945, 0, 39, 1, 1, 1, 0, 199, 0, 134, 0, 393, 1222, 0, 250, 1206, 0, 38, 0, 512, 1293, 1, 1, 941, 0, 42, 0, 159, 0, 484, 0, 389, 1097, 0, 42, 1, 0, 574, 1280, 1, 1, 1, 0, 389, 949, 0, 700, 0, 42, 1, 1, 1, 1, 0, 194, 0, 168, 0, 42, 1, 1088, 1, 1, 1, 0, 39, 0, 389, 945, 0, 39, 1, 1, 1, 1, 1, 0, 182, 1, 0, 134, 0, 389, 1097, 0, 512, 1293, 1, 0, 574, 1080, 1, 1, 0, 220, 0, 512, 1293, 1, 0, 37, 1522, 1, 1079, 1, 1, 1, 1, 1, 0, 205, 1186, 0, 250, 1206, 0, 38, 0, 512, 1293, 1, 1, 941, 0, 42, 0, 72, 978, 1, 0, 72, 978, 1, 0, 159, 0, 484, 0, 389, 1097, 0, 42, 1, 0, 574, 1280, 1, 1, 1, 0, 389, 949, 0, 700, 0, 42, 1, 1, 1, 1, 0, 194, 0, 168, 0, 42, 1, 1088, 1, 1, 1, 0, 39, 0, 389, 945, 0, 39, 1, 1, 1, 0, 199, 0, 134, 0, 393, 1222, 0, 166, 0, 38, 0, 512, 1293, 1, 1, 941, 0, 42, 0, 72, 978, 1, 0, 72, 978, 1, 0, 159, 0, 484, 0, 389, 1097, 0, 42, 1, 0, 574, 1280, 1, 1, 1, 0, 389, 949, 0, 700, 0, 42, 1, 1, 1, 1, 1, 0, 39, 0, 389, 945, 0, 39, 1, 1, 1, 1, 1, 0, 182, 1, 1, 1, 1, 1, 1, 0, 209, 2, 0, 162, 0, 94, 1182, 1521, 0, 250, 1206, 0, 38, 1, 941, 0, 42, 0, 159, 0, 484, 0, 389, 1097, 0, 42, 1, 0, 574, 1280, 1, 1, 1, 0, 389, 949, 0, 700, 0, 42, 1, 1, 1, 1, 0, 194, 0, 168, 0, 42, 1, 1088, 1, 1, 1, 0, 39, 0, 389, 945, 0, 39, 1, 1, 1, 0, 199, 0, 134, 0, 393, 1222, 0, 250, 1206, 0, 38, 0, 512, 1293, 1, 1, 941, 0, 42, 0, 159, 0, 484, 0, 389, 1097, 0, 42, 1, 0, 574, 1280, 1, 1, 1, 0, 389, 949, 0, 700, 0, 42, 1, 1, 1, 1, 0, 194, 0, 168, 0, 42, 1, 1088, 1, 1, 1, 0, 39, 0, 389, 945, 0, 39, 1, 1, 1, 1, 1, 0, 182, 1, 0, 134, 0, 389, 1097, 0, 512, 1293, 1, 0, 574, 1080, 1, 1, 0, 220, 0, 512, 1293, 1, 0, 37, 1522, 1, 1079, 1, 1, 1, 1, 1, 1, 0, 205, 1186, 0, 94, 1182, 1522, 0, 250, 1206, 941, 0, 42, 0, 72, 978, 1, 0, 72, 978, 1, 0, 389, 949, 0, 700, 0, 42, 1, 1, 1, 0, 194, 0, 168, 0, 42, 1, 1088, 1, 1, 1, 0, 39, 0, 389, 945, 0, 39, 1, 1, 1, 0, 199, 0, 134, 0, 393, 1222, 0, 166, 0, 38, 0, 512, 1293, 1, 1, 941, 0, 42, 0, 72, 978, 1, 0, 72, 978, 1, 0, 159, 0, 484, 0, 389, 1097, 0, 42, 1, 0, 574, 1280, 1, 1, 1, 0, 389, 949, 0, 700, 0, 42, 1, 1, 1, 1, 1, 0, 39, 0, 389, 945, 0, 39, 1, 1, 1, 1, 1, 0, 182, 1, 1, 1, 1, 1, 1, 1, 0, 162, 0, 94, 1182, 1521, 0, 250, 1209, 0, 268, 2, 1129, 1123, 3, 1, 0, 39, 0, 389, 945, 0, 39, 1, 1, 1, 1, 0, 199, 0, 134, 0, 389, 1097, 0, 512, 1293, 1, 0, 574, 1080, 1, 1, 0, 220, 0, 512, 1293, 1, 0, 37, 1522, 1, 1079, 1, 1, 1, 1, 0, 94, 1182, 1522, 0, 250, 1203, 941, 1, 1, 1, 3, 1, 1, 1, 0, 140, 0, 134, 0, 123, 1186, 1080, 1, 0, 136, 1079, 1034, 1, 1, 1, 1, 1]
