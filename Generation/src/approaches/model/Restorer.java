@@ -98,7 +98,14 @@ public class Restorer {
 	}
 
 	private String restoreString(int numericToken) {
-		return "\"string " + (numericToken - parameters.stringStart) + "\"";
+		int finalIndex = numericToken - parameters.stringStart;
+		int nameIndex = finalIndex / parameters.maxPlayers;
+		int playerIndex = finalIndex % parameters.maxPlayers;
+						
+		if (playerIndex > 0)
+			return '"' + parameters.replacementStrings[nameIndex] + playerIndex + '"';
+		
+		return '"' + parameters.replacementStrings[nameIndex] + '"';
 	}
 	
 	

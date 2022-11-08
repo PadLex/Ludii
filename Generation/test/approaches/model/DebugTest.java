@@ -29,8 +29,11 @@ public class DebugTest {
 		System.out.println("Dictionary: " + restorer.dictionary());
 		System.out.println("caluses: " + parameters.clauseToId);
 		
-		//String file = "../Common/res/lud/board/war/leaping/diagonal/American Pool Checkers.lud"
-		String file = "../Common/res/lud/subgame/race/escape/MughrabiehSubgame.lud";
+		//String file = "../Common/res/lud/board/war/leaping/diagonal/American Pool Checkers.lud";
+		//String file = "../Common/res/lud/board/hunt/To Kinegi tou Lagou.lud";
+		//../Common/res/lud/board/war/replacement/checkmate/shogi/Tai Shogi.lud
+		String file = "../Common/res/lud/test/dennis/Tic-Tac-Choose-Chess.lud";
+
 		
 
 		Game originalGame = GameLoader.loadGameFromFile(new File(file));
@@ -45,11 +48,9 @@ public class DebugTest {
 
 		String restoredString = restorer.restoreAsString(tokens);
 		
-		
-		restoredString = restoredString.replace("string 1", "aaac1");
-		restoredString = restoredString.replace("string 2", "aaac2");
-
-		restoredString = restoredString.replace("string 4", "aaac");
+		//restoredString = restoredString.replace("Knight", "AA");
+		//restoredString = restoredString.replace("Bishop", "BBBBBB");
+		//restoredString = restoredString.replace("Rook1", "BBBBBB");
 
 
 		

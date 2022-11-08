@@ -22,6 +22,7 @@ public class TokenizationParameters {
 	
 	public final float[] floats;
 	public final String[] replacementSvg;
+	public final String[] replacementStrings;
 	public final int maxPlayers;
 	public final Collection<Symbol> symbols;
 	
@@ -56,15 +57,16 @@ public class TokenizationParameters {
 	public TokenizationParameters(
 			float[] floats,
 			String[] replacementSvg,
+			String[] replacementStrings,
 			int maxPlayers,
 			Collection<Symbol> symbols,
-			int intTokens,
-			int stringTokens
+			int intTokens
 	) {
 		
 		/* initialize parameters */
 		this.symbols = Collections.unmodifiableCollection(symbols);
 		this.replacementSvg = replacementSvg;
+		this.replacementStrings = replacementStrings;
 		this.maxPlayers = maxPlayers;
 		this.floats = floats;
 		
@@ -72,7 +74,7 @@ public class TokenizationParameters {
 		this.floatTokens = floats.length;
 		this.booleanTokens = 2;
 		this.svgTokens = replacementSvg.length * maxPlayers;
-		this.stringTokens = stringTokens;
+		this.stringTokens = replacementStrings.length * maxPlayers;
 		
 		
 		/* initialize symbol and clause Maps */
@@ -86,13 +88,17 @@ public class TokenizationParameters {
 				continue;
 			}
 
-			String symbolName = symbol.token();
+			String symbolToken = symbol.token();
 
-			if (!symbolToId.containsKey(symbolName)) {
+			if (!symbolToId.containsKey(symbolToken)) {
 				int id = symbolToId.size();
-				symbolToId.put(symbolName, id);
-				idToSymbol.put(id, symbolName);
+				symbolToId.put(symbolToken, id);
+				idToSymbol.put(id, symbolToken);
 			}
+			
+			if (symbol.hasAlias()) 
+				symbolToId.put(symbol.name().substring(0, 1).toLowerCase() + symbol.name().substring(1), symbolToId.get(symbolToken));
+			
 
 			if (symbol.rule() != null) {
 				for (Clause clause : symbol.rule().rhs()) {
@@ -119,11 +125,17 @@ public class TokenizationParameters {
 		this.clauseToId = (Map<String, Integer>) Collections.unmodifiableMap(clauseToId);
 		this.idToClause = (Map<Integer, String>) Collections.unmodifiableMap(idToClause);
 		
+		System.out.println(symbolToId.keySet());
+		
 		
 		/* initialize svgNames */
-		svgNames = Arrays.asList(SVGLoader.listSVGs()).stream().map(x -> '"' + x.replaceAll("/.*/", "").replaceAll(".svg", "") +  '"').collect(Collectors.toUnmodifiableSet());
-		
+		svgNames = Arrays.asList(SVGLoader.listSVGs()).stream()
+				.map(x -> '"' + x.replaceAll("/.*/", "").replaceAll(".svg", "").toLowerCase().replaceAll("\\d","") +  '"') // Format from pawn.svg to "pawn"
+				.filter((s) -> !s.matches("\\\"[a-z](\\d+)?\\\"") || s.equals("\"\"")) // filter out annoying names like a.svg TODO find better way to selecect svg
+				.collect(Collectors.toUnmodifiableSet());
+		//System.out.println(svgNames);
 
+		
 		/* initialize Starts */
 		intStart = baseTokens;
 		floatStart = intStart + intTokens;
@@ -168,16 +180,15 @@ public class TokenizationParameters {
 	
 	
 	public static TokenizationParameters completeParameters() {
-		float[] floats = {0.5f, 0.25f, 1.333f, 3.5f, 2.75f};
+		float[] floats = {Float.NEGATIVE_INFINITY, -3.5f, -0.5f, 0.25f, 0.5f, 0.5f, 0.65f, 0.707f, 1.05f, 1.333f, 1.5f, 1.73205f, 2.0f, 2.2f, 2.75f, 3.5f, 4.5f, 5.41f, 6.5f, 7.5f, 8.5f, 16.91f, Float.POSITIVE_INFINITY};
 		String[] replacementSvg = {"Pawn", "Knight", "Bishop", "Rook", "Queen", "King"};
-		int maxPlayers = 16;
+		String[] replacementStrings = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O"};
+		int maxPlayers = 14;
 		//List<Symbol> completeGrammar = Grammar.grammar().symbols().stream().filter(s -> s.usedInGrammar()).collect(Collectors.toList());
 		List<Symbol> completeGrammar = Grammar.grammar().symbols();
 
+		int intTokens = 600;
 		
-		int intTokens = 100;
-		int stringTokens = 40;
-		
-		return new TokenizationParameters(floats, replacementSvg, maxPlayers, completeGrammar, intTokens, stringTokens);
+		return new TokenizationParameters(floats, replacementSvg, replacementStrings, maxPlayers, completeGrammar, intTokens);
 	}
 }

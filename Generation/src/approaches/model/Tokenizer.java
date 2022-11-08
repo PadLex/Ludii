@@ -36,12 +36,11 @@ public class Tokenizer {
 	private void tokenizeTree(Collection<Token> tree, List<Integer> tokens) {
 
 		for (Token token : tree) {
-
+			
 			if (token.parameterLabel() != null) {
-				//System.out.println(token.parameterLabel());
 				tokens.add(parameters.clauseStart + parameters.clauseToId.get(token.parameterLabel()));
 			}
-
+			
 			if (token.isClass())
 				tokens.add(parameters.openClassToken);
 			else if (token.isArray())
@@ -66,11 +65,10 @@ public class Tokenizer {
 	private int tokenizeLudiiToken(Token ludiiToken) {
 		// TODO get symbol from token instead of using strings
 		String name = ludiiToken.name();
-
+		
 		try {
 			return parameters.symbolStart + parameters.symbolToId.get(name);
-		} catch (NullPointerException ignored) {
-		}
+		} catch (NullPointerException ignored) {}
 
 		if (name.charAt(0) == '"') {
 			try {
@@ -86,8 +84,7 @@ public class Tokenizer {
 
 		try {
 			return tokenizeFloat(Float.parseFloat(name));
-		} catch (NumberFormatException ignored) {
-		}
+		} catch (NumberFormatException ignored) {}
 
 		if (name.toLowerCase().equals("true"))
 			return tokenizeBoolean(true);
@@ -120,16 +117,12 @@ public class Tokenizer {
 	}
 
 	private int tokenizeSvg(String string) {
-
 		String svgName = string.toLowerCase().replaceAll("\\d","");
 
 		if (!parameters.svgNames.contains(svgName))
 			throw new RuntimeException(svgName + " is not a vald svg name");
-
-		int playerIndex = 0;
-		try {
-			playerIndex = Integer.parseInt(string.replaceAll("[^0-9]", ""));
-		} catch (NumberFormatException ignored) {}
+		
+		int playerIndex = extractPlayerIndex(string);
 
 		if (playerIndex >= parameters.maxPlayers)
 			throw new RuntimeException("Too many players " + string);
@@ -150,17 +143,39 @@ public class Tokenizer {
 		return parameters.svgStart + finaIndex;
 	}
 
+	// TODO understand this better. Can I really replace Track1, Track2, Track with A, A, A or A1, A2, A?
 	private int tokenizeString(String string) {
-		int id = previousStrings.indexOf(string);
+		String stringName = string.replaceAll("\\d","");
 
-		if (id < 0) {
-			id = previousStrings.size();
-			previousStrings.add(string);
+		int playerIndex = extractPlayerIndex(string);
+
+		if (playerIndex >= parameters.maxPlayers)
+			throw new RuntimeException("Too many players " + string);
+
+
+		int nameIndex = previousStrings.indexOf(stringName);
+
+		if (nameIndex < 0) {
+			nameIndex = previousStrings.size();
+			previousStrings.add(stringName);
 		}
 
-		if (id >= parameters.stringStart + parameters.stringTokens)
+		int finaIndex = nameIndex * parameters.maxPlayers + playerIndex;
+
+		if (finaIndex >= parameters.stringTokens)
 			throw new RuntimeException("Too many unique strings " + previousStrings.size());
 
-		return parameters.stringStart + id;
+		return parameters.stringStart + finaIndex;
 	}
+	
+	private int extractPlayerIndex(String string) {
+		if (string.indexOf(' ') >= 0 || string.matches(".*\\d.*\\d.*"))
+			return 0;
+		
+		try {
+			return Integer.parseInt(string.replaceAll("[^0-9]", ""));
+		} catch (NumberFormatException ignored) {}
+		return 0;
+	}
+
 }

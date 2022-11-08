@@ -5,9 +5,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -22,6 +24,7 @@ import java.nio.file.Path;
 public class CorrectnessTest {
 	
 	static boolean verbose = true;
+	static Set<String> badFiles = new HashSet<String>(Arrays.asList("Graph Test - Mesh (Square).lud", "null.lud", "Circle Test.lud", "Graph Test - Mesh (8).lud", "Graph Test - Tiling3464 (Dual x 4).lud", "Graph Test - Tiling3464 (Dual x 7).lud", "Graph Test - Tiling3464 (Prism, 2,3).lud", "Graph Test - Tiling3464 (Diamond, 2).lud", "Graph Test - Tiling3464 (Dual x 6).lud"));
 
 	public static void main(String[] args) {
 		TokenizationParameters parameters = TokenizationParameters.completeParameters();
@@ -33,18 +36,25 @@ public class CorrectnessTest {
 		File directory = new File("../Common/res/lud");
 		System.out.println(directory.getAbsolutePath());
 		
-		List<Path> paths = new ArrayList<>();
+		List<File> files = new ArrayList<>();
 		
 		try {
 			Files.find(Paths.get("../Common/res/lud"),
 			           Integer.MAX_VALUE,
-			           (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.toString().toLowerCase().endsWith(".lud"))
-			        .forEach(paths::add);
+			           (filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.toString().toLowerCase().endsWith(".lud") && !filePath.startsWith("../Common/res/lud/test"))
+			        .forEach(path -> {
+			        	File file = path.toFile();
+			        	if (!badFiles.contains(file.getName())) 
+			        		files.add(file);
+			        });
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return;
 		}
+		
+		files.removeAll(badFiles);
+		
 		
 		int invalidTests = 0;
 		int failedToTokenize = 0;
@@ -52,30 +62,35 @@ public class CorrectnessTest {
 		int incorrectRestore = 0;
 		int successes = 0;
 		
-		for (Path path: paths) {
+		for (File file: files) {
 			
 			int i = invalidTests + failedToTokenize + failedToRestore + incorrectRestore + successes;
-			if (i % (paths.size()/100) == 0) {
-				System.out.println(i + " of " + paths.size() + " tested");
+			if (i % (files.size()/100) == 0) {
+				System.out.println(i + " of " + files.size() + " tested");
 			}
 			
 			try {
-				Game originalGame = GameLoader.loadGameFromFile(path.toFile());
+				long startTime = System.currentTimeMillis();
+
+				Game originalGame = GameLoader.loadGameFromFile(file);
+				
+				long loadFileTime = System.currentTimeMillis();
+
 			
 				try {
 					List<Integer> tokens = tokenizer.tokenizeGame(originalGame);
+					long tokenizeTime = System.currentTimeMillis();
 					
 					String restoredString = restorer.restoreAsString(tokens);
+					long restoreTime = System.currentTimeMillis();
 	
 					try {
 						Game restoredGame = (Game) Compiler.compileTest(new Description(restoredString), false);
+						long recompileTime = System.currentTimeMillis();
 						
 						if (!compareGames(originalGame, restoredGame)) {
 							if (verbose) {
-								System.out.println("The restored game is not identical to the original " + path.toString());
-								System.out.println("Original vs Restored strings");
-								System.out.println(squishSpaces(originalGame.description().tokenForest().tokenTrees().get(0).toString()));
-								System.out.println(squishSpaces(restoredString));
+								System.out.println("The restored game is not identical to the original " + file.getPath());
 								System.out.println("---------------------------------------- # ----------------------------------------");
 							}
 							
@@ -83,15 +98,15 @@ public class CorrectnessTest {
 							continue;
 						}
 						
+						System.out.println("compile file: " + (loadFileTime-startTime) + ", tokenize:" + (tokenizeTime - loadFileTime) + ", restore:" + (restoreTime-tokenizeTime) + ", recompile:" + (recompileTime - restoreTime));
+						
 						successes++;
 						
 	
 					} catch (RuntimeException e) {
 						if (verbose) {
-							System.out.println("An exception occured while attempting to restore " + path.toString());
+							System.out.println("An exception occured while attempting to restore " + file.getPath());
 							System.out.println("Original vs Restored strings");
-							System.out.println(squishSpaces(originalGame.description().tokenForest().tokenTrees().get(0).toString()));
-							System.out.println(squishSpaces(restoredString));
 							System.out.println("---------------------------------------- # ----------------------------------------");
 		
 							e.printStackTrace();
@@ -103,9 +118,8 @@ public class CorrectnessTest {
 					
 				} catch (RuntimeException e) {
 					if (verbose) {
-						System.out.println("An exception occured while attempting to tokenize " + path.toString());
+						System.out.println("An exception occured while attempting to tokenize " + file.getPath());
 						System.out.println("Original string");
-						System.out.println(squishSpaces(originalGame.description().tokenForest().tokenTrees().get(0).toString()));
 						System.out.println("---------------------------------------- # ----------------------------------------");
 		
 						e.printStackTrace();
@@ -115,9 +129,11 @@ public class CorrectnessTest {
 					continue;
 				}
 			} catch (Exception e) {
+				System.out.println("Bad file. Failed to compile " + file.getPath());
+				System.out.println("---------------------------------------- # ----------------------------------------");
 				invalidTests++;
 				continue;
-			}
+			}			
 		}
 				
 		System.out.println("invalidTests: " + invalidTests);
@@ -125,7 +141,6 @@ public class CorrectnessTest {
 		System.out.println("failedToRestore: " + failedToRestore);
 		System.out.println("incorrectRestore: " + incorrectRestore);
 		System.out.println("successes: " + successes);
-
 	}
 	
 	
