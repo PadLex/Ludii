@@ -3,6 +3,7 @@ package approaches.model;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -17,21 +18,29 @@ public class Tokenizer {
 	TokenizationParameters parameters;
 
 	private ArrayList<String> previousStrings;
-	private ArrayList<String> previousSvgs;
+	private ArrayList<String> previousComponents;
+	private List<Integer> tokens;
+	private HashSet<String> componentNames;
+	private HashSet<String> containerNames;
+
 
 	public Tokenizer(TokenizationParameters parameters) {
 		this.parameters = parameters;
 	}
 
 	public List<Integer> tokenizeGame(Game game) {
-		List<Integer> tokens = new ArrayList<>();
+		
 		
 		previousStrings = new ArrayList<>();
-		previousSvgs = new ArrayList<>();
+		previousComponents = new ArrayList<>();
+		tokens = new ArrayList<>();
 		
-		System.out.println(Arrays.asList(game.equipment().components()).stream().map(p -> p.name()).collect(Collectors.toList()));
-		System.out.println(Arrays.asList(game.equipment().containers()).stream().map(p -> p.name()).collect(Collectors.toList()));
-
+		componentNames = (HashSet<String>) Arrays.stream(game.equipment().components()).map(p -> extractLabel(p.name())).collect(Collectors.toSet());
+		containerNames = (HashSet<String>) Arrays.stream(game.equipment().containers()).map(p -> extractLabel(p.name())).collect(Collectors.toSet());
+		
+		System.out.println(componentNames);
+		System.out.println(containerNames);
+		
 		tokenizeTree(game.description().tokenForest().tokenTrees(), tokens);
 
 		return tokens;
@@ -75,11 +84,19 @@ public class Tokenizer {
 		} catch (NullPointerException ignored) {}
 
 		if (name.charAt(0) == '"') {
-			try {
-				return tokenizeSvg(name);
-			} catch (RuntimeException ignored) {}
+			String label = extractLabel(name);
+			int playerIndex = extractPlayerIndex(name);
+			
+			if (playerIndex >= parameters.maxPlayers)
+				throw new RuntimeException("Too many players " + name);
+			
+			if (componentNames.contains(label))
+				return tokenizeComponent(label, playerIndex);
+			
+			if (containerNames.contains(label))
+				return tokenizeContainer(label, playerIndex);
 
-			return tokenizeString(name);
+			return tokenizeString(label, playerIndex);
 		}
 
 		try {
@@ -120,48 +137,44 @@ public class Tokenizer {
 		return parameters.booleanStart + (bool ? 1 : 0);
 	}
 
-	private int tokenizeSvg(String string) {
-		String svgName = string.toLowerCase().replaceAll("\\d","");
-
-		if (!parameters.svgNames.contains(svgName))
-			throw new RuntimeException(svgName + " is not a vald svg name");
-		
-		int playerIndex = extractPlayerIndex(string);
-
-		if (playerIndex >= parameters.maxPlayers)
-			throw new RuntimeException("Too many players " + string);
-
-
-		int nameIndex = previousSvgs.indexOf(svgName);
+	private int tokenizeComponent(String label, int playerIndex) {
+		int nameIndex = previousComponents.indexOf(label);
 
 		if (nameIndex < 0) {
-			nameIndex = previousSvgs.size();
-			previousSvgs.add(svgName);
+			nameIndex = previousComponents.size();
+			previousComponents.add(label);
 		}
 
 		int finaIndex = nameIndex * parameters.maxPlayers + playerIndex;
 
-		if (finaIndex >= parameters.svgTokens)
-			throw new RuntimeException("Too many unique svgs " + previousSvgs.size());
+		if (finaIndex >= parameters.componentTokens)
+			throw new RuntimeException("Too many unique components " + previousComponents.size());
 
-		return parameters.svgStart + finaIndex;
+		return parameters.componentStart + finaIndex;
+	}
+	
+	private int tokenizeContainer(String label, int playerIndex) {
+		int nameIndex = Arrays.binarySearch(parameters.containers, label);
+		
+		if (nameIndex < 0) {
+			System.out.println(Arrays.toString(parameters.containers) + "|" + label + "|" + nameIndex);
+
+			throw new RuntimeException("Not a known container " + label);
+		}
+
+		int finaIndex = nameIndex * parameters.maxPlayers + playerIndex;
+
+		return parameters.containerStart + finaIndex;
 	}
 
 	// TODO understand this better. Can I really replace Track1, Track2, Track with A, A, A or A1, A2, A?
-	private int tokenizeString(String string) {
-		String stringName = string.replaceAll("\\d","");
+	private int tokenizeString(String label, int playerIndex) {
 
-		int playerIndex = extractPlayerIndex(string);
-
-		if (playerIndex >= parameters.maxPlayers)
-			throw new RuntimeException("Too many players " + string);
-
-
-		int nameIndex = previousStrings.indexOf(stringName);
+		int nameIndex = previousStrings.indexOf(label);
 
 		if (nameIndex < 0) {
 			nameIndex = previousStrings.size();
-			previousStrings.add(stringName);
+			previousStrings.add(label);
 		}
 
 		int finaIndex = nameIndex * parameters.maxPlayers + playerIndex;
@@ -181,5 +194,10 @@ public class Tokenizer {
 		} catch (NumberFormatException ignored) {}
 		return 0;
 	}
+	
+	private String extractLabel(String string) {
+		return string.replaceAll("\\d","").replace("\"", "");
+	}
+
 
 }

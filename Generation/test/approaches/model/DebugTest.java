@@ -32,7 +32,7 @@ public class DebugTest {
 		//String file = "../Common/res/lud/board/war/leaping/diagonal/American Pool Checkers.lud";
 		//String file = "../Common/res/lud/board/hunt/To Kinegi tou Lagou.lud";
 		//../Common/res/lud/board/war/replacement/checkmate/shogi/Tai Shogi.lud
-		String file = "../Common/res/lud/test/dennis/Tic-Tac-Choose-Chess.lud";
+		String file = "../Common/res/lud/board/sow/two_rows/Ako Okwe.lud";
 
 		
 
@@ -51,7 +51,8 @@ public class DebugTest {
 		//restoredString = restoredString.replace("Knight", "AA");
 		//restoredString = restoredString.replace("Bishop", "BBBBBB");
 		//restoredString = restoredString.replace("Rook1", "BBBBBB");
-		//restoredString = restoredString.replace("\"B\"", "\"Hand\"");
+		restoredString = restoredString.replace("\"C1\"", "\"1,E,N,W\"");
+		restoredString = restoredString.replace("\"E6\"", "\"6,E,S,W\"");
 
 		
 		System.out.println(CorrectnessTest.squishSpaces(restoredString));

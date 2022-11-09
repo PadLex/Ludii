@@ -18,10 +18,11 @@ import main.grammar.Symbol;
 
 public class TokenizationParameters {
 
-	public static enum NumericTokenType {BASE, INT, FLOAT, BOOLEAN, SVG, STRING, SYMBOL, CLAUSE}
+	public static enum NumericTokenType {BASE, INT, FLOAT, BOOLEAN, COMPONENT, CONTAINER, STRING, SYMBOL, CLAUSE}
 	
 	public final float[] floats;
-	public final String[] replacementSvg;
+	public final String[] replacementComponents;
+	public final String[] containers;
 	public final String[] replacementStrings;
 	public final int maxPlayers;
 	public final Collection<Symbol> symbols;
@@ -35,19 +36,20 @@ public class TokenizationParameters {
 	public final int intTokens;
 	public final int floatTokens;
 	public final int booleanTokens;
-	public final int svgTokens;
+	public final int componentTokens;
+	public final int containerTokens;
 	public final int stringTokens;
 
 	public Map<String, Integer> symbolToId;
 	public Map<Integer, String> idToSymbol;
 	public Map<String, Integer> clauseToId;
 	public Map<Integer, String> idToClause;
-	public Set<String> svgNames;
 
 	public final int intStart;
 	public final int floatStart;
 	public final int booleanStart;
-	public final int svgStart;
+	public final int componentStart;
+	public final int containerStart;
 	public final int stringStart;
 	public final int symbolStart;
 	public final int clauseStart;
@@ -56,7 +58,8 @@ public class TokenizationParameters {
 
 	public TokenizationParameters(
 			float[] floats,
-			String[] replacementSvg,
+			String[] replacementComponents,
+			String[] containers,
 			String[] replacementStrings,
 			int maxPlayers,
 			Collection<Symbol> symbols,
@@ -64,16 +67,21 @@ public class TokenizationParameters {
 	) {
 		
 		/* initialize parameters */
-		this.symbols = Collections.unmodifiableCollection(symbols);
-		this.replacementSvg = replacementSvg;
+		Arrays.sort(floats);
+		Arrays.sort(containers);
+		
+		this.floats = floats;
+		this.replacementComponents = replacementComponents;
+		this.containers = containers;
 		this.replacementStrings = replacementStrings;
 		this.maxPlayers = maxPlayers;
-		this.floats = floats;
+		this.symbols = Collections.unmodifiableCollection(symbols);
 		
 		this.intTokens = intTokens;
 		this.floatTokens = floats.length;
 		this.booleanTokens = 2;
-		this.svgTokens = replacementSvg.length * maxPlayers;
+		this.componentTokens = replacementComponents.length * maxPlayers;
+		this.containerTokens = containers.length * maxPlayers;
 		this.stringTokens = replacementStrings.length * maxPlayers;
 		
 		
@@ -126,22 +134,15 @@ public class TokenizationParameters {
 		this.idToClause = (Map<Integer, String>) Collections.unmodifiableMap(idToClause);
 		
 		System.out.println(symbolToId.keySet());
-		
-		
-		/* initialize svgNames */
-		svgNames = Arrays.asList(SVGLoader.listSVGs()).stream()
-				.map(x -> '"' + x.replaceAll("/.*/", "").replaceAll(".svg", "").toLowerCase().replaceAll("\\d","") +  '"') // Format from pawn.svg to "pawn"
-				.filter((s) -> !s.matches("\\\"[a-z](\\d+)?\\\"") && !s.equals("\"\"") && !s.equals("\"hand\"")) // filter out annoying names like a.svg TODO find better way to selecect svg
-				.collect(Collectors.toUnmodifiableSet());
-		//System.out.println(svgNames);
 
 		
 		/* initialize Starts */
 		intStart = baseTokens;
 		floatStart = intStart + intTokens;
 		booleanStart = floatStart + floatTokens;
-		svgStart = booleanStart + booleanTokens;
-		stringStart = svgStart + svgTokens;
+		componentStart = booleanStart + booleanTokens;
+		containerStart = componentStart + componentTokens;
+		stringStart = containerStart + containerTokens;
 		symbolStart = stringStart + stringTokens;
 		clauseStart = symbolStart + symbolToId.size();
 		tokenCount = clauseStart + clauseToId.size();
@@ -163,11 +164,14 @@ public class TokenizationParameters {
 		if (token < booleanStart)
 			return NumericTokenType.FLOAT;
 
-		if (token < svgStart)
+		if (token < componentStart)
 			return NumericTokenType.BOOLEAN;
+		
+		if (token < containerStart)
+			return NumericTokenType.COMPONENT;
 
 		if (token < stringStart)
-			return NumericTokenType.SVG;
+			return NumericTokenType.CONTAINER;
 
 		if (token < symbolStart)
 			return NumericTokenType.STRING;
@@ -183,8 +187,9 @@ public class TokenizationParameters {
 	
 	
 	public static TokenizationParameters completeParameters() {
-		float[] floats = {Float.NEGATIVE_INFINITY, -3.5f, -0.5f, -0.325f, 0.0f, 0.25f, 0.5f, 0.5f, 0.65f, 0.707f, 1.05f, 1.333f, 1.5f, 1.73205f, 2.0f, 2.2f, 2.5f, 2.75f, 3.5f, 3.75f, 4.5f, 5.25f, 5.41f, 6.5f, 7.5f, 8.5f, 16.91f, 45.0f, Float.POSITIVE_INFINITY};
-		String[] replacementSvg = {"Pawn", "Knight", "Bishop", "Rook", "Queen", "King"};
+		float[] floats = {Float.NEGATIVE_INFINITY, -3.5f, -0.5f, -0.325f, 0.0f, 0.17f, 0.25f, 0.4f, 0.5f, 0.5f, 0.65f, 0.707f, 1.05f, 1.333f, 1.5f, 1.73205f, 2.0f, 2.2f, 2.5f, 2.75f, 3.5f, 3.75f, 4.5f, 5.25f, 5.41f, 6.2f, 6.5f, 7.5f, 8.5f, 16.91f, 45.0f, Float.POSITIVE_INFINITY};
+		String[] replacementComponents = {"Pawn", "Knight", "Bishop", "Rook", "Queen", "King"};
+		String[] containers = {"Hand", "Dice", "Deck", "Board"};
 		String[] replacementStrings = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O"};
 		int maxPlayers = 14;
 		//List<Symbol> completeGrammar = Grammar.grammar().symbols().stream().filter(s -> s.usedInGrammar()).collect(Collectors.toList());
@@ -192,6 +197,6 @@ public class TokenizationParameters {
 
 		int intTokens = 600;
 		
-		return new TokenizationParameters(floats, replacementSvg, replacementStrings, maxPlayers, completeGrammar, intTokens);
+		return new TokenizationParameters(floats, replacementComponents, containers, replacementStrings, maxPlayers, completeGrammar, intTokens);
 	}
 }
