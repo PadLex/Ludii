@@ -32,8 +32,8 @@ public class DebugTest {
 		//String file = "../Common/res/lud/board/war/leaping/diagonal/American Pool Checkers.lud";
 		//String file = "../Common/res/lud/board/hunt/To Kinegi tou Lagou.lud";
 		//../Common/res/lud/board/war/replacement/checkmate/shogi/Tai Shogi.lud
-		String file = "../Common/res/lud/board/sow/two_rows/Ako Okwe.lud";
-
+		//../Common/res/lud/board/sow/three_rows/Selus (Massawa).lud
+		String file = "../Common/res/lud/board/sow/three_rows/Selus (Massawa).lud";
 		
 
 		Game originalGame = GameLoader.loadGameFromFile(new File(file));
@@ -51,8 +51,8 @@ public class DebugTest {
 		//restoredString = restoredString.replace("Knight", "AA");
 		//restoredString = restoredString.replace("Bishop", "BBBBBB");
 		//restoredString = restoredString.replace("Rook1", "BBBBBB");
-		restoredString = restoredString.replace("\"C1\"", "\"1,E,N,W\"");
-		restoredString = restoredString.replace("\"E6\"", "\"6,E,S,W\"");
+		//restoredString = restoredString.replace("\"C1\"", "\"1,E,N,W\"");
+		//restoredString = restoredString.replace("\"E6\"", "\"6,E,S,W\"");
 
 		
 		System.out.println(CorrectnessTest.squishSpaces(restoredString));

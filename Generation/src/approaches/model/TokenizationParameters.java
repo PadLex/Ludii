@@ -27,12 +27,15 @@ public class TokenizationParameters {
 	public final int maxPlayers;
 	public final Collection<Symbol> symbols;
 	
-	public final int openClassToken = 0;
-	public final int closeClassToken = 1;
-	public final int openArrayToken = 2;
-	public final int closeArrayToken = 3;
+	public static final int openClassToken = 0;				// (
+	public static final int closeClassToken = 1;			// )
+	public static final int openArrayToken = 2;				// {
+	public static final int closeArrayToken = 3;			// }
+	public static final int stringedTokensDelimeter = 4;	// " in "1,E,N,W"
+	public static final int stringedTokensSeparator = 5;	// , in "20,3,W,N1,E,End"
 
-	public final int baseTokens = 4;
+
+	public final int baseTokens = 6;
 	public final int intTokens;
 	public final int floatTokens;
 	public final int booleanTokens;
@@ -187,7 +190,7 @@ public class TokenizationParameters {
 	
 	
 	public static TokenizationParameters completeParameters() {
-		float[] floats = {Float.NEGATIVE_INFINITY, -3.5f, -0.5f, -0.325f, 0.0f, 0.17f, 0.25f, 0.4f, 0.5f, 0.5f, 0.65f, 0.707f, 1.05f, 1.333f, 1.5f, 1.73205f, 2.0f, 2.2f, 2.5f, 2.75f, 3.5f, 3.75f, 4.5f, 5.25f, 5.41f, 6.2f, 6.5f, 7.5f, 8.5f, 16.91f, 45.0f, Float.POSITIVE_INFINITY};
+		float[] floats = {Float.NEGATIVE_INFINITY, -3.5f, -1.5f, -0.5f, -0.325f, 0.0f, 0.17f, 0.25f, 0.4f, 0.5f, 0.5f, 0.6f, 0.65f, 0.707f, 1.05f, 1.333f, 1.4f, 1.5f, 1.73205f, 2.0f, 2.2f, 2.5f, 2.75f, 3.5f, 3.75f, 4.2f, 4.5f, 4.65f, 5.25f, 5.41f, 6.2f, 6.5f, 7.5f, 8.5f, 16.91f, 45.0f, Float.POSITIVE_INFINITY};
 		String[] replacementComponents = {"Pawn", "Knight", "Bishop", "Rook", "Queen", "King"};
 		String[] containers = {"Hand", "Dice", "Deck", "Board"};
 		String[] replacementStrings = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O"};

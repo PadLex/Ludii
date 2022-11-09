@@ -19,8 +19,16 @@ public class Restorer {
 
 	public String restoreAsString(List<Integer> tokens) {
 		StringBuilder str = new StringBuilder();
-		for (int i = 0; i < tokens.size(); i++) {
-			str.append(restoreNumericToken(tokens.get(i)));
+		
+		boolean addSpace = true;
+		for (int token: tokens) {
+			if (token == TokenizationParameters.stringedTokensDelimeter) 
+				addSpace = !addSpace;
+			
+			str.append(restoreNumericToken(token));
+			
+			if (addSpace)
+				str.append(' ');
 		}
 
 		return str.toString();
@@ -40,19 +48,19 @@ public class Restorer {
 			case BASE:
 				return restoreBase(token);
 			case INT:
-				return Integer.toString(restoreInt(token)) + ' ';
+				return Integer.toString(restoreInt(token));
 			case FLOAT:
-				return Float.toString(restoreFloat(token)) + ' ';
+				return Float.toString(restoreFloat(token));
 			case BOOLEAN:
-				return restoreBoolean(token)? "True ":"False ";
+				return (restoreBoolean(token)? "True":"False");
 			case COMPONENT:
-				return restoreComponent(token) + ' ';
+				return restoreComponent(token);
 			case CONTAINER:
-				return restoreContainer(token) + ' ';
+				return restoreContainer(token);
 			case STRING:
-				return restoreString(token) + ' ';
+				return restoreString(token);
 			case SYMBOL:
-				return parameters.idToSymbol.get(token - parameters.symbolStart) + ' ';
+				return parameters.idToSymbol.get(token - parameters.symbolStart);
 			case CLAUSE:
 				return parameters.idToClause.get(token - parameters.clauseStart) + ':';
 		}
@@ -61,17 +69,20 @@ public class Restorer {
 	}
 	
 	private String restoreBase(int numericToken) {
-		if (numericToken == parameters.openClassToken)
-			return "(";
-
-		if (numericToken == parameters.closeClassToken)
-			return ") ";
-
-		if (numericToken == parameters.openArrayToken)
-			return "{";
-
-		if (numericToken == parameters.closeArrayToken)
-			return "} ";
+		switch(numericToken) {
+			case TokenizationParameters.openClassToken:
+				return "(";
+			case TokenizationParameters.closeClassToken:
+				return ")";
+			case TokenizationParameters.openArrayToken:
+				return "{";
+			case TokenizationParameters.closeArrayToken:
+				return "}";
+			case TokenizationParameters.stringedTokensDelimeter:
+				return "\"";
+			case TokenizationParameters.stringedTokensSeparator:
+				return ",";
+		}
 		
 		throw new RuntimeException("Not a base token");
 	}

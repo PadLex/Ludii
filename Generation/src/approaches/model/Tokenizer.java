@@ -38,8 +38,8 @@ public class Tokenizer {
 		componentNames = (HashSet<String>) Arrays.stream(game.equipment().components()).map(p -> extractLabel(p.name())).collect(Collectors.toSet());
 		containerNames = (HashSet<String>) Arrays.stream(game.equipment().containers()).map(p -> extractLabel(p.name())).collect(Collectors.toSet());
 		
-		System.out.println(componentNames);
-		System.out.println(containerNames);
+		//System.out.println(componentNames);
+		//System.out.println(containerNames);
 		
 		tokenizeTree(game.description().tokenForest().tokenTrees(), tokens);
 
@@ -50,22 +50,43 @@ public class Tokenizer {
 
 		for (Token token : tree) {
 			
-			if (token.parameterLabel() != null) {
+			if (token.parameterLabel() != null) 
 				tokens.add(parameters.clauseStart + parameters.clauseToId.get(token.parameterLabel()));
-			}
 			
 			if (token.isClass())
-				tokens.add(parameters.openClassToken);
+				tokens.add(TokenizationParameters.openClassToken);
 			else if (token.isArray())
-				tokens.add(parameters.openArrayToken);
+				tokens.add(TokenizationParameters.openArrayToken);
 
-			if (token.name() != null) {
-				tokens.add(tokenizeLudiiToken(token));
+			String name = token.name();
+			if (name != null) {
+				if (name.matches("\\\"\\S*,\\S*\\\"")) {
+					tokens.add(TokenizationParameters.stringedTokensDelimeter);
+					
+					String[] subTokens = name.substring(1, name.length()-1).split(",");
+					for (String subToken: subTokens) {
+						String direction = subToken.replaceAll("\\d", "");
+						String magnitude = subToken.replaceAll("\\D", "");
+						
+						if (direction.length() > 0)
+							tokens.add(tokenizeLudiiToken(direction));
+							
+						if (magnitude.length() > 0) 
+							tokens.add(tokenizeLudiiToken(magnitude));
+						
+						tokens.add(TokenizationParameters.stringedTokensSeparator);
+					}
+					tokens.remove(tokens.size()-1); // Remove redundant last comma
+					
+					tokens.add(TokenizationParameters.stringedTokensDelimeter);
+				}
+				else 
+					tokens.add(tokenizeLudiiToken(name));
 			}
+			
 
-			if (!token.isTerminal()) {
+			if (!token.isTerminal()) 
 				tokenizeTree(token.arguments(), tokens);
-			}
 
 			if (token.isClass())
 				tokens.add(parameters.closeClassToken);
@@ -75,9 +96,7 @@ public class Tokenizer {
 		}
 	}
 
-	private int tokenizeLudiiToken(Token ludiiToken) {
-		// TODO get symbol from token instead of using strings
-		String name = ludiiToken.name();
+	private int tokenizeLudiiToken(String name) {
 		
 		try {
 			return parameters.symbolStart + parameters.symbolToId.get(name);
@@ -198,6 +217,5 @@ public class Tokenizer {
 	private String extractLabel(String string) {
 		return string.replaceAll("\\d","").replace("\"", "");
 	}
-
 
 }
