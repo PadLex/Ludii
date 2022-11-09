@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import game.Game;
 import main.grammar.Token;
@@ -27,6 +28,9 @@ public class Tokenizer {
 		
 		previousStrings = new ArrayList<>();
 		previousSvgs = new ArrayList<>();
+		
+		System.out.println(Arrays.asList(game.equipment().components()).stream().map(p -> p.name()).collect(Collectors.toList()));
+		System.out.println(Arrays.asList(game.equipment().containers()).stream().map(p -> p.name()).collect(Collectors.toList()));
 
 		tokenizeTree(game.description().tokenForest().tokenTrees(), tokens);
 

@@ -131,7 +131,7 @@ public class TokenizationParameters {
 		/* initialize svgNames */
 		svgNames = Arrays.asList(SVGLoader.listSVGs()).stream()
 				.map(x -> '"' + x.replaceAll("/.*/", "").replaceAll(".svg", "").toLowerCase().replaceAll("\\d","") +  '"') // Format from pawn.svg to "pawn"
-				.filter((s) -> !s.matches("\\\"[a-z](\\d+)?\\\"") || s.equals("\"\"")) // filter out annoying names like a.svg TODO find better way to selecect svg
+				.filter((s) -> !s.matches("\\\"[a-z](\\d+)?\\\"") && !s.equals("\"\"") && !s.equals("\"hand\"")) // filter out annoying names like a.svg TODO find better way to selecect svg
 				.collect(Collectors.toUnmodifiableSet());
 		//System.out.println(svgNames);
 
@@ -145,6 +145,9 @@ public class TokenizationParameters {
 		symbolStart = stringStart + stringTokens;
 		clauseStart = symbolStart + symbolToId.size();
 		tokenCount = clauseStart + clauseToId.size();
+		
+		
+		
 	}
 
 	public NumericTokenType classifyToken(int token) {
@@ -180,7 +183,7 @@ public class TokenizationParameters {
 	
 	
 	public static TokenizationParameters completeParameters() {
-		float[] floats = {Float.NEGATIVE_INFINITY, -3.5f, -0.5f, 0.25f, 0.5f, 0.5f, 0.65f, 0.707f, 1.05f, 1.333f, 1.5f, 1.73205f, 2.0f, 2.2f, 2.75f, 3.5f, 4.5f, 5.41f, 6.5f, 7.5f, 8.5f, 16.91f, Float.POSITIVE_INFINITY};
+		float[] floats = {Float.NEGATIVE_INFINITY, -3.5f, -0.5f, -0.325f, 0.0f, 0.25f, 0.5f, 0.5f, 0.65f, 0.707f, 1.05f, 1.333f, 1.5f, 1.73205f, 2.0f, 2.2f, 2.5f, 2.75f, 3.5f, 3.75f, 4.5f, 5.25f, 5.41f, 6.5f, 7.5f, 8.5f, 16.91f, 45.0f, Float.POSITIVE_INFINITY};
 		String[] replacementSvg = {"Pawn", "Knight", "Bishop", "Rook", "Queen", "King"};
 		String[] replacementStrings = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O"};
 		int maxPlayers = 14;

@@ -51,7 +51,7 @@ public class DebugTest {
 		//restoredString = restoredString.replace("Knight", "AA");
 		//restoredString = restoredString.replace("Bishop", "BBBBBB");
 		//restoredString = restoredString.replace("Rook1", "BBBBBB");
-
+		//restoredString = restoredString.replace("\"B\"", "\"Hand\"");
 
 		
 		System.out.println(CorrectnessTest.squishSpaces(restoredString));
