@@ -51,7 +51,7 @@ public class Tokenizer {
 		for (Token token : tree) {
 			
 			if (token.parameterLabel() != null) 
-				tokens.add(parameters.clauseStart + parameters.clauseToId.get(token.parameterLabel()));
+				tokens.add(tokenizeClause(token.parameterLabel()));
 			
 			if (token.isClass())
 				tokens.add(TokenizationParameters.openClassToken);
@@ -60,30 +60,8 @@ public class Tokenizer {
 
 			String name = token.name();
 			if (name != null) {
-				if (name.matches("\\\"\\S*,\\S*\\\"")) {
-					tokens.add(TokenizationParameters.stringedTokensDelimeter);
-					
-					String[] subTokens = name.substring(1, name.length()-1).split(",");
-					for (String subToken: subTokens) {
-						String direction = subToken.replaceAll("\\d", "");
-						String magnitude = subToken.replaceAll("\\D", "");
-						
-						if (direction.length() > 0)
-							tokens.add(tokenizeLudiiToken(direction));
-							
-						if (magnitude.length() > 0) 
-							tokens.add(tokenizeLudiiToken(magnitude));
-						
-						tokens.add(TokenizationParameters.stringedTokensSeparator);
-					}
-					tokens.remove(tokens.size()-1); // Remove redundant last comma
-					
-					tokens.add(TokenizationParameters.stringedTokensDelimeter);
-				}
-				else 
-					tokens.add(tokenizeLudiiToken(name));
+				tokenizeLudiiToken(name);
 			}
-			
 
 			if (!token.isTerminal()) 
 				tokenizeTree(token.arguments(), tokens);
@@ -95,14 +73,63 @@ public class Tokenizer {
 
 		}
 	}
-
-	private int tokenizeLudiiToken(String name) {
+	
+	private void tokenizeLudiiToken(String name) {
 		
 		try {
-			return parameters.symbolStart + parameters.symbolToId.get(name);
+			tokens.add(tokenizeSymbol(name));
+			return;
 		} catch (NullPointerException ignored) {}
+		
+		try {
+			tokens.add(findPrimitiveToken(name));
+			return;
+		} catch (RuntimeException ignored) {}
+		
+		// "1,E,N1,W"
+		if (name.matches("\\\"\\S*,\\S*\\\"")) {
+			tokens.add(TokenizationParameters.stringedTokensDelimeter);
+			
+			String[] subTokens = name.substring(1, name.length()-1).split(",");
+			for (String subToken: subTokens) {
+				tokenizeLudiiToken(subToken);
+			}
+			
+			tokens.add(TokenizationParameters.stringedTokensDelimeter);			
+		}
+		
+		// N4 or "B2"
+		else if (name.matches("\\\"?[A-Z]{1,2}[0-9]*\\\"?")) {	
+			String letters = name.replaceAll("[^A-Z]", "");
+			String numbers = name.replaceAll("[^0-9]", "");
+			
+			//System.out.println(name + ", " + letters + ", " + numbers);
 
-		if (name.charAt(0) == '"') {
+			
+			boolean hasQuotes = name.charAt(0) == '"';
+
+			if (hasQuotes)
+				tokens.add(TokenizationParameters.stringedTokensDelimeter);
+			
+			
+			tokens.add(tokenizeSymbol(letters.substring(0, 1)));
+						
+			if (letters.length() == 2) {
+				tokens.add(tokens.size() - 1, TokenizationParameters.tokenJoiner);
+				tokens.add(tokenizeSymbol(letters.substring(1)));
+			}
+			
+			if (numbers.length() > 0) {
+				tokens.add(tokens.size() - 1, TokenizationParameters.tokenJoiner);
+				tokens.add(tokenizeInt(Integer.parseInt(numbers)));
+			}
+			
+			if (hasQuotes)
+				tokens.add(TokenizationParameters.stringedTokensDelimeter);
+			
+		}
+		
+		else if (name.charAt(0) == '"') {
 			String label = extractLabel(name);
 			int playerIndex = extractPlayerIndex(name);
 			
@@ -110,14 +137,22 @@ public class Tokenizer {
 				throw new RuntimeException("Too many players " + name);
 			
 			if (componentNames.contains(label))
-				return tokenizeComponent(label, playerIndex);
+				tokens.add(tokenizeComponent(label, playerIndex));
 			
-			if (containerNames.contains(label))
-				return tokenizeContainer(label, playerIndex);
-
-			return tokenizeString(label, playerIndex);
+			else if (containerNames.contains(label))
+				tokens.add(tokenizeContainer(label, playerIndex));
+			
+			else
+				tokens.add(tokenizeString(label, playerIndex));
+			
+			return;
 		}
+		else
+			throw new RuntimeException("Failed to tokenize " + name);
+	}
 
+	private int findPrimitiveToken(String name) {
+		
 		try {
 			return tokenizeInt(Integer.parseInt(name));
 		} catch (NumberFormatException ignored) {}
@@ -131,7 +166,7 @@ public class Tokenizer {
 		else if (name.toLowerCase().equals("false"))
 			return tokenizeBoolean(false);
 
-		throw new RuntimeException("Failed to tokenize: " + name);
+		throw new RuntimeException("Not a primitive token: " + name);
 	}
 
 	// TODO prevent token overflow by returning -1 or raising exception
@@ -202,6 +237,14 @@ public class Tokenizer {
 			throw new RuntimeException("Too many unique strings " + previousStrings.size());
 
 		return parameters.stringStart + finaIndex;
+	}
+	
+	private int tokenizeSymbol(String name) {
+		return parameters.symbolStart + parameters.symbolToId.get(name);
+	}
+	
+	private int tokenizeClause(String parameterLabel) {
+		return parameters.clauseStart + parameters.clauseToId.get(parameterLabel);
 	}
 	
 	private int extractPlayerIndex(String string) {

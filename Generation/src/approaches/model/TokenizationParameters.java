@@ -25,15 +25,13 @@ public class TokenizationParameters {
 	public final String[] containers;
 	public final String[] replacementStrings;
 	public final int maxPlayers;
-	public final Collection<Symbol> symbols;
 	
 	public static final int openClassToken = 0;				// (
 	public static final int closeClassToken = 1;			// )
 	public static final int openArrayToken = 2;				// {
 	public static final int closeArrayToken = 3;			// }
-	public static final int stringedTokensDelimeter = 4;	// " in "1,E,N,W"
-	public static final int stringedTokensSeparator = 5;	// , in "20,3,W,N1,E,End"
-
+	public static final int tokenJoiner = 4;				// Join A4 or N1
+	public static final int stringedTokensDelimeter = 5;	// " in "1,E,N,W"
 
 	public final int baseTokens = 6;
 	public final int intTokens;
@@ -78,7 +76,6 @@ public class TokenizationParameters {
 		this.containers = containers;
 		this.replacementStrings = replacementStrings;
 		this.maxPlayers = maxPlayers;
-		this.symbols = Collections.unmodifiableCollection(symbols);
 		
 		this.intTokens = intTokens;
 		this.floatTokens = floats.length;
@@ -131,6 +128,16 @@ public class TokenizationParameters {
 			}
 		}
 		
+		// Add all the letters in the alphabet to support alpha numeric coordinates
+		for (char c: "ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray()) {
+			String letter = "" + c;
+			if (!symbolToId.containsKey(letter)) {
+				int id = symbolToId.size();
+				symbolToId.put(letter, id);
+				idToSymbol.put(id, letter);
+			}
+		}
+		
 		this.symbolToId = (Map<String, Integer>) Collections.unmodifiableMap(symbolToId);
 		this.idToSymbol = (Map<Integer, String>) Collections.unmodifiableMap(idToSymbol);
 		this.clauseToId = (Map<String, Integer>) Collections.unmodifiableMap(clauseToId);
@@ -149,8 +156,6 @@ public class TokenizationParameters {
 		symbolStart = stringStart + stringTokens;
 		clauseStart = symbolStart + symbolToId.size();
 		tokenCount = clauseStart + clauseToId.size();
-		
-		
 		
 	}
 
@@ -190,15 +195,15 @@ public class TokenizationParameters {
 	
 	
 	public static TokenizationParameters completeParameters() {
-		float[] floats = {Float.NEGATIVE_INFINITY, -3.5f, -1.5f, -0.5f, -0.325f, 0.0f, 0.17f, 0.25f, 0.4f, 0.5f, 0.5f, 0.6f, 0.65f, 0.707f, 1.05f, 1.333f, 1.4f, 1.5f, 1.73205f, 2.0f, 2.2f, 2.5f, 2.75f, 3.5f, 3.75f, 4.2f, 4.5f, 4.65f, 5.25f, 5.41f, 6.2f, 6.5f, 7.5f, 8.5f, 16.91f, 45.0f, Float.POSITIVE_INFINITY};
-		String[] replacementComponents = {"Pawn", "Knight", "Bishop", "Rook", "Queen", "King"};
+		float[] floats = {Float.NEGATIVE_INFINITY, -5.6f, -4.5f, -3.5f, -1.5f, -1.31f, -1.25f, -1f, -0.51f, -0.5f, -0.325f, 0.0f, 0.17f, 0.2f, 0.25f, 0.3f, 0.33f, 0.38f, 0.4f, 0.45f, 0.5f, 0.5f, 0.6f, 0.625f, 0.65f, 0.707f, 0.74f, 0.75f, 0.8f, 0.88f, 1.05f, 1.15f, 1.2f, 1.333f, 1.4f, 1.5f, 1.73205f, 2.0f, 2.2f, 2.5f, 2.75f, 2.79f, 3.5f, 3.75f, 4.1f, 4.2f, 4.3f, 4.5f, 4.65f, 5.25f, 5.41f, 5.5f, 6.2f, 6.5f, 7.5f, 8.5f, 9.5f, 11.3f, 14.5f, 16.91f, 45.0f, Float.POSITIVE_INFINITY};
+		String[] replacementComponents = {"Pawn", "Knight", "Bishop", "Rook", "Queen", "King", "Seed", "Counter", "DoubleCounter"};
 		String[] containers = {"Hand", "Dice", "Deck", "Board"};
-		String[] replacementStrings = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O"};
-		int maxPlayers = 14;
+		String[] replacementStrings = {"Aaaa", "Bbbb", "Cccc", "Dddd", "Eeee", "Ffff", "Gggg", "Hhhh", "Iiii", "Jjjj", "Kkkk", "Llll", "Oooo"};
+		int maxPlayers = 20;
 		//List<Symbol> completeGrammar = Grammar.grammar().symbols().stream().filter(s -> s.usedInGrammar()).collect(Collectors.toList());
 		List<Symbol> completeGrammar = Grammar.grammar().symbols();
 
-		int intTokens = 600;
+		int intTokens = 25000;
 		
 		return new TokenizationParameters(floats, replacementComponents, containers, replacementStrings, maxPlayers, completeGrammar, intTokens);
 	}

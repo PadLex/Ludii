@@ -1,6 +1,7 @@
 package approaches.model;
 
 import java.util.List;
+import java.util.ListIterator;
 
 import compiler.Compiler;
 import game.Game;
@@ -20,15 +21,31 @@ public class Restorer {
 	public String restoreAsString(List<Integer> tokens) {
 		StringBuilder str = new StringBuilder();
 		
-		boolean addSpace = true;
-		for (int token: tokens) {
-			if (token == TokenizationParameters.stringedTokensDelimeter) 
-				addSpace = !addSpace;
+		char separator = ' ';
+		for (ListIterator<Integer> iter = tokens.listIterator(); iter.hasNext(); ) {
+		    int token = iter.next();
+		    
+			if (token == TokenizationParameters.tokenJoiner) {
+				str.append(restoreNumericToken(iter.next()));
+				str.append(restoreNumericToken(iter.next()));
+				str.append(separator);
+			}
+			else if (token == TokenizationParameters.stringedTokensDelimeter) {
+				if (separator == ' ') {
+					separator = ',';
+					str.append('"');
+				} else {
+					separator = ' ';
+					if (str.charAt(str.length() - 1) == ',')
+						str.deleteCharAt(str.length() - 1);
+					str.append('"').append(' ');
+				}
+			}
+			else {
+				str.append(restoreNumericToken(token));
+				str.append(separator);
+			}
 			
-			str.append(restoreNumericToken(token));
-			
-			if (addSpace)
-				str.append(' ');
 		}
 
 		return str.toString();
@@ -80,8 +97,6 @@ public class Restorer {
 				return "}";
 			case TokenizationParameters.stringedTokensDelimeter:
 				return "\"";
-			case TokenizationParameters.stringedTokensSeparator:
-				return ",";
 		}
 		
 		throw new RuntimeException("Not a base token");
