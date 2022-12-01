@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.DoubleStream;
+import java.util.stream.IntStream;
 
 import grammar.Grammar;
 import graphics.svg.SVGLoader;
@@ -20,22 +22,24 @@ public class TokenizationParameters {
 
 	public static enum NumericTokenType {BASE, INT, FLOAT, BOOLEAN, COMPONENT, CONTAINER, STRING, SYMBOL, CLAUSE}
 	
-	public final float[] floats;
+	public final double[] numbers;
 	public final String[] replacementComponents;
 	public final String[] containers;
 	public final String[] replacementStrings;
 	public final int maxPlayers;
+	public final boolean approximateContinuousValiables;    // If false the tokenizer will crash if the exact number is not available. 
+															// If true tokenization is lossy since it will numbers as the closes available token.
 	
-	public static final int openClassToken = 0;				// (
-	public static final int closeClassToken = 1;			// )
-	public static final int openArrayToken = 2;				// {
-	public static final int closeArrayToken = 3;			// }
-	public static final int tokenJoiner = 4;				// Join A4 or N1
-	public static final int stringedTokensDelimeter = 5;	// " in "1,E,N,W"
+	public static final int incompleteMarker = 0;			// Used in training to demark partial game descriptions. Not used by tokenizer or restorer.
+	public static final int openClassToken = 1;				// (
+	public static final int closeClassToken = 2;			// )
+	public static final int openArrayToken = 3;				// {
+	public static final int closeArrayToken = 4;			// }
+	public static final int tokenJoiner = 5;				// Join A4 or N1
+	public static final int stringedTokensDelimeter = 6;	// " in "1,E,N,W"
 
-	public final int baseTokens = 6;
-	public final int intTokens;
-	public final int floatTokens;
+	public static final int baseTokens = 7;
+	public final int numberTokens;
 	public final int booleanTokens;
 	public final int componentTokens;
 	public final int containerTokens;
@@ -46,8 +50,7 @@ public class TokenizationParameters {
 	public Map<String, Integer> clauseToId;
 	public Map<Integer, String> idToClause;
 
-	public final int intStart;
-	public final int floatStart;
+	public final int numberStart;
 	public final int booleanStart;
 	public final int componentStart;
 	public final int containerStart;
@@ -58,32 +61,31 @@ public class TokenizationParameters {
 	
 
 	public TokenizationParameters(
-			float[] floats,
+			double[] numbers,
 			String[] replacementComponents,
 			String[] containers,
 			String[] replacementStrings,
 			int maxPlayers,
 			Collection<Symbol> symbols,
-			int intTokens
+			boolean approximateContinuousValiables
 	) {
 		
 		/* initialize parameters */
-		Arrays.sort(floats);
+		Arrays.sort(numbers);
 		Arrays.sort(containers);
 		
-		this.floats = floats;
+		this.numbers = numbers;
 		this.replacementComponents = replacementComponents;
 		this.containers = containers;
 		this.replacementStrings = replacementStrings;
 		this.maxPlayers = maxPlayers;
+		this.approximateContinuousValiables = approximateContinuousValiables;
 		
-		this.intTokens = intTokens;
-		this.floatTokens = floats.length;
+		this.numberTokens = numbers.length;
 		this.booleanTokens = 2;
 		this.componentTokens = replacementComponents.length * maxPlayers;
 		this.containerTokens = containers.length * maxPlayers;
-		this.stringTokens = replacementStrings.length * maxPlayers;
-		
+		this.stringTokens = replacementStrings.length * maxPlayers;		
 		
 		/* initialize symbol and clause Maps */
 		HashMap<String, Integer> symbolToId = new HashMap<>();
@@ -150,12 +152,10 @@ public class TokenizationParameters {
 		this.idToClause = (Map<Integer, String>) Collections.unmodifiableMap(idToClause);
 		
 		System.out.println(symbolToId.keySet());
-
 		
 		/* initialize Starts */
-		intStart = baseTokens;
-		floatStart = intStart + intTokens;
-		booleanStart = floatStart + floatTokens;
+		numberStart = baseTokens;
+		booleanStart = numberStart + numberTokens;
 		componentStart = booleanStart + booleanTokens;
 		containerStart = componentStart + componentTokens;
 		stringStart = containerStart + containerTokens;
@@ -169,11 +169,8 @@ public class TokenizationParameters {
 		if (token < 0)
 			throw new RuntimeException(token + " token is too samll");
 
-		if (token < intStart)
+		if (token < numberStart)
 			return NumericTokenType.BASE;
-
-		if (token < floatStart)
-			return NumericTokenType.INT;
 
 		if (token < booleanStart)
 			return NumericTokenType.FLOAT;
@@ -201,16 +198,35 @@ public class TokenizationParameters {
 	
 	
 	public static TokenizationParameters completeParameters() {
-		float[] floats = {Float.NEGATIVE_INFINITY, -5.6f, -5.5f, -4.5f, -4.45f, -3.7f, -3.5f, -2.9f, -2.5f, -1.5f, -1.31f, -1.25f, -1f, -0.51f, -0.5f, -0.45f, -0.34f, -0.325f, -0.13f, 0.0f, 0.1f, 0.17f, 0.2f, 0.25f, 0.3f, 0.33f, 0.38f, 0.4f, 0.45f, 0.5f, 0.5f, 0.6f, 0.625f, 0.65f, 0.707f, 0.74f, 0.75f, 0.8f, 0.88f, 1.04f, 1.05f, 1.15f, 1.2f, 1.3f, 1.333f, 1.4f, 1.5f, 1.55f, 1.6f, 1.73205f, 2.0f, 2.2f, 2.5f, 2.75f, 2.79f, 3.2f, 3.25f, 3.5f, 3.75f, 3.9f, 4.1f, 4.2f, 4.3f, 4.5f, 4.65f, 5.25f, 5.35f, 5.41f, 5.5f, 6.2f, 6.5f, 7.5f, 8.5f, 9.5f, 10.44f, 11.3f, 12.25f, 12.66f, 14.5f, 14.6f, 16.91f, 45.0f, Float.POSITIVE_INFINITY};
+		double[] numbers = {Float.NEGATIVE_INFINITY, -5.6, -5.5, -4.5, -4.45, -3.7, -3.5, -2.9, -2.5, -1.5, -1.31, -1.25, -1, -0.51, -0.5, -0.45, -0.34, -0.325, -0.13, 0.0, 0.1, 0.17, 0.2, 0.25, 0.3, 0.33, 0.38, 0.4, 0.45, 0.5, 0.5, 0.6, 0.625, 0.65, 0.707, 0.74, 0.75, 0.8, 0.88, 0.95, 1.04, 1.05, 1.15, 1.2, 1.3, 1.333, 1.4, 1.5, 1.55, 1.6, 1.73205, 2.0, 2.2, 2.5, 2.75, 2.79, 3.2, 3.25, 3.5, 3.75, 3.9, 4.1, 4.2, 4.3, 4.5, 4.65, 5.25, 5.35, 5.41, 5.5, 6.2, 6.5, 7.5, 8.5, 9.5, 10.44, 11.3, 12.25, 12.66, 14.5, 14.6, 16.91, 45.0, Float.POSITIVE_INFINITY};		
+		
 		String[] replacementComponents = {"Pawn", "Knight", "Bishop", "Rook", "Queen", "King", "Seed", "Counter", "DoubleCounter", "Osho"};
 		String[] containers = {"Hand", "Dice", "Deck", "Board"};
 		String[] replacementStrings = {"Aaaa", "Bbbb", "Cccc", "Dddd", "Eeee", "Ffff", "Gggg", "Hhhh", "Iiii", "Jjjj", "Kkkk", "Llll", "Oooo", "Mmmm", "Nnnn", "Oooo", "Pppp", "Qqqq", "Rrrr", "Sss", "Tttt", "Uuu",  "Vvvv"};
 		int maxPlayers = 20;
-		//List<Symbol> completeGrammar = Grammar.grammar().symbols().stream().filter(s -> s.usedInGrammar()).collect(Collectors.toList());
-		List<Symbol> completeGrammar = Grammar.grammar().symbols();
-
-		int intTokens = 25000;
+		List<Symbol> symbols = SymbolCollections.completeGrammar();
 		
-		return new TokenizationParameters(floats, replacementComponents, containers, replacementStrings, maxPlayers, completeGrammar, intTokens);
+		return new TokenizationParameters(numbers, replacementComponents, containers, replacementStrings, maxPlayers, symbols, true);
 	}
+	
+	public static TokenizationParameters boarGameParameters() {
+		String[] replacementComponents = {"Pawn", "Knight", "Bishop", "Rook", "Queen", "King", "Seed", "Counter", "DoubleCounter", "Osho"};
+		String[] containers = {"Hand", "Dice", "Deck", "Board"};
+		String[] replacementStrings = {"Aaaa", "Bbbb", "Cccc", "Dddd", "Eeee", "Ffff", "Gggg", "Hhhh", "Iiii", "Jjjj", "Kkkk", "Llll", "Oooo", "Mmmm", "Nnnn", "Oooo", "Pppp", "Qqqq", "Rrrr", "Sss", "Tttt", "Uuu",  "Vvvv"};
+		int maxPlayers = 20;
+		List<Symbol> symbols = SymbolCollections.completeGrammar();
+
+		
+		return new TokenizationParameters(getSparseNumbers(), replacementComponents, containers, replacementStrings, maxPlayers, symbols, false);
+	}
+	
+	static double[] getSparseNumbers() {
+		IntStream dense = IntStream.range(-10, 100);
+		IntStream sparse = IntStream.range(-5, 20).map(n -> n*100);
+		DoubleStream ints = IntStream.concat(dense, sparse).asDoubleStream();
+		DoubleStream floats = dense.mapToDouble(n -> n/4.0);
+		
+		return DoubleStream.concat(ints, floats).distinct().toArray();
+	}
+
 }
