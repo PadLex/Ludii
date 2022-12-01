@@ -33,7 +33,10 @@ public class DebugTest {
 		//String file = "../Common/res/lud/board/hunt/To Kinegi tou Lagou.lud";
 		//../Common/res/lud/board/war/replacement/checkmate/shogi/Tai Shogi.lud
 		//../Common/res/lud/board/sow/other/Katro.lud
-		String file = "../Common/res/lud/board/sow/three_rows/Selus (Massawa).lud";
+		
+		//../Common/res/lud/board/war/replacement/checkmate/xiangqi/Loop Xiangqi.lud
+		//../Common/res/lud/puzzle/deduction/Fill A Pix.lud
+		String file = "../Common/res/lud/board/war/replacement/checkmate/shogi/Dice Shogi.lud";
 		
 
 		Game originalGame = GameLoader.loadGameFromFile(new File(file));

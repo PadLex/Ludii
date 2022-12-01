@@ -6,6 +6,7 @@ import java.util.ListIterator;
 import compiler.Compiler;
 import game.Game;
 import main.grammar.Description;
+import main.grammar.Symbol;
 
 
 /* NumericTokens to LudiiTokens */
@@ -60,7 +61,7 @@ public class Restorer {
 		return null;
 	}
 
-	private String restoreNumericToken(int token) {
+	String restoreNumericToken(int token) {
 		switch(parameters.classifyToken(token)) {
 			case BASE:
 				return restoreBase(token);
@@ -85,7 +86,7 @@ public class Restorer {
 		throw new RuntimeException(parameters.classifyToken(token) + " is not implemented!");
 	}
 	
-	private String restoreBase(int numericToken) {
+	String restoreBase(int numericToken) {
 		switch(numericToken) {
 			case TokenizationParameters.openClassToken:
 				return "(";
@@ -102,19 +103,19 @@ public class Restorer {
 		throw new RuntimeException("Not a base token");
 	}
 
-	private int restoreInt(int numericToken) {
+	int restoreInt(int numericToken) {
 		return numericToken - parameters.intStart - parameters.intTokens / 2;
 	}
 
-	private float restoreFloat(int numericToken) {
+	float restoreFloat(int numericToken) {
 		return parameters.floats[numericToken - parameters.floatStart];
 	}
 
-	private boolean restoreBoolean(int numericToken) {
+	boolean restoreBoolean(int numericToken) {
 		return numericToken - parameters.booleanStart == 1;
 	}
 
-	private String restoreComponent(int numericToken) {
+	String restoreComponent(int numericToken) {
 		int finalIndex = numericToken - parameters.componentStart;
 		int nameIndex = finalIndex / parameters.maxPlayers;
 		int playerIndex = finalIndex % parameters.maxPlayers;
@@ -125,7 +126,7 @@ public class Restorer {
 		return '"' + parameters.replacementComponents[nameIndex] + '"';
 	}
 	
-	private String restoreContainer(int numericToken) {
+	String restoreContainer(int numericToken) {
 		int finalIndex = numericToken - parameters.containerStart;
 		int nameIndex = finalIndex / parameters.maxPlayers;
 		int playerIndex = finalIndex % parameters.maxPlayers;
@@ -136,7 +137,7 @@ public class Restorer {
 		return '"' + parameters.containers[nameIndex] + '"';
 	}
 
-	private String restoreString(int numericToken) {
+	String restoreString(int numericToken) {
 		int finalIndex = numericToken - parameters.stringStart;
 		int nameIndex = finalIndex / parameters.maxPlayers;
 		int playerIndex = finalIndex % parameters.maxPlayers;

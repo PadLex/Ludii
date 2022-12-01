@@ -138,6 +138,12 @@ public class TokenizationParameters {
 			}
 		}
 		
+		// No idea why this exists
+		int id = symbolToId.size();
+		symbolToId.put("Undefined", id);
+		idToSymbol.put(id, "Undefined");
+
+		
 		this.symbolToId = (Map<String, Integer>) Collections.unmodifiableMap(symbolToId);
 		this.idToSymbol = (Map<Integer, String>) Collections.unmodifiableMap(idToSymbol);
 		this.clauseToId = (Map<String, Integer>) Collections.unmodifiableMap(clauseToId);
@@ -195,10 +201,10 @@ public class TokenizationParameters {
 	
 	
 	public static TokenizationParameters completeParameters() {
-		float[] floats = {Float.NEGATIVE_INFINITY, -5.6f, -4.5f, -3.5f, -1.5f, -1.31f, -1.25f, -1f, -0.51f, -0.5f, -0.325f, 0.0f, 0.17f, 0.2f, 0.25f, 0.3f, 0.33f, 0.38f, 0.4f, 0.45f, 0.5f, 0.5f, 0.6f, 0.625f, 0.65f, 0.707f, 0.74f, 0.75f, 0.8f, 0.88f, 1.05f, 1.15f, 1.2f, 1.333f, 1.4f, 1.5f, 1.73205f, 2.0f, 2.2f, 2.5f, 2.75f, 2.79f, 3.5f, 3.75f, 4.1f, 4.2f, 4.3f, 4.5f, 4.65f, 5.25f, 5.41f, 5.5f, 6.2f, 6.5f, 7.5f, 8.5f, 9.5f, 11.3f, 14.5f, 16.91f, 45.0f, Float.POSITIVE_INFINITY};
-		String[] replacementComponents = {"Pawn", "Knight", "Bishop", "Rook", "Queen", "King", "Seed", "Counter", "DoubleCounter"};
+		float[] floats = {Float.NEGATIVE_INFINITY, -5.6f, -5.5f, -4.5f, -4.45f, -3.7f, -3.5f, -2.9f, -2.5f, -1.5f, -1.31f, -1.25f, -1f, -0.51f, -0.5f, -0.45f, -0.34f, -0.325f, -0.13f, 0.0f, 0.1f, 0.17f, 0.2f, 0.25f, 0.3f, 0.33f, 0.38f, 0.4f, 0.45f, 0.5f, 0.5f, 0.6f, 0.625f, 0.65f, 0.707f, 0.74f, 0.75f, 0.8f, 0.88f, 1.04f, 1.05f, 1.15f, 1.2f, 1.3f, 1.333f, 1.4f, 1.5f, 1.55f, 1.6f, 1.73205f, 2.0f, 2.2f, 2.5f, 2.75f, 2.79f, 3.2f, 3.25f, 3.5f, 3.75f, 3.9f, 4.1f, 4.2f, 4.3f, 4.5f, 4.65f, 5.25f, 5.35f, 5.41f, 5.5f, 6.2f, 6.5f, 7.5f, 8.5f, 9.5f, 10.44f, 11.3f, 12.25f, 12.66f, 14.5f, 14.6f, 16.91f, 45.0f, Float.POSITIVE_INFINITY};
+		String[] replacementComponents = {"Pawn", "Knight", "Bishop", "Rook", "Queen", "King", "Seed", "Counter", "DoubleCounter", "Osho"};
 		String[] containers = {"Hand", "Dice", "Deck", "Board"};
-		String[] replacementStrings = {"Aaaa", "Bbbb", "Cccc", "Dddd", "Eeee", "Ffff", "Gggg", "Hhhh", "Iiii", "Jjjj", "Kkkk", "Llll", "Oooo"};
+		String[] replacementStrings = {"Aaaa", "Bbbb", "Cccc", "Dddd", "Eeee", "Ffff", "Gggg", "Hhhh", "Iiii", "Jjjj", "Kkkk", "Llll", "Oooo", "Mmmm", "Nnnn", "Oooo", "Pppp", "Qqqq", "Rrrr", "Sss", "Tttt", "Uuu",  "Vvvv"};
 		int maxPlayers = 20;
 		//List<Symbol> completeGrammar = Grammar.grammar().symbols().stream().filter(s -> s.usedInGrammar()).collect(Collectors.toList());
 		List<Symbol> completeGrammar = Grammar.grammar().symbols();

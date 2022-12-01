@@ -33,9 +33,6 @@ public class CorrectnessTest {
 
 		System.out.println("\ntokenizer. Vocabulary size: " + parameters.tokenCount + " tokens");
 		
-		File directory = new File("../Common/res/lud");
-		System.out.println(directory.getAbsolutePath());
-		
 		List<File> files = new ArrayList<>();
 		
 		try {
