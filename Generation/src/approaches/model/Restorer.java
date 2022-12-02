@@ -26,9 +26,15 @@ public class Restorer {
 		for (ListIterator<Integer> iter = tokens.listIterator(); iter.hasNext(); ) {
 		    int token = iter.next();
 		    
-			if (token == TokenizationParameters.tokenJoiner) {
+			if (token == TokenizationParameters.coordinateJoiner) {
 				str.append(restoreNumericToken(iter.next()));
 				str.append(restoreNumericToken(iter.next()));
+				str.append(separator);
+			}
+			else if (token == TokenizationParameters.floatJoiner) {
+				str.append(restoreInt(iter.next()));
+				str.append('.');
+				str.append(restoreDecimal(iter.next()));
 				str.append(separator);
 			}
 			else if (token == TokenizationParameters.stringedTokensDelimeter) {
@@ -67,8 +73,6 @@ public class Restorer {
 				return restoreBase(token);
 			case INT:
 				return Integer.toString(restoreInt(token));
-			case FLOAT:
-				return Float.toString(restoreFloat(token));
 			case BOOLEAN:
 				return (restoreBoolean(token)? "True":"False");
 			case COMPONENT:
@@ -81,9 +85,9 @@ public class Restorer {
 				return parameters.idToSymbol.get(token - parameters.symbolStart);
 			case CLAUSE:
 				return parameters.idToClause.get(token - parameters.clauseStart) + ':';
+		default:
+			throw new RuntimeException(parameters.classifyToken(token) + " is not implemented!");
 		}
-
-		throw new RuntimeException(parameters.classifyToken(token) + " is not implemented!");
 	}
 	
 	String restoreBase(int numericToken) {
@@ -100,15 +104,16 @@ public class Restorer {
 				return "\"";
 		}
 		
-		throw new RuntimeException("Not a base token");
+		throw new RuntimeException(numericToken + " is not a visible base token");
 	}
 
 	int restoreInt(int numericToken) {
-		return numericToken - parameters.intStart - parameters.intTokens / 2;
+		return parameters.ints[numericToken - parameters.intStart];
 	}
 
-	float restoreFloat(int numericToken) {
-		return parameters.floats[numericToken - parameters.floatStart];
+	String restoreDecimal(int numericToken) {
+		double decimal = parameters.decimals[numericToken - parameters.decimalStart];
+		return Double.toString(decimal).substring(2);
 	}
 
 	boolean restoreBoolean(int numericToken) {

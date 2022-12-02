@@ -14,6 +14,7 @@ import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import approaches.model.TokenizationParameters.NumericTokenType;
 import compiler.Compiler;
 import game.Game;
 import grammar.Grammar;
@@ -64,17 +65,15 @@ public class TokenUsage {
 					
 					for (int token: tokens) {
 						
-						if (token == 4) {
-							usedBaseTokens.add("&");
+						NumericTokenType tokenClass = parameters.classifyToken(token);
+						
+						if (tokenClass.equals(NumericTokenType.BASE) || tokenClass.equals(NumericTokenType.DECIMAL)) {
 							continue;
 						}
 						
 						String restored = restorer.restoreNumericToken(token);
 												
 						switch (parameters.classifyToken(token)) {
-						case BASE:
-							usedBaseTokens.add(restored);
-							break;
 						case BOOLEAN:
 							usedBooleans.add(restored);
 							break;
@@ -85,9 +84,6 @@ public class TokenUsage {
 							break;
 						case CONTAINER:
 							usedContainers.add(restored);
-							break;
-						case FLOAT:
-							usedFloats.add(restored);
 							break;
 						case INT:
 							usedIntegers.add(restored);

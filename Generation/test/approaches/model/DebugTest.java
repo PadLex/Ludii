@@ -29,14 +29,10 @@ public class DebugTest {
 		System.out.println("Dictionary: " + restorer.dictionary());
 		System.out.println("caluses: " + parameters.clauseToId);
 		
-		//String file = "../Common/res/lud/board/war/leaping/diagonal/American Pool Checkers.lud";
-		//String file = "../Common/res/lud/board/hunt/To Kinegi tou Lagou.lud";
-		//../Common/res/lud/board/war/replacement/checkmate/shogi/Tai Shogi.lud
-		//../Common/res/lud/board/sow/other/Katro.lud
-		
-		//../Common/res/lud/board/war/replacement/checkmate/xiangqi/Loop Xiangqi.lud
-		//../Common/res/lud/puzzle/deduction/Fill A Pix.lud
-		String file = "../Common/res/lud/board/war/replacement/checkmate/shogi/Dice Shogi.lud";
+		// TODO ask about Phase0             		../Common/res/lud/experimental/Hops-a-Daisy Generalized.lud
+		// TODO ask why components are null			../Common/res/lud/puzzle/deduction/Fill A Pix.lud
+		// TODO ask how mapEntry "captured" works	../Common/res/lud/board/war/replacement/checkmate/xiangqi/Loop Xiangqi.lud
+		String file = "../Common/res/lud/board/war/replacement/eliminate/target/Kriegsspiel.lud";
 		
 
 		Game originalGame = GameLoader.loadGameFromFile(new File(file));
