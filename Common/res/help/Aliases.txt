@@ -311,6 +311,8 @@ Zse-tilth
 Satill
 /lud/board/race/reach/Sik.lud
 Sig
+/lud/board/race/reach/The Pawn Game.lud
+Cross The Board
 /lud/board/sow/four_rows/Bao Ki Arabu (Zanzibar 1).lud
 Bao
 Bao Kiarabu
@@ -544,6 +546,10 @@ Wöré
 Weuré
 /lud/board/sow/two_rows/Yovodi.lud
 Dzedodekase
+/lud/board/space/blocking/Banqi.lud
+Half Chess
+Dark Chess
+Blind Chess
 /lud/board/space/blocking/Cram.lud
 Plugg
 Dots and Pairs
@@ -1017,10 +1023,6 @@ Sitta
 Tab al-Qasab
 /lud/board/war/replacement/eliminate/all/Awangdu.lud
 Awadu
-/lud/board/war/replacement/eliminate/all/Banqi.lud
-Half Chess
-Dark Chess
-Blind Chess
 /lud/board/war/replacement/eliminate/all/Battleships.lud
 Battleship
 Sea Battle

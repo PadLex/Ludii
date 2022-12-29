@@ -31,7 +31,7 @@ public class RulesetConceptsUCT
 	 * is very useful for editing the filepath when running on cluster (where LudiiPrivate
 	 * is not available).
 	 */
-	public static String FILEPATH = "../../LudiiPrivate/DataMiningScripts/Sklearn/res/Input/RulesetConceptsUCT.csv";
+	public static String FILEPATH = "../../LudiiPrivate/DataMiningScripts/Sklearn/res/Input/rulesetConceptsUCT.csv";
 	
 	/** Names of our columns */
 	private static String[] columnNames = null;
@@ -105,6 +105,8 @@ public class RulesetConceptsUCT
 				for (int i = 1; i < lineSplit.length; ++i)
 				{
 					if (lineSplit[i].isEmpty())
+						vector.add(Double.NaN);
+					else if (lineSplit[i].equals("null"))
 						vector.add(Double.NaN);
 					else
 						vector.add(Double.parseDouble(lineSplit[i]));

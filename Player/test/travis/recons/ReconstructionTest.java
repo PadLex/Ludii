@@ -12,10 +12,10 @@ import java.util.regex.Pattern;
 
 import org.junit.Test;
 
-import completer.Completer;
 import completer.Completion;
 import main.FileHandling;
 import other.GameLoader;
+import reconstruction.completer.CompleterWithPrepro;
 
 /**
  * Unit Test to compile all the reconstruction games on the lud/reconstruction folder
@@ -24,8 +24,9 @@ import other.GameLoader;
  */
 public class ReconstructionTest
 {
+	@SuppressWarnings("static-method")
 	@Test
-	public static void testCompilingLudFromMemory()
+	public void testCompilingLudFromMemory()
 	{
 		System.out.println("\n=========================================\nTest: Compile all .lud corresponding to reconstruction:\n");
 
@@ -36,14 +37,18 @@ public class ReconstructionTest
 
 		// Load from memory
 		final String[] choices = FileHandling.listGames();
+		CompleterWithPrepro completer = new CompleterWithPrepro(0.5, 0.5, 0.0);
+		final int idRulesetToRecons = -1;
 
 		for (final String fileName : choices)
 		{
-			if (!fileName.replaceAll(Pattern.quote("\\"), "/").contains("/lud/reconstruction/"))
+			//if (!fileName.replaceAll(Pattern.quote("\\"), "/").contains("/lud/test/eric/recons/"))
+			if (!fileName.replaceAll(Pattern.quote("\\"), "/").contains("/lud/reconstruction/pending/"))
+			//if (!fileName.replaceAll(Pattern.quote("\\"), "/").contains("/lud/reconstruction/board/war/leaping/lines/Manipur Capturing Game"))
 				continue;
 			
 			// Get game description from resource
-			System.out.println("Game: " + fileName);
+			//System.out.println("Game: " + fileName);
 
 			String path = fileName.replaceAll(Pattern.quote("\\"), "/");
 			path = path.substring(path.indexOf("/lud/"));
@@ -68,11 +73,11 @@ public class ReconstructionTest
 				e1.printStackTrace();
 			}
 
-			// Parse and reconstruct one instance of a game
-			List<Completion> completions = null;
+			// Parse and reconstruct one instance of a game which is respected the expected concepts.
+			Completion completion = null;
 			try
 			{
-				completions = Completer.complete(desc, 1, null);
+				completion = completer.completeSampled(desc, idRulesetToRecons);
 			}
 			catch (final Exception e)
 			{
@@ -80,17 +85,29 @@ public class ReconstructionTest
 				e.printStackTrace();
 			}
 
-			if (completions != null)
+			if (completion != null)
 			{
-				System.out.println("Compiled " + fileName + ".");
+				System.out.println("Reconstruction(s) of " + fileName);
+				
+//				for (int n = 0; n < completions.size(); n++) 
+//				{
+//					final Completion completion = completions.get(n);
+					//System.out.println(completion.raw());
+
+					// Check if the concepts expected are present.
+					//boolean expectedConcepts = Concept.isExpectedConcepts(completion.raw());
+					//System.out.println("RECONS HAS THE EXPECTED CONCEPTS? " + expectedConcepts);
+//				}
+				//System.out.println();
 			}
 			else
 			{
 				failure = true;
 				failedGames.add(fileName);
-				System.err.println("** FAILED TO COMPILE: " + fileName + ".");
+				System.err.println("** FAILED TO COMPILE: " + fileName);
 			}
 		}
+		
 		final long stopAt = System.nanoTime();
 		final double secs = (stopAt - startAt) / 1000000000.0;
 		System.out.println("\nDone in " + secs + "s.");
@@ -105,5 +122,6 @@ public class ReconstructionTest
 		if (failure)
 			fail();
 	}
+
 
 }

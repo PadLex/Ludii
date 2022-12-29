@@ -6,7 +6,9 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 import decision_trees.classifiers.DecisionConditionNode;
@@ -19,6 +21,7 @@ import features.aspatial.AspatialFeature;
 import features.feature_sets.BaseFeatureSet;
 import features.feature_sets.network.JITSPatterNetFeatureSet;
 import features.spatial.SpatialFeature;
+import features.spatial.SpatialFeature.RotRefInvariantFeature;
 import function_approx.LinearFunction;
 import game.Game;
 import game.types.play.RoleType;
@@ -62,7 +65,7 @@ public class IdentifyTopFeatures
 	 * Every feature is, per generation, guaranteed to get this many trials 
 	 * (likely each against a different opponent feature) for eval.
 	 */
-	private static final int NUM_TRIALS_PER_FEATURE_EVAL = 25;
+	private static final int NUM_TRIALS_PER_FEATURE_EVAL = 50;
 	
 	/** Number of features we want to end up with at the end (per player). */
 	private static final int GOAL_NUM_FEATURES = 15;
@@ -79,155 +82,180 @@ public class IdentifyTopFeatures
 	private static void identifyTopFeatures(final CommandLineArgParse parsedArgs)
 	{
 		final String gameName = parsedArgs.getValueString("--game");
-		final Game game = GameLoader.loadGameFromName(gameName);
+		final String ruleset = parsedArgs.getValueString("--ruleset");
+		
+		final Game game;
+		
+		if (ruleset != null && !ruleset.equals(""))
+			game = GameLoader.loadGameFromName(gameName, ruleset);
+		else
+			game = GameLoader.loadGameFromName(gameName);
 			
 		if (game == null)
-			throw new IllegalArgumentException("Cannot load game: " + gameName);
+			throw new IllegalArgumentException("Cannot load game: " + gameName + " (ruleset = " + ruleset + ")");
 		
-		final int numPlayers = game.players().count();
-		
-		String trainingOutDirPath = parsedArgs.getValueString("--training-out-dir");
-		if (!trainingOutDirPath.endsWith("/"))
-			trainingOutDirPath += "/";
-		
-		// Load feature sets and policies
-		final BaseFeatureSet[] featureSets = new BaseFeatureSet[numPlayers + 1];
-		final LinearFunction[] linearFunctionsPlayout = new LinearFunction[numPlayers + 1];
-		final LinearFunction[] linearFunctionsTSPG = new LinearFunction[numPlayers + 1];
-		
-		loadFeaturesAndWeights(game, trainingOutDirPath, featureSets, linearFunctionsPlayout, linearFunctionsTSPG);
-		
-//		for (int p = 1; p < featureSets.length; ++p)
-//		{
-//			// Add simplified versions of existing spatial features
-//			final BaseFeatureSet featureSet = featureSets[p];
-//			final SpatialFeature[] origSpatialFeatures = featureSet.spatialFeatures();
-//			final List<SpatialFeature> featuresToAdd = new ArrayList<SpatialFeature>();
-//			
-//			for (final SpatialFeature feature : origSpatialFeatures)
-//			{
-//				featuresToAdd.addAll(feature.generateGeneralisers(game));
-//			}
-//			
-//			featureSets[p] = featureSet.createExpandedFeatureSet(game, featuresToAdd);
-//			featureSets[p].init(game, new int[] {p}, null);
-//		}
-		
-		// Load experience buffers
-		final ExperienceBuffer[] experienceBuffers = new ExperienceBuffer[numPlayers + 1];
-		loadExperienceBuffers(game, trainingOutDirPath, experienceBuffers);
-		
-		// Build trees for all players
-		final DecisionTreeNode[] playoutTreesPerPlayer = new DecisionTreeNode[numPlayers + 1];
-		final DecisionTreeNode[] tspgTreesPerPlayer = new DecisionTreeNode[numPlayers + 1];
-		
-		for (int p = 1; p <= numPlayers; ++p)
+		try
 		{
-			playoutTreesPerPlayer[p] = 
-					ExperienceUrgencyTreeLearner.buildTree(featureSets[p], linearFunctionsPlayout[p], experienceBuffers[p], 4, 10);
-			tspgTreesPerPlayer[p] = 
-					ExperienceUrgencyTreeLearner.buildTree(featureSets[p], linearFunctionsTSPG[p], experienceBuffers[p], 4, 10);
-		}
-		
-		// For every player, extract candidate features from the decision trees for that player
-		final List<List<AspatialFeature>> candidateAspatialFeaturesPerPlayer = new ArrayList<List<AspatialFeature>>();
-		final List<List<SpatialFeature>> candidateSpatialFeaturesPerPlayer = new ArrayList<List<SpatialFeature>>();
-		candidateAspatialFeaturesPerPlayer.add(null);
-		candidateSpatialFeaturesPerPlayer.add(null);
-		
-		for (int p = 1; p <= numPlayers; ++p)
-		{
-			// Collect all the features in our trees
-			final List<AspatialFeature> aspatialFeaturesList = new ArrayList<AspatialFeature>();
-			List<SpatialFeature> spatialFeaturesList = new ArrayList<SpatialFeature>();
+			final int numPlayers = game.players().count();
 			
-			final List<Feature> featuresList = new ArrayList<Feature>();
+			String trainingOutDirPath = parsedArgs.getValueString("--training-out-dir");
+			if (!trainingOutDirPath.endsWith("/"))
+				trainingOutDirPath += "/";
 			
-			collectFeatures(playoutTreesPerPlayer[p], featuresList);
-			collectFeatures(tspgTreesPerPlayer[p], featuresList);
+			// Load feature sets and policies
+			final BaseFeatureSet[] featureSets = new BaseFeatureSet[numPlayers + 1];
+			final LinearFunction[] linearFunctionsPlayout = new LinearFunction[numPlayers + 1];
+			final LinearFunction[] linearFunctionsTSPG = new LinearFunction[numPlayers + 1];
 			
-			// Get rid of any sorts of duplicates/redundancies
-			for (final Feature feature : featuresList)
+			if (!loadFeaturesAndWeights(game, trainingOutDirPath, featureSets, linearFunctionsPlayout, linearFunctionsTSPG))
 			{
-				if (feature instanceof AspatialFeature)
-				{
-					if (!aspatialFeaturesList.contains(feature))
-						aspatialFeaturesList.add((AspatialFeature) feature);
-				}
-				else
-				{
-					spatialFeaturesList.add((SpatialFeature) feature);
-				}
+				System.out.println("Did not manage to load any files for " + gameName + " (ruleset = " + ruleset + ")");
+				return;
 			}
 			
-			spatialFeaturesList = SpatialFeature.deduplicate(spatialFeaturesList);
-			spatialFeaturesList = SpatialFeature.simplifySpatialFeaturesList(game, spatialFeaturesList);
+	//		for (int p = 1; p < featureSets.length; ++p)
+	//		{
+	//			// Add simplified versions of existing spatial features
+	//			final BaseFeatureSet featureSet = featureSets[p];
+	//			final SpatialFeature[] origSpatialFeatures = featureSet.spatialFeatures();
+	//			final List<SpatialFeature> featuresToAdd = new ArrayList<SpatialFeature>();
+	//			
+	//			for (final SpatialFeature feature : origSpatialFeatures)
+	//			{
+	//				featuresToAdd.addAll(feature.generateGeneralisers(game));
+	//			}
+	//			
+	//			featureSets[p] = featureSet.createExpandedFeatureSet(game, featuresToAdd);
+	//			featureSets[p].init(game, new int[] {p}, null);
+	//		}
 			
-			// Add generalisers of our candidate spatial features
-			final int origNumSpatialFeatures = spatialFeaturesList.size();
-			for (int i = 0; i < origNumSpatialFeatures; ++i)
+			// Load experience buffers
+			final ExperienceBuffer[] experienceBuffers = new ExperienceBuffer[numPlayers + 1];
+			loadExperienceBuffers(game, trainingOutDirPath, experienceBuffers);
+			
+			// Build trees for all players
+			final DecisionTreeNode[] playoutTreesPerPlayer = new DecisionTreeNode[numPlayers + 1];
+			final DecisionTreeNode[] tspgTreesPerPlayer = new DecisionTreeNode[numPlayers + 1];
+			
+			for (int p = 1; p <= numPlayers; ++p)
 			{
-				spatialFeaturesList.addAll(spatialFeaturesList.get(i).generateGeneralisers(game));
+				playoutTreesPerPlayer[p] = 
+						ExperienceUrgencyTreeLearner.buildTree(featureSets[p], linearFunctionsPlayout[p], experienceBuffers[p], 4, 10);
+				tspgTreesPerPlayer[p] = 
+						ExperienceUrgencyTreeLearner.buildTree(featureSets[p], linearFunctionsTSPG[p], experienceBuffers[p], 4, 10);
 			}
 			
-			// Do another round of cleaning up duplicates
-			spatialFeaturesList = SpatialFeature.deduplicate(spatialFeaturesList);
-			spatialFeaturesList = SpatialFeature.simplifySpatialFeaturesList(game, spatialFeaturesList);
+			// For every player, extract candidate features from the decision trees for that player
+			final List<List<AspatialFeature>> candidateAspatialFeaturesPerPlayer = new ArrayList<List<AspatialFeature>>();
+			final List<List<SpatialFeature>> candidateSpatialFeaturesPerPlayer = new ArrayList<List<SpatialFeature>>();
+			candidateAspatialFeaturesPerPlayer.add(null);
+			candidateSpatialFeaturesPerPlayer.add(null);
 			
-			candidateAspatialFeaturesPerPlayer.add(new ArrayList<AspatialFeature>());
-			//candidateAspatialFeaturesPerPlayer.add(aspatialFeaturesList);		TODO leaving aspatial features out, annoying to get weight vectors correct
-			candidateSpatialFeaturesPerPlayer.add(spatialFeaturesList);
-		}
-		
-		// Create new feature sets with all the candidate features
-		final BaseFeatureSet[] candidateFeatureSets = new BaseFeatureSet[numPlayers + 1];
-		for (int p = 1; p <= numPlayers; ++p)
-		{
-			candidateFeatureSets[p] = JITSPatterNetFeatureSet.construct(candidateAspatialFeaturesPerPlayer.get(p), candidateSpatialFeaturesPerPlayer.get(p));
-			candidateFeatureSets[p].init(game, new int [] {p}, null);
-		}
-		
-		// For every candidate feature, determine a single weight as the one we
-		// would have used for it if the feature were used in the root of a logit tree
-		final FVector[] candidateFeatureWeightsPerPlayer = new FVector[numPlayers + 1];
-		for (int p = 1; p <= numPlayers; ++p)
-		{
-			candidateFeatureWeightsPerPlayer[p] = 
-					computeCandidateFeatureWeights
-					(
-						candidateFeatureSets[p], 
-						featureSets[p], 
-						linearFunctionsPlayout[p], 
-						experienceBuffers[p]
-					);
-		}
-		
-		// Clear some memory
-		Arrays.fill(experienceBuffers, null);
-		Arrays.fill(candidateFeatureSets, null);
-		Arrays.fill(featureSets, null);
-		
-		// Run trials to evaluate all our candidate features and rank them
-		final List<List<Feature>> candidateFeaturesPerPlayer = new ArrayList<List<Feature>>(numPlayers + 1);
-		candidateFeaturesPerPlayer.add(null);
-		for (int p = 1; p <= numPlayers; ++p)
-		{
-			final List<Feature> candidateFeatures = new ArrayList<Feature>();
-			candidateFeatures.addAll(candidateAspatialFeaturesPerPlayer.get(p));
-			candidateFeatures.addAll(candidateSpatialFeaturesPerPlayer.get(p));
-			candidateFeaturesPerPlayer.add(candidateFeatures);
+			for (int p = 1; p <= numPlayers; ++p)
+			{
+				// Collect all the features in our trees
+				final List<AspatialFeature> aspatialFeaturesList = new ArrayList<AspatialFeature>();
+				List<SpatialFeature> spatialFeaturesList = new ArrayList<SpatialFeature>();
+				
+				final List<Feature> featuresList = new ArrayList<Feature>();
+				
+				collectFeatures(playoutTreesPerPlayer[p], featuresList);
+				collectFeatures(tspgTreesPerPlayer[p], featuresList);
+								
+				// Get rid of any sorts of duplicates/redundancies
+				for (final Feature feature : featuresList)
+				{
+					if (feature instanceof AspatialFeature)
+					{
+						if (!aspatialFeaturesList.contains(feature))
+							aspatialFeaturesList.add((AspatialFeature) feature);
+					}
+					else
+					{
+						spatialFeaturesList.add((SpatialFeature) feature);
+					}
+				}
+				
+				spatialFeaturesList = SpatialFeature.deduplicate(spatialFeaturesList);
+				spatialFeaturesList = SpatialFeature.simplifySpatialFeaturesList(game, spatialFeaturesList);
+				
+				// Add generalisers of our candidate spatial features
+				final Set<RotRefInvariantFeature> generalisers = new HashSet<RotRefInvariantFeature>();
+				
+				for (final SpatialFeature f : spatialFeaturesList)
+				{
+					f.generateGeneralisers(game, generalisers, 1);
+				}
+				
+				for (final RotRefInvariantFeature f : generalisers)
+				{
+					spatialFeaturesList.add(f.feature());
+				}
+				
+				// Do another round of cleaning up duplicates
+				spatialFeaturesList = SpatialFeature.deduplicate(spatialFeaturesList);
+				spatialFeaturesList = SpatialFeature.simplifySpatialFeaturesList(game, spatialFeaturesList);
+				
+				candidateAspatialFeaturesPerPlayer.add(new ArrayList<AspatialFeature>());
+				//candidateAspatialFeaturesPerPlayer.add(aspatialFeaturesList);		TODO leaving aspatial features out, annoying to get weight vectors correct
+				candidateSpatialFeaturesPerPlayer.add(spatialFeaturesList);
+			}
 			
-//			System.out.println("Candidate features for player " + p);
-//			
-//			for (final Feature f : candidateFeatures)
-//			{
-//				System.out.println(f);
-//			}
-//			
-//			System.out.println();
+			// Create new feature sets with all the candidate features
+			final BaseFeatureSet[] candidateFeatureSets = new BaseFeatureSet[numPlayers + 1];
+			for (int p = 1; p <= numPlayers; ++p)
+			{
+				candidateFeatureSets[p] = JITSPatterNetFeatureSet.construct(candidateAspatialFeaturesPerPlayer.get(p), candidateSpatialFeaturesPerPlayer.get(p));
+				candidateFeatureSets[p].init(game, new int [] {p}, null);
+			}
+			
+			// For every candidate feature, determine a single weight as the one we
+			// would have used for it if the feature were used in the root of a logit tree
+			final FVector[] candidateFeatureWeightsPerPlayer = new FVector[numPlayers + 1];
+			for (int p = 1; p <= numPlayers; ++p)
+			{
+				candidateFeatureWeightsPerPlayer[p] = 
+						computeCandidateFeatureWeights
+						(
+							candidateFeatureSets[p], 
+							featureSets[p], 
+							linearFunctionsPlayout[p], 
+							experienceBuffers[p]
+						);
+			}
+			
+			// Clear some memory
+			Arrays.fill(experienceBuffers, null);
+			Arrays.fill(candidateFeatureSets, null);
+			Arrays.fill(featureSets, null);
+			
+			// Run trials to evaluate all our candidate features and rank them
+			final List<List<Feature>> candidateFeaturesPerPlayer = new ArrayList<List<Feature>>(numPlayers + 1);
+			candidateFeaturesPerPlayer.add(null);
+			for (int p = 1; p <= numPlayers; ++p)
+			{
+				final List<Feature> candidateFeatures = new ArrayList<Feature>();
+				candidateFeatures.addAll(candidateAspatialFeaturesPerPlayer.get(p));
+				candidateFeatures.addAll(candidateSpatialFeaturesPerPlayer.get(p));
+				candidateFeaturesPerPlayer.add(candidateFeatures);
+				
+//				System.out.println("Candidate features for player " + p);
+//				
+//				for (final Feature f : candidateFeatures)
+//				{
+//					System.out.println(f);
+//				}
+//				
+//				System.out.println();
+			}
+			
+			evaluateCandidateFeatures(game, candidateFeaturesPerPlayer, candidateFeatureWeightsPerPlayer, parsedArgs);
 		}
-		
-		evaluateCandidateFeatures(game, candidateFeaturesPerPlayer, candidateFeatureWeightsPerPlayer, parsedArgs);
+		catch (final Exception e)
+		{
+			System.err.println("Exception in game: " + gameName + " (ruleset = " + ruleset + ")");
+			e.printStackTrace();
+		}
 	}
 	
 	//-------------------------------------------------------------------------
@@ -331,6 +359,12 @@ public class IdentifyTopFeatures
 						// Play the trial
 						game.playout(context, ais, 1.0, null, -1, -1, null);
 						
+						// Cleanup memory
+						for (int player = 1; player <= numPlayers; ++player)
+						{
+							ais.get(player).closeAI();
+						}
+						
 						// Update feature evaluations
 						final double[] agentUtils = RankUtils.agentUtilities(context);
 						
@@ -342,7 +376,7 @@ public class IdentifyTopFeatures
 				}
 			}
 			
-			// We'll terminate except if in the evaluating we decide that we want to keep going
+			// We'll terminate except if in the evaluation we decide that we want to keep going
 			terminateProcess = true;
 			
 			// Evaluate the entire generation
@@ -358,7 +392,7 @@ public class IdentifyTopFeatures
 				Collections.sort(scoredIndices, ScoredInt.DESCENDING);
 				
 				// Keep only the best ones
-				final int numToKeep = Math.max(GOAL_NUM_FEATURES, scoredIndices.size() / 2);
+				final int numToKeep = Math.min(scoredIndices.size(), Math.max(GOAL_NUM_FEATURES, scoredIndices.size() / 2));
 				final TIntArrayList keepIndices = new TIntArrayList();
 				for (int i = 0; i < numToKeep; ++i)
 				{
@@ -538,6 +572,12 @@ public class IdentifyTopFeatures
 						
 						// Play the trial
 						game.playout(context, ais, 1.0, null, -1, -1, null);
+						
+						// Cleanup memory
+						for (int p = 1; p <= numPlayers; ++p)
+						{
+							ais.get(p).closeAI();
+						}
 						
 						// Update eval stats
 						final double[] agentUtils = RankUtils.agentUtilities(context);
@@ -767,8 +807,9 @@ public class IdentifyTopFeatures
 	 * @param outFeatureSets
 	 * @param outLinearFunctionsPlayout
 	 * @param outLinearFunctionsTSPG
+	 * @return Did we successfully load files?
 	 */
-	private static void loadFeaturesAndWeights
+	private static boolean loadFeaturesAndWeights
 	(
 		final Game game,
 		final String trainingOutDirPath,
@@ -777,96 +818,111 @@ public class IdentifyTopFeatures
 		final LinearFunction[] outLinearFunctionsTSPG
 	)
 	{
-		// First Playout policy
+		try
 		{
-			// Construct a string to load an MCTS guided by features, from that we can then easily extract the
-			// features again afterwards
-			final StringBuilder playoutSb = new StringBuilder();
-			playoutSb.append("playout=softmax");
-	
-			for (int p = 1; p <= game.players().count(); ++p)
+			// First Playout policy
 			{
-				final String playoutPolicyFilepath = 
-						ExperimentFileUtils.getLastFilepath
-						(
-							trainingOutDirPath + "PolicyWeightsPlayout_P" + p, 
-							"txt"
-						);
-	
-				playoutSb.append(",policyweights" + p + "=" + playoutPolicyFilepath);
-			}
-	
-			final StringBuilder selectionSb = new StringBuilder();
-			selectionSb.append("learned_selection_policy=playout");
-	
-			final String agentStr = StringRoutines.join
-					(
-						";", 
-						"algorithm=MCTS",
-						"selection=noisyag0selection",
-						playoutSb.toString(),
-						"final_move=robustchild",
-						"tree_reuse=true",
-						selectionSb.toString(),
-						"friendly_name=BiasedMCTS"
-					);
-	
-			final MCTS mcts = (MCTS) AIFactory.createAI(agentStr);
-			final SoftmaxPolicyLinear playoutSoftmax = (SoftmaxPolicyLinear) mcts.playoutStrategy();
-	
-			final BaseFeatureSet[] featureSets = playoutSoftmax.featureSets();
-			final LinearFunction[] linearFunctions = playoutSoftmax.linearFunctions();
-	
-			playoutSoftmax.initAI(game, -1);
-			
-			System.arraycopy(featureSets, 0, outFeatureSets, 0, featureSets.length);
-			System.arraycopy(linearFunctions, 0, outLinearFunctionsPlayout, 0, linearFunctions.length);
-		}
+				// Construct a string to load an MCTS guided by features, from that we can then easily extract the
+				// features again afterwards
+				final StringBuilder playoutSb = new StringBuilder();
+				playoutSb.append("playout=softmax");
 		
-		// Repeat the entire process again for TSPG
-		{
-			// Construct a string to load an MCTS guided by features, from that we can then easily extract the
-			// features again afterwards
-			final StringBuilder playoutSb = new StringBuilder();
-			playoutSb.append("playout=softmax");
-	
-			for (int p = 1; p <= game.players().count(); ++p)
-			{
-				final String playoutPolicyFilepath = 
-						ExperimentFileUtils.getLastFilepath
+				for (int p = 1; p <= game.players().count(); ++p)
+				{
+					final String playoutPolicyFilepath = 
+							ExperimentFileUtils.getLastFilepath
+							(
+								trainingOutDirPath + "PolicyWeightsPlayout_P" + p, 
+								"txt"
+							);
+					
+					if (playoutPolicyFilepath == null)
+						return false;
+		
+					playoutSb.append(",policyweights" + p + "=" + playoutPolicyFilepath);
+				}
+		
+				final StringBuilder selectionSb = new StringBuilder();
+				selectionSb.append("learned_selection_policy=playout");
+		
+				final String agentStr = StringRoutines.join
 						(
-							trainingOutDirPath + "PolicyWeightsTSPG_P" + p, 
-							"txt"
+							";", 
+							"algorithm=MCTS",
+							"selection=noisyag0selection",
+							playoutSb.toString(),
+							"final_move=robustchild",
+							"tree_reuse=true",
+							selectionSb.toString(),
+							"friendly_name=BiasedMCTS"
 						);
-	
-				playoutSb.append(",policyweights" + p + "=" + playoutPolicyFilepath);
+		
+				final MCTS mcts = (MCTS) AIFactory.createAI(agentStr);
+				final SoftmaxPolicyLinear playoutSoftmax = (SoftmaxPolicyLinear) mcts.playoutStrategy();
+		
+				final BaseFeatureSet[] featureSets = playoutSoftmax.featureSets();
+				final LinearFunction[] linearFunctions = playoutSoftmax.linearFunctions();
+		
+				playoutSoftmax.initAI(game, -1);
+				
+				System.arraycopy(featureSets, 0, outFeatureSets, 0, featureSets.length);
+				System.arraycopy(linearFunctions, 0, outLinearFunctionsPlayout, 0, linearFunctions.length);
 			}
-	
-			playoutSb.append(",boosted=true");
-	
-			final StringBuilder selectionSb = new StringBuilder();
-			selectionSb.append("learned_selection_policy=playout");
-	
-			final String agentStr = StringRoutines.join
-					(
-						";", 
-						"algorithm=MCTS",
-						"selection=noisyag0selection",
-						playoutSb.toString(),
-						"final_move=robustchild",
-						"tree_reuse=true",
-						selectionSb.toString(),
-						"friendly_name=BiasedMCTS"
-					);
-	
-			final MCTS mcts = (MCTS) AIFactory.createAI(agentStr);
-			final SoftmaxPolicyLinear playoutSoftmax = (SoftmaxPolicyLinear) mcts.playoutStrategy();
-	
-			final LinearFunction[] linearFunctions = playoutSoftmax.linearFunctions();
-	
-			playoutSoftmax.initAI(game, -1);
 			
-			System.arraycopy(linearFunctions, 0, outLinearFunctionsTSPG, 0, linearFunctions.length);
+			// Repeat the entire process again for TSPG
+			{
+				// Construct a string to load an MCTS guided by features, from that we can then easily extract the
+				// features again afterwards
+				final StringBuilder playoutSb = new StringBuilder();
+				playoutSb.append("playout=softmax");
+		
+				for (int p = 1; p <= game.players().count(); ++p)
+				{
+					final String playoutPolicyFilepath = 
+							ExperimentFileUtils.getLastFilepath
+							(
+								trainingOutDirPath + "PolicyWeightsTSPG_P" + p, 
+								"txt"
+							);
+					
+					if (playoutPolicyFilepath == null)
+						return false;
+		
+					playoutSb.append(",policyweights" + p + "=" + playoutPolicyFilepath);
+				}
+		
+				playoutSb.append(",boosted=true");
+		
+				final StringBuilder selectionSb = new StringBuilder();
+				selectionSb.append("learned_selection_policy=playout");
+		
+				final String agentStr = StringRoutines.join
+						(
+							";", 
+							"algorithm=MCTS",
+							"selection=noisyag0selection",
+							playoutSb.toString(),
+							"final_move=robustchild",
+							"tree_reuse=true",
+							selectionSb.toString(),
+							"friendly_name=BiasedMCTS"
+						);
+		
+				final MCTS mcts = (MCTS) AIFactory.createAI(agentStr);
+				final SoftmaxPolicyLinear playoutSoftmax = (SoftmaxPolicyLinear) mcts.playoutStrategy();
+		
+				final LinearFunction[] linearFunctions = playoutSoftmax.linearFunctions();
+		
+				playoutSoftmax.initAI(game, -1);
+				
+				System.arraycopy(linearFunctions, 0, outLinearFunctionsTSPG, 0, linearFunctions.length);
+				return true;
+			}
+		}
+		catch (final Exception e)
+		{
+			e.printStackTrace(System.out);
+			return false;
 		}
 	}
 	
@@ -955,6 +1011,13 @@ public class IdentifyTopFeatures
 				.withNumVals(1)
 				.withType(OptionTypes.String)
 				.setRequired());
+		
+		argParse.addOption(new ArgOption()
+				.withNames("--ruleset")
+				.help("Ruleset name.")
+				.withNumVals(1)
+				.withType(OptionTypes.String)
+				.withDefault(""));
 		
 		// parse the args
 		if (!argParse.parseArguments(args))

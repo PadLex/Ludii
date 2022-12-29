@@ -1,7 +1,13 @@
 package other.concept;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.List;
+import java.util.Map;
+
+import compiler.Compiler;
+import game.Game;
+import main.grammar.Description;
 
 /**
  * Defines known concepts used in a game.
@@ -10,7 +16,7 @@ import java.util.ArrayList;
  * computed if that's leaf. If that's not a leaf, the concept is true if any
  * child is true.
  * 
- * Remarks: The next id in case of a new concept is the id 798.
+ * Remarks: The next id in case of a new concept is the id 805.
  * 
  * @author Eric.Piette
  */
@@ -363,7 +369,7 @@ public enum Concept
 		797,
 		"Players are using directions.",
 		ConceptType.Properties,
-		ConceptDataType.IntegerData,
+		ConceptDataType.BooleanData,
 		ConceptComputationType.Compilation,
 		new ConceptPurpose[] { ConceptPurpose.Reconstruction, ConceptPurpose.AI },
 		true,
@@ -2256,6 +2262,48 @@ public enum Concept
 		"3.2.10",
 		141,
 		"Number of components at start.",
+		ConceptType.Start, 
+		ConceptDataType.DoubleData,
+		ConceptComputationType.Playout,
+		new ConceptPurpose[]{ ConceptPurpose.Reconstruction, ConceptPurpose.AI },
+		true,
+		Concept.Start
+	),
+	
+	/** Compute the average of number of pieces at the start per player. */
+	NumStartComponentsBoardPerPlayer
+	(
+		"3.2.11",
+		800,
+		"Average number of components on board at start per player.",
+		ConceptType.Start, 
+		ConceptDataType.DoubleData,
+		ConceptComputationType.Playout,
+		new ConceptPurpose[]{ ConceptPurpose.Reconstruction, ConceptPurpose.AI },
+		true,
+		Concept.Start
+	),
+	
+	/** Compute the average of number of pieces in the players hand at the start per player. */
+	NumStartComponentsHandPerPlayer
+	(
+		"3.2.12",
+		801,
+		"Average number of components in player hands at start per player.",
+		ConceptType.Start, 
+		ConceptDataType.DoubleData,
+		ConceptComputationType.Playout,
+		new ConceptPurpose[]{ ConceptPurpose.Reconstruction, ConceptPurpose.AI },
+		true,
+		Concept.Start
+	),
+	
+	/** Compute the average of number of pieces on board at the start per player. */
+	NumStartComponentsPerPlayer
+	(
+		"3.2.13",
+		802,
+		"Average number of components at start per player.",
 		ConceptType.Start, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
@@ -5138,10 +5186,24 @@ public enum Concept
 		Concept.PieceConditions
 	),
 	
-	/** (sites LineOfSight ...), (slide ...) or (shoot ...) is used.. */
-	LineOfSight
+	/** (= (what ...) (id ...) ...) is used. */
+	IsPieceAt
 	(
 		"3.3.3.3.7",
+		803, 
+		"Occupied site by a specific piece type.",
+		ConceptType.Play, 
+		ConceptDataType.BooleanData,
+		ConceptComputationType.Compilation,
+		new ConceptPurpose[] { ConceptPurpose.Reconstruction, ConceptPurpose.AI }, 
+		true,
+		Concept.PieceConditions
+	),
+	
+	/** (sites LineOfSight ...), (slide ...) or (shoot ...) is used.. */
+	LineOfSight 
+	(
+		"3.3.3.3.8",
 		347, 
 		"Line of sight of pieces used.",
 		ConceptType.Play, 
@@ -5155,7 +5217,7 @@ public enum Concept
 	/** (</<=/>/>= <IntFunction> (count Pieces ...)) is used. */
 	CountPiecesComparison
 	(
-		"3.3.3.3.8",
+		"3.3.3.3.9",
 		348, 
 		"The number of pieces is compared.",
 		ConceptType.Play, 
@@ -5169,7 +5231,7 @@ public enum Concept
 	/** (</<=/>/>= <IntFunction> (count Pieces Mover...)) is used. */
 	CountPiecesMoverComparison
 	(
-		"3.3.3.3.8.1",
+		"3.3.3.3.9.1",
 		349, 
 		"The number of pieces of the mover is compared.",
 		ConceptType.Play, 
@@ -5183,7 +5245,7 @@ public enum Concept
 	/** (</<=/>/>= <IntFunction> (count Pieces Next ...)) is used. */
 	CountPiecesNextComparison
 	(
-		"3.3.3.3.8.2",
+		"3.3.3.3.9.2",
 		350, 
 		"The number of pieces of the next player is compared.",
 		ConceptType.Play, 
@@ -5778,7 +5840,7 @@ public enum Concept
 		"3.4.1.1.1",
 		392, 
 		"Frequency of \"Line End\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -5806,7 +5868,7 @@ public enum Concept
 		"3.4.1.1.2.1",
 		394, 
 		"Frequency of \"Line Win\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -5834,7 +5896,7 @@ public enum Concept
 		"3.4.1.1.3.1",
 		396, 
 		"Frequency of \"Line Loss\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -5862,7 +5924,7 @@ public enum Concept
 		"3.4.1.1.4.1",
 		398, 
 		"Frequency of \"Line Draw\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -5890,7 +5952,7 @@ public enum Concept
 		"3.4.1.2.1",
 		400, 
 		"Frequency of \"Connection End\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -5918,7 +5980,7 @@ public enum Concept
 		"3.4.1.2.2.1",
 		402, 
 		"Frequency of \"Connection Win\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -5946,7 +6008,7 @@ public enum Concept
 		"3.4.1.2.3.1",
 		404, 
 		"Frequency of \"Connection Loss\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -5974,7 +6036,7 @@ public enum Concept
 		"3.4.1.2.4.1",
 		406, 
 		"Frequency of \"Connection Draw\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6002,7 +6064,7 @@ public enum Concept
 		"3.4.1.3.1",
 		408, 
 		"Frequency of \"Group End\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6030,7 +6092,7 @@ public enum Concept
 		"3.4.1.3.2.1",
 		410, 
 		"Frequency of \"Group Win\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6058,7 +6120,7 @@ public enum Concept
 		"3.4.1.3.3.1",
 		412, 
 		"Frequency of \"Group Loss\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6086,7 +6148,7 @@ public enum Concept
 		"3.4.1.3.4.1",
 		414, 
 		"Frequency of \"Group Draw\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6114,7 +6176,7 @@ public enum Concept
 		"3.4.1.4.1",
 		416, 
 		"Frequency of \"Loop End\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6142,7 +6204,7 @@ public enum Concept
 		"3.4.1.4.2.1",
 		418, 
 		"Frequency of \"Loop Win\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6170,7 +6232,7 @@ public enum Concept
 		"3.4.1.4.3.1",
 		420, 
 		"Frequency of \"Loop Loss\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6198,7 +6260,7 @@ public enum Concept
 		"3.4.1.4.4.1",
 		422, 
 		"Frequency of \"Loop Draw\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6226,7 +6288,7 @@ public enum Concept
 		"3.4.1.5.1",
 		424, 
 		"Frequency of \"Pattern End\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6254,7 +6316,7 @@ public enum Concept
 		"3.4.1.5.2.1",
 		426, 
 		"Frequency of \"Pattern Win\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6282,7 +6344,7 @@ public enum Concept
 		"3.4.1.5.3.1",
 		428, 
 		"Frequency of \"Pattern Loss\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6310,7 +6372,7 @@ public enum Concept
 		"3.4.1.5.4.1",
 		430, 
 		"Frequency of \"Pattern Draw\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6338,7 +6400,7 @@ public enum Concept
 		"3.4.1.6.1",
 		432, 
 		"Frequency of \"Path Extent End\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6366,7 +6428,7 @@ public enum Concept
 		"3.4.1.6.2.1",
 		434, 
 		"Frequency of \"PathExtent Win\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6394,7 +6456,7 @@ public enum Concept
 		"3.4.1.6.3.1",
 		436, 
 		"Frequency of \"PathExtent Loss\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6422,7 +6484,7 @@ public enum Concept
 		"3.4.1.6.4.1",
 		438, 
 		"Frequency of \"PathExtent Draw\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6450,7 +6512,7 @@ public enum Concept
 		"3.4.1.7.1",
 		440, 
 		"Frequency of \"Territory End\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6478,7 +6540,7 @@ public enum Concept
 		"3.4.1.7.2.1",
 		442, 
 		"Frequency of \"Territory Win\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6506,7 +6568,7 @@ public enum Concept
 		"3.4.1.7.3.1",
 		444, 
 		"Frequency of \"Territory Loss\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6534,7 +6596,7 @@ public enum Concept
 		"3.4.1.7.4.1",
 		446, 
 		"Frequency of \"Territory Draw\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6576,7 +6638,7 @@ public enum Concept
 		"3.4.2.1.1",
 		449, 
 		"Frequency of \"Checkmate\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6604,7 +6666,7 @@ public enum Concept
 		"3.4.2.1.2.1",
 		451, 
 		"Frequency of \"Checkmate Win\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6632,7 +6694,7 @@ public enum Concept
 		"3.4.2.1.3.1",
 		453, 
 		"Frequency of \"Checkmate Loss\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6660,7 +6722,7 @@ public enum Concept
 		"3.4.2.1.4.1",
 		455, 
 		"Frequency of \"Checkmate Draw\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6688,7 +6750,7 @@ public enum Concept
 		"3.4.2.2.1",
 		457, 
 		"Frequency of \"No Target Piece End\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6716,7 +6778,7 @@ public enum Concept
 		"3.4.2.2.2.1",
 		459, 
 		"Frequency of \"No Target Piece Win\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6744,7 +6806,7 @@ public enum Concept
 		"3.4.2.2.3.1",
 		461, 
 		"Frequency of \"No Target Piece Loss\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6772,7 +6834,7 @@ public enum Concept
 		"3.4.2.2.4.1",
 		463, 
 		"Frequency of \"No Target Piece Draw\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6800,7 +6862,7 @@ public enum Concept
 		"3.4.2.3.1",
 		465, 
 		"Frequency of \"Eliminate All Pieces End\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6828,7 +6890,7 @@ public enum Concept
 		"3.4.2.3.2.1",
 		467, 
 		"Frequency of \"Eliminate Pieces Win\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6856,7 +6918,7 @@ public enum Concept
 		"3.4.2.3.3.1",
 		469, 
 		"Frequency of \"Eliminate Pieces Loss\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6884,7 +6946,7 @@ public enum Concept
 		"3.4.2.3.4.1",
 		471, 
 		"Frequency of \"Eliminate Pieces Draw\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6926,7 +6988,7 @@ public enum Concept
 		"3.4.3.1.1",
 		474, 
 		"Frequency of \"No Own Pieces End\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6954,7 +7016,7 @@ public enum Concept
 		"3.4.3.1.2.1",
 		476, 
 		"Frequency of \"No Own Pieces Win\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -6982,7 +7044,7 @@ public enum Concept
 		"3.4.3.1.3.1",
 		478, 
 		"Frequency of \"No Own Pieces Loss\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -7010,7 +7072,7 @@ public enum Concept
 		"3.4.3.1.4.1",
 		480, 
 		"Frequency of \"No Own Pieces Draw\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -7038,7 +7100,7 @@ public enum Concept
 		"3.4.3.2.1",
 		482, 
 		"Frequency of \"Fill End\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -7066,7 +7128,7 @@ public enum Concept
 		"3.4.3.2.2.1",
 		484, 
 		"Frequency of \"Fill Win\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -7094,7 +7156,7 @@ public enum Concept
 		"3.4.3.2.3.1",
 		486, 
 		"Frequency of \"Fill Loss\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -7122,7 +7184,7 @@ public enum Concept
 		"3.4.3.2.4.1",
 		488, 
 		"Frequency of \"Fill Draw\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -7150,7 +7212,7 @@ public enum Concept
 		"3.4.3.3.1",
 		490, 
 		"Frequency of \"Reach End\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -7178,7 +7240,7 @@ public enum Concept
 		"3.4.3.3.2.1",
 		492, 
 		"Frequency of \"Reach Win\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -7206,7 +7268,7 @@ public enum Concept
 		"3.4.3.3.3.1",
 		494, 
 		"Frequency of \"Reach Loss\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -7234,7 +7296,7 @@ public enum Concept
 		"3.4.3.3.4.1",
 		496, 
 		"Frequency of \"Reach Draw\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -7262,7 +7324,7 @@ public enum Concept
 		"3.4.4.1",
 		498, 
 		"Frequency of \"Scoring End\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -7290,7 +7352,7 @@ public enum Concept
 		"3.4.4.2.1",
 		500, 
 		"Frequency of \"Score Win\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -7318,7 +7380,7 @@ public enum Concept
 		"3.4.4.3.1",
 		502, 
 		"Frequency of \"Score Loss\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -7346,7 +7408,7 @@ public enum Concept
 		"3.4.4.4.1",
 		504, 
 		"Frequency of \"Reach Draw\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -7374,7 +7436,7 @@ public enum Concept
 		"3.4.5.1",
 		506, 
 		"Frequency of \"No Moves End\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -7402,7 +7464,7 @@ public enum Concept
 		"3.4.5.2.1",
 		508, 
 		"Frequency of \"No Moves Win\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -7430,7 +7492,7 @@ public enum Concept
 		"3.4.5.3.1",
 		510, 
 		"Frequency of \"No Moves Loss\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -7458,7 +7520,7 @@ public enum Concept
 		"3.4.5.4.1",
 		512, 
 		"Frequency of \"No Moves Draw\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -7486,7 +7548,7 @@ public enum Concept
 		"3.4.6.1",
 		514, 
 		"Frequency of \"No Progress End\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -7514,7 +7576,7 @@ public enum Concept
 		"3.4.6.2.1",
 		516, 
 		"Frequency of \"No Progress Win\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -7542,7 +7604,7 @@ public enum Concept
 		"3.4.6.3.1",
 		518, 
 		"Frequency of \"No Progress Loss\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -7570,7 +7632,7 @@ public enum Concept
 		"3.4.6.4.1",
 		520, 
 		"Frequency of \"No Progress Draw\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -7598,7 +7660,7 @@ public enum Concept
 		"3.4.7.1",
 		522, 
 		"Frequency of \"Draw\".",
-		ConceptType.Play, 
+		ConceptType.End, 
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
 		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
@@ -7606,10 +7668,24 @@ public enum Concept
 		Concept.Draw
 	),
 	
+	/** Solving a deduction puzzle. */
+	SolvedEnd
+	(
+		"3.4.8",
+		804, 
+		"The game ends in solving the puzzle.",
+		ConceptType.End, 
+		ConceptDataType.BooleanData,
+		ConceptComputationType.Compilation,
+		new ConceptPurpose[] { ConceptPurpose.AI, ConceptPurpose.Reconstruction }, 
+		true, 
+		Concept.End
+	),
+	
 	/** A misere end rule is detected . */
 	Misere
 	(
-		"3.4.8",
+		"3.4.9",
 		523, 
 		"A two-players game can ends with the mover losing or the next player winning.",
 		ConceptType.End, 
@@ -7728,6 +7804,34 @@ public enum Concept
 		"4.2.3",
 		531, 
 		"Number of turns in a game.",
+		ConceptType.Behaviour,
+		ConceptDataType.DoubleData,
+		ConceptComputationType.Playout,
+		new ConceptPurpose[] { ConceptPurpose.Reconstruction, ConceptPurpose.AI }, 
+		true,
+		Concept.Duration
+	),
+	
+	/** Computed with playouts. */
+	DurationTurnsStdDev
+	(
+		"4.2.4",
+		798, 
+		"Number of turns in a game (std dev).",
+		ConceptType.Behaviour,
+		ConceptDataType.DoubleData,
+		ConceptComputationType.Playout,
+		new ConceptPurpose[] { ConceptPurpose.Reconstruction, ConceptPurpose.AI }, 
+		true,
+		Concept.Duration
+	),
+	
+	/** Computed with playouts. */
+	DurationTurnsNotTimeouts
+	(
+		"4.2.5",
+		799, 
+		"Duration Turns Not Timeouts.",
 		ConceptType.Behaviour,
 		ConceptDataType.DoubleData,
 		ConceptComputationType.Playout,
@@ -11388,4 +11492,72 @@ public enum Concept
 		
 		return returnConcepts;
 	}
+	
+	/**
+	 * @param description The description of the game.
+	 * @return True if the game description involves the expected concepts.
+	 */
+	public static boolean isExpectedConcepts(final String description)
+	{
+		final Game game = (Game)Compiler.compileTest(new Description(description), false);
+
+		final BitSet booleanConcepts = game.computeBooleanConcepts();	
+		final Map<Integer, String> nonBooleanConcepts = game.computeNonBooleanConcepts();
+		final Map<String, Double> startConcepts;
+		
+		try {
+			startConcepts = game.startsConceptsWithoutRNG();
+		}
+		catch(Exception e) // In case the starting rules can not be applied, the concepts are not correct.
+		{
+			System.err.println("Start Concepts have a problem");
+			//e.printStackTrace();
+			return false;
+		}
+		
+		final ArrayList<metadata.recon.concept.Concept> expectedConcepts = game.expectedConcepts();
+		
+		for(metadata.recon.concept.Concept conceptMeta : expectedConcepts)
+		{
+			if(conceptMeta != null)
+			{
+				final Concept concept = conceptMeta.concept();
+				final double minValue = conceptMeta.minValue();
+				final double maxValue = conceptMeta.maxValue();
+	
+				if(concept != null)
+				{
+					if(concept.dataType().equals(ConceptDataType.BooleanData))
+					{
+						if(minValue == 1)
+						{
+							if(!booleanConcepts.get(concept.id()))
+									return false;
+						}
+						else
+						{
+							if(booleanConcepts.get(concept.id()))
+									return false;
+						}
+					}
+					else if(concept.type.equals(ConceptType.Start))
+					{
+						final Double value = startConcepts.get(concept.name());
+						if(minValue > value.doubleValue() || value.doubleValue() > maxValue)
+							return false;
+					}
+					else 
+					{
+						final String valuestr = nonBooleanConcepts.get(Integer.valueOf(concept.id()));
+						final Double value = Double.valueOf(valuestr);
+						if(minValue > value.doubleValue() || value.doubleValue() > maxValue)
+							return false;
+					}
+				}
+			}
+		}
+		
+		return true;
+	}
+	
 }

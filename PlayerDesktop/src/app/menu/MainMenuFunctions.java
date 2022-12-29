@@ -31,6 +31,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
 
 import agentPrediction.external.AgentPredictionExternal;
+import agentPrediction.external.MetricPredictionExternal;
 import agentPrediction.internal.AgentPredictionInternal;
 import agentPrediction.internal.models.LinearRegression;
 import app.DesktopApp;
@@ -41,7 +42,6 @@ import app.display.dialogs.EvaluationDialog;
 import app.display.dialogs.GameLoaderDialog;
 import app.display.dialogs.ReconstructionDialog;
 import app.display.dialogs.SVGViewerDialog;
-import app.display.dialogs.SettingsDialog;
 import app.display.dialogs.TestLudemeDialog;
 import app.display.dialogs.MoveDialog.PossibleMovesDialog;
 import app.display.dialogs.editor.EditorDialog;
@@ -150,7 +150,7 @@ public class MainMenuFunctions extends JMenuBar
 		}
 		else if (source.getText().equals("Game Description Length"))
 		{
-			final String allOutputs = game.name() + ", Raw: " + game.description().raw().replaceAll("\\s+","").length() + ", Expanded: " + game.description().expanded().replaceAll("\\s+","").length() + ", Tokens: " + game.description().tokenForest().tokenTree().countKeywords();
+			final String allOutputs = game.name() + ", Raw: " + game.description().raw().replaceAll("\\s+","").length() + ", Expanded: " + game.description().expanded().replaceAll("\\s+","").length() + ", Tokens: " + game.description().tokenForest().tokenTree().countKeywords() + ", ludemes: " + game.description().callTree().countClasses();
 			app.addTextToStatusPanel(allOutputs + "\n");
 		}
 		else if (source.getText().equals("Game Description Length (All Games)"))
@@ -166,7 +166,7 @@ public class MainMenuFunctions extends JMenuBar
 					if (gameTemp.hasSubgames())
 						continue;
 					
-					final String allOutputs = gameTemp.name() + "," + gameTemp.description().raw().replaceAll("\\s+","").length() + "," + gameTemp.description().expanded().replaceAll("\\s+","").length() + "," + gameTemp.description().tokenForest().tokenTree().countKeywords();
+					final String allOutputs = gameTemp.name() + "," + gameTemp.description().raw().replaceAll("\\s+","").length() + "," + gameTemp.description().expanded().replaceAll("\\s+","").length() + "," + gameTemp.description().tokenForest().tokenTree().countKeywords() + "," + gameTemp.description().callTree().countClasses();
 					System.out.println(allOutputs);
 				}
 			}
@@ -201,7 +201,7 @@ public class MainMenuFunctions extends JMenuBar
 		}
 		else if (source.getText().equals("Test Ludeme"))
 		{
-			TestLudemeDialog.showDialog(app, context);
+			TestLudemeDialog.showDialog(app);
 		}
 		else if (source.getText().equals("Create Game"))
 		{
@@ -256,6 +256,50 @@ public class MainMenuFunctions extends JMenuBar
 	    	{
 		    	Thumbnails.generateThumbnails(app, true);
 	    	});
+		}
+		else if (source.getText().equals("Export Thumbnails (complete rulesets)"))
+		{
+			DesktopApp.frame().setSize(464, 464);
+			final ArrayList<List<String>> gameOptions = new ArrayList<>();
+			System.out.println("Getting rulesets from game:");
+			final List<Ruleset> rulesets = game.description().rulesets();
+			if (rulesets != null && !rulesets.isEmpty())
+				for (int rs = 0; rs < rulesets.size(); rs++)
+					if (!rulesets.get(rs).optionSettings().isEmpty() && !rulesets.get(rs).heading().contains("Incomplete"))
+						gameOptions.add(rulesets.get(rs).optionSettings());
+			
+			final Timer t = new Timer( );
+			t.scheduleAtFixedRate(new TimerTask()
+			{
+				int gameChoice = 0;
+			    @Override
+			    public void run()
+			    {
+			    	if (gameChoice >= gameOptions.size()) 
+			    	{
+			    		System.out.println("Thumbnails Done.");
+			            t.cancel();
+			            t.purge();
+			            return;
+			        }
+			    	
+			    	EventQueue.invokeLater(() -> 
+			    	{
+			    		GameLoading.loadGameFromName(app, game.name(), gameOptions.get(gameChoice), false);
+			    		gameChoice++;
+			    	});
+			    }
+			}, 1000,50000);
+
+			final Timer t2 = new Timer( );
+			t2.scheduleAtFixedRate(new TimerTask()
+			{
+			    @Override
+			    public void run()
+			    {
+			    	Thumbnails.generateThumbnails(app, true);
+			    }
+			}, 24000,50000);
 		}
 		else if (source.getText().equals("Export All Thumbnails"))
 		{			
@@ -1140,7 +1184,7 @@ public class MainMenuFunctions extends JMenuBar
 		}
 		else if (source.getText().startsWith("Preferences"))
 		{
-			SettingsDialog.createAndShowGUI(app);
+			app.showSettingsDialog();
 		}
 		else if (source.getText().equals("Load SVG"))
 		{
@@ -1282,26 +1326,67 @@ public class MainMenuFunctions extends JMenuBar
 		else if (source.getText().equals("Contextual Distance"))
 		{
 			final Map<String, Double> rulesetSimilaritiesCultural = ContextualSimilarity.getRulesetSimilarities(game, false);
-			final double maxValueInMapCultural = (Collections.max(rulesetSimilaritiesCultural.values()).doubleValue());
-			System.out.println("------------------");
-			System.out.println("closest cultural rulesets:");
-			if (maxValueInMapCultural > 0)
-		        for (final Entry<String, Double> entry : rulesetSimilaritiesCultural.entrySet()) 
-		            if (entry.getValue().doubleValue() == maxValueInMapCultural) 
-		                System.out.println(entry.getKey() + " (" + maxValueInMapCultural + ")");     // Print the rulesets with max cultural similarity
-	        
 	        final Map<String, Double> rulesetSimilaritiesConcept = ContextualSimilarity.getRulesetSimilarities(game, true);
-			final double maxValueInMapConcept = (Collections.max(rulesetSimilaritiesConcept.values()).doubleValue());
+	        final Map<String, Double> rulesetSimilaritiesGeographical = ContextualSimilarity.getRulesetGeographicSimilarities(game);
+	        final Map<String, Double> rulesetSimilaritiesYears = ContextualSimilarity.getRulesetYearSimilarities(game);
+
+			final int NUM_TO_PRINT = 10;
+			
+			System.out.println("------------------");
+			System.out.println("Closest cultural rulesets:");
+			for(int i = 0; i < NUM_TO_PRINT; i++)
+			{
+				final double maxValueInMapCultural = (Collections.max(rulesetSimilaritiesCultural.values()).doubleValue());
+				if (maxValueInMapCultural > 0)
+			        for (final Entry<String, Double> entry : rulesetSimilaritiesCultural.entrySet()) 
+			            if (entry.getValue().doubleValue() == maxValueInMapCultural) 
+			                System.out.println(entry.getKey() + " (" + maxValueInMapCultural + ")");     // Print the rulesets with max cultural similarity
+
+				rulesetSimilaritiesCultural.values().removeIf(value -> (value.doubleValue() == maxValueInMapCultural));
+			}
+			
 			System.out.println();
-			System.out.println("closest concept rulesets:");
-			if (maxValueInMapConcept > 0)
-		        for (final Entry<String, Double> entry : rulesetSimilaritiesConcept.entrySet()) 
-		            if (entry.getValue().doubleValue() == maxValueInMapConcept) 
-		                System.out.println(entry.getKey() + " (" + maxValueInMapConcept + ")");     // Print the rulesets with max concept similarity
+			System.out.println("Closest concept rulesets:");
+			for(int i = 0; i < NUM_TO_PRINT; i++)
+			{
+				final double maxValueInMapConcept = (Collections.max(rulesetSimilaritiesConcept.values()).doubleValue());
+				if (maxValueInMapConcept > 0)
+			        for (final Entry<String, Double> entry : rulesetSimilaritiesConcept.entrySet()) 
+			            if (entry.getValue().doubleValue() == maxValueInMapConcept) 
+			                System.out.println(entry.getKey() + " (" + maxValueInMapConcept + ")");     // Print the rulesets with max concept similarity
+
+				rulesetSimilaritiesConcept.values().removeIf(value -> (value.doubleValue() == maxValueInMapConcept));
+			}
+			
+			System.out.println();
+			System.out.println("Closest geographical rulesets:");
+			for(int i = 0; i < NUM_TO_PRINT; i++)
+			{
+				final double maxValueInMapConcept = (Collections.max(rulesetSimilaritiesGeographical.values()).doubleValue());
+				if (maxValueInMapConcept > 0)
+			        for (final Entry<String, Double> entry : rulesetSimilaritiesGeographical.entrySet()) 
+			            if (entry.getValue().doubleValue() == maxValueInMapConcept) 
+			                System.out.println(entry.getKey() + " (" + maxValueInMapConcept + ")");     // Print the rulesets with max geographic similarity
+
+				rulesetSimilaritiesGeographical.values().removeIf(value -> (value.doubleValue() == maxValueInMapConcept));
+			}
+			
+			System.out.println();
+			System.out.println("Closest year rulesets:");
+			for(int i = 0; i < NUM_TO_PRINT; i++)
+			{
+				final double maxValueInMapConcept = (Collections.max(rulesetSimilaritiesYears.values()).doubleValue());
+				if (maxValueInMapConcept > 0)
+			        for (final Entry<String, Double> entry : rulesetSimilaritiesYears.entrySet()) 
+			            if (entry.getValue().doubleValue() == maxValueInMapConcept) 
+			                System.out.println(entry.getKey() + " (" + maxValueInMapConcept + ")");     // Print the rulesets with max year similarity
+
+				rulesetSimilaritiesYears.values().removeIf(value -> (value.doubleValue() == maxValueInMapConcept));
+			}
 		}
 		else if (source.getText().equals("Reconstruction Dialog"))
 		{
-			ReconstructionDialog.createAndShowGUI();
+			ReconstructionDialog.createAndShowGUI(app);
 		}
 		else if (((JMenu)((JPopupMenu) source.getParent()).getInvoker()).getText().equals("Load Recent"))
 		{
@@ -1318,31 +1403,60 @@ public class MainMenuFunctions extends JMenuBar
 				System.out.println("This game no longer exists");
 			}
 		}
-		else if (getParentTitle(source, 4).equals("Predict Best Agent/Heuristic (external)"))
+		else if (source.getText().equals("Portfolio Parameters (external)"))
 		{
-			// Agent/Heuristic prediction
+			final Map<String, Map<String, Double>> portfolioParameterPredictions = AgentPredictionExternal.predictPortfolioParameters(game);
+			System.out.println("\n" + portfolioParameterPredictions + "\n");
+			for (final String parameterName : portfolioParameterPredictions.keySet())
+			{
+				double highestPredictionProb = -1.0;
+				String bestPredictionLabel = "";
+				for (final String paramValue : portfolioParameterPredictions.get(parameterName).keySet())
+				{ 
+					if (portfolioParameterPredictions.get(parameterName).get(paramValue).doubleValue() > highestPredictionProb)
+					{
+						highestPredictionProb = portfolioParameterPredictions.get(parameterName).get(paramValue).doubleValue();
+						bestPredictionLabel = paramValue;
+					}
+				}
+				System.out.println(parameterName + ": " + bestPredictionLabel + " (" + highestPredictionProb + ")");
+			}
+		}
+		else if (getParentTitle(source, 2).equals("Predict Metrics (external)"))
+		{
+			final boolean useCompilationOnly = getParentTitle(source, 1).equals("Compilation");
+			final String modelFilePath = source.getText() + "-Regression" + "-Metrics" + "-" + (useCompilationOnly ? "True" : "False");
+			final Map<String, Double> metricPredictions = MetricPredictionExternal.predictMetrics(game, modelFilePath, useCompilationOnly);
+			displayPredictionResults(app, metricPredictions, false, false);
+		}
+		else if (getParentTitle(source, 3).equals("Predict Best Agent (external)"))
+		{
+			// Agent prediction
+			final boolean useHeuristics = false;
 			final boolean useClassifier = getParentTitle(source, 2).equals("Classification");
-			final boolean useHeuristics = getParentTitle(source, 3).equals("Heuristic");
 			final boolean useCompilationOnly = getParentTitle(source, 1).equals("Compilation");
 			
 			// Determine the file path for the model
-			String modelFilePath = source.getText();
-			if (useClassifier)
-				modelFilePath += "-Classification";
-			else
-				modelFilePath += "-Regression";
-			if (useHeuristics)
-				modelFilePath += "-Heuristics";
-			else
-				modelFilePath += "-Agents";
-			if (useCompilationOnly)
-				modelFilePath += "-True";
-			else
-				modelFilePath += "-False";
+			final String modelFilePath = AgentPredictionExternal.getModelPath(source.getText(), useClassifier, useHeuristics, useCompilationOnly);
 			
 			System.out.println("Predicting...\n");
-			AgentPredictionExternal.predictBestAgent(app.manager(), modelFilePath, 1, useClassifier, useHeuristics, useCompilationOnly);
-			System.out.println("Prediction complete.\n");
+			final Map<String, Double> agentPredictions = AgentPredictionExternal.predictBestAgent(game, modelFilePath, useClassifier, useHeuristics, useCompilationOnly);
+			displayPredictionResults(app, agentPredictions, useClassifier, true);
+
+		}
+		else if (getParentTitle(source, 3).equals("Predict Best Heuristic (external)"))
+		{
+			// Heuristic prediction
+			final boolean useHeuristics = true;
+			final boolean useClassifier = getParentTitle(source, 2).equals("Classification");
+			final boolean useCompilationOnly = getParentTitle(source, 1).equals("Compilation");
+			
+			// Determine the file path for the model
+			final String modelFilePath = AgentPredictionExternal.getModelPath(source.getText(), useClassifier, useHeuristics, useCompilationOnly);
+			
+			System.out.println("Predicting...\n");
+			final Map<String, Double> heuristicPredictions = AgentPredictionExternal.predictBestAgent(game, modelFilePath, useClassifier, useHeuristics, useCompilationOnly);
+			displayPredictionResults(app, heuristicPredictions, useClassifier, true);
 		}
 		
 		EventQueue.invokeLater(() ->
@@ -1350,6 +1464,35 @@ public class MainMenuFunctions extends JMenuBar
 			app.resetMenuGUI();
 			app.repaint();
 		});
+	}
+	
+	private static void displayPredictionResults(final PlayerApp app, final Map<String, Double> agentPredictions, final boolean useClassifier, final boolean printHighestValue)
+	{
+		app.manager().getPlayerInterface().selectAnalysisTab();
+		
+		String bestPredictedAgentName = "None";
+		double bestPredictedValue = -99999;
+		for (final String agentName : agentPredictions.keySet())
+		{
+			final double score = agentPredictions.get(agentName).doubleValue();
+			
+			if (useClassifier)
+				app.manager().getPlayerInterface().addTextToAnalysisPanel("Predicted probability for " + agentName + ": " + score + "\n");
+			else
+				app.manager().getPlayerInterface().addTextToAnalysisPanel("Predicted value for " + agentName + ": " + score + "\n");
+			
+			if (score > bestPredictedValue)
+			{
+				bestPredictedValue = score;
+				bestPredictedAgentName = agentName;
+			}
+		}
+
+		if (printHighestValue)
+			app.manager().getPlayerInterface().addTextToAnalysisPanel("Best Predicted Agent/Heuristic is " + bestPredictedAgentName + "\n");
+		
+		app.manager().getPlayerInterface().addTextToAnalysisPanel("//-------------------------------------------------------------------------\n");
+		System.out.println("Prediction complete.\n");
 	}
 	
 	//-------------------------------------------------------------------------
