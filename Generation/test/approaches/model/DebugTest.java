@@ -32,7 +32,9 @@ public class DebugTest {
 		// TODO ask about Phase0             		../Common/res/lud/experimental/Hops-a-Daisy Generalized.lud
 		// TODO ask why components are null			../Common/res/lud/puzzle/deduction/Fill A Pix.lud
 		// TODO ask how mapEntry "captured" works	../Common/res/lud/board/war/replacement/checkmate/xiangqi/Loop Xiangqi.lud
-		String file = "../Common/res/lud/board/war/replacement/eliminate/target/Kriegsspiel.lud";
+		// TODO ask about Match.equipment() always returns null! Should probably call context.equipment() instead.   ../Common/res/lud/board/war/replacement/eliminate/all/Bul.lud
+		// "../Common/res/lud/board/war/replacement/eliminate/target/Kriegsspiel.lud"
+		String file = "../Common/res/lud/board/war/leaping/diagonal/Damas.lud";
 		
 
 		Game originalGame = GameLoader.loadGameFromFile(new File(file));

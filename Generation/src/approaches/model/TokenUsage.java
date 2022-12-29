@@ -26,7 +26,7 @@ import java.nio.file.Path;
 public class TokenUsage {
 	
 	public static void main(String[] args) {
-		TokenizationParameters parameters = TokenizationParameters.completeParameters();
+		TokenizationParameters parameters = TokenizationParameters.smallBoardGameParameters();
 		Tokenizer tokenizer = new Tokenizer(parameters);
 		Restorer restorer = new Restorer(parameters);
 
@@ -42,6 +42,8 @@ public class TokenUsage {
 			e.printStackTrace();
 			return;
 		}
+		
+		int tokenLimit = 512;
 		
 		HashSet<String> usedBaseTokens = new HashSet<>();
 		HashSet<String> usedSymbols = new HashSet<>();
@@ -62,6 +64,11 @@ public class TokenUsage {
 			
 				try {
 					List<Integer> tokens = tokenizer.tokenizeGame(originalGame);
+					
+					if (tokens.size() > tokenLimit) {
+						System.out.println("Skip");
+						continue;
+					}
 					
 					for (int token: tokens) {
 						
@@ -92,7 +99,7 @@ public class TokenUsage {
 							usedStrings.add(restored);
 							break;
 						case SYMBOL:
-							usedSymbols.add(restored);
+							usedSymbols.add('"' + restored + '"');
 							break;
 						}
 							
