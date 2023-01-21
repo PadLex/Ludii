@@ -9,31 +9,47 @@ import main.options.UserSelections;
 import parser.Parser;
 
 import java.util.ArrayList;
+import java.util.regex.Pattern;
 
-public class TokenAdapter {
-    final NGramCollection verticalNGrams;
-    final NGramCollection horizontalNGrams;
-    public TokenAdapter(NGramCollection verticalNGrams, NGramCollection horizontalNGrams) {
-        this.verticalNGrams = verticalNGrams;
-        this.horizontalNGrams = horizontalNGrams;
-    }
+public class TokenAdapter extends GramTree<Token> {
+    final Pattern isInteger = Pattern.compile("-?\\d+");
+    final Pattern isFloat = Pattern.compile("-?\\d+\\.\\d+");
+    final Pattern isString = Pattern.compile("\".+\"");
 
-    void addTokenTree(Token rootToken, int maxN) {
-        buildNodeTree(rootToken).propagateVerticalNGrams(maxN);
+    public TokenAdapter(Token rootToken) {
+        setNodeTree(rootToken);
     }
-    AdapterNode buildNodeTree(Token rootToken) {
-        AdapterNode root = new AdapterNode(rootToken.name(), verticalNGrams, horizontalNGrams);
+    void setNodeTree(Token rootToken) {
+        root = new GramNode(toGram(rootToken));
         for (Token childToken: rootToken.arguments()) {
-            buildNodeTree(childToken, root);
+            setNodeTree(childToken, root);
         }
-        return root;
     }
 
-    private void buildNodeTree(Token rootToken, AdapterNode parent) {
-        AdapterNode root = new AdapterNode(rootToken.name(), parent);
+    private void setNodeTree(Token rootToken, GramNode parent) {
+        GramNode root = new GramNode(toGram(rootToken), parent);
         for (Token childToken: rootToken.arguments()) {
-            buildNodeTree(childToken, root);
+            setNodeTree(childToken, root);
         }
+    }
+
+    String toGram(Token token) {
+        if (token.isArray())
+            return "array";
+
+        if (token.isTerminal()) {
+            if (isInteger.matcher(token.name()).matches())
+                return "<int>";
+
+            if (isFloat.matcher(token.name()).matches())
+                return "<float>";
+
+            if (isString.matcher(token.name()).matches()) {
+                return "<string>";
+            }
+        }
+
+        return token.name();
     }
 
     public static void main(String[] args) {
@@ -64,8 +80,13 @@ public class TokenAdapter {
         //System.out.println("parseTree: " + description.parseTree());
         //System.out.println("callTree: " + description.callTree());
 
-        TokenAdapter tokenAdapter = new TokenAdapter(new SimpleCollection(), new SimpleCollection());
-        tokenAdapter.addTokenTree(description.tokenForest().tokenTree(), 5);
-        System.out.println(tokenAdapter.verticalNGrams);
+        TokenAdapter tokenAdapter = new TokenAdapter(description.tokenForest().tokenTree());
+
+        NGramCollection verticalNGrams = new SimpleCollection();
+        NGramCollection horizontalNGrams = new SimpleCollection();
+
+        tokenAdapter.incrementAll(5, verticalNGrams, horizontalNGrams);
+        System.out.println(verticalNGrams);
+        System.out.println(horizontalNGrams);
     }
 }
