@@ -1,23 +1,22 @@
 package approaches.ngram;
 
-import java.util.HashMap;
-import java.util.List;
-
-public abstract class GramTree <T> {
+public class GramTree {
     GramNode root;
-    HashMap<T, GramNode> nodes = new HashMap<>();
 
-    abstract void setNodeTree(T rootToken);
-    abstract String toGram(T token);
-    void incrementAll(int maxN, NGramCollection verticalNGrams, NGramCollection horizontalNGrams) {
+    public GramTree(String rootGram) {
+        this.root = new GramNode(rootGram);
+    }
+
+    void incrementAll(int maxN, FrequencyTable verticalNGrams, FrequencyTable horizontalNGrams) {
         root.propagateVerticalNGrams(maxN, verticalNGrams);
         root.propagateHorizontalNGrams(maxN, horizontalNGrams);
     }
-    void incrementFrom(T startToken, int maxN, NGramCollection verticalNGrams, NGramCollection horizontalNGrams) {
-        GramNode node = nodes.get(startToken);
+    void incrementFrom(GramNode node, int maxN, FrequencyTable verticalNGrams, FrequencyTable horizontalNGrams) {
         node.propagateVerticalNGrams(maxN, verticalNGrams);
         node.propagateHorizontalNGrams(maxN, horizontalNGrams);
     }
+
+
 
 
 

@@ -11,7 +11,7 @@ import parser.Parser;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
 
-public class TokenAdapter extends GramTree<Token> {
+public class TokenAdapter {
     final Pattern isInteger = Pattern.compile("-?\\d+");
     final Pattern isFloat = Pattern.compile("-?\\d+\\.\\d+");
     final Pattern isString = Pattern.compile("\".+\"");
@@ -20,7 +20,7 @@ public class TokenAdapter extends GramTree<Token> {
         setNodeTree(rootToken);
     }
     void setNodeTree(Token rootToken) {
-        root = new GramNode(toGram(rootToken));
+        GramNode root = new GramNode(toGram(rootToken));
         for (Token childToken: rootToken.arguments()) {
             setNodeTree(childToken, root);
         }
@@ -82,8 +82,8 @@ public class TokenAdapter extends GramTree<Token> {
 
         TokenAdapter tokenAdapter = new TokenAdapter(description.tokenForest().tokenTree());
 
-        NGramCollection verticalNGrams = new SimpleCollection();
-        NGramCollection horizontalNGrams = new SimpleCollection();
+        FrequencyTable verticalNGrams = new SimpleHashTable();
+        FrequencyTable horizontalNGrams = new SimpleHashTable();
 
         tokenAdapter.incrementAll(5, verticalNGrams, horizontalNGrams);
         System.out.println(verticalNGrams);
