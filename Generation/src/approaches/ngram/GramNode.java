@@ -1,87 +1,113 @@
 package approaches.ngram;
 
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 public class GramNode {
-    static final char joiner = '|';
-    static final String nan = "Nan";
-    private final int maxN;
+    public static final String startGram = "~start~";
+    public static final String endGram = "~end~";
     private String gram;
     private GramNode parent;
     private List<GramNode> children = new LinkedList<>();
-    private String verticalNgrams;
-    private Collection<String> horizontalNgrams;
 
     // root node
-    GramNode(String gram, int maxN) {
+    GramNode(String gram) {
         this.gram = gram;
-        this.maxN = maxN;
     }
 
     // Normal node
     GramNode(String gram, GramNode parent) {
         this.gram = gram;
         this.parent = parent;
-        this.maxN = parent.maxN;
         parent.children.add(this);
     }
 
-    void recursivelyIncrementNgrams(FrequencyTable verticalFrequencyTable, FrequencyTable horizontalFrequencyTable) {
-        for (String ngram: getVerticalNGrams()) {
-            verticalFrequencyTable.increment(ngram);
-        }
-
-        for (String ngram: getHorizontalNGrams()) {
-            horizontalFrequencyTable.increment(ngram);
-        }
+    void recursivelyIncrementNgrams(FrequencyTable verticalFrequencyTable) {
+        verticalFrequencyTable.incrementAll(getVerticalNGram(verticalFrequencyTable.maxN));
 
         for (GramNode child : children) {
-            child.recursivelyIncrementNgrams(verticalFrequencyTable, horizontalFrequencyTable);
+            child.recursivelyIncrementNgrams(verticalFrequencyTable);
+        }
+
+        if (children.size() == 0) {
+            List<String> ngram = getVerticalNGram(verticalFrequencyTable.maxN - 1);
+            ngram.add(endGram);
+            verticalFrequencyTable.incrementAll(ngram);
         }
     }
-    private Collection<String> getVerticalNGrams() {
-        if (verticalNgrams == null) {
-            verticalNgrams = new LinkedList<>();
-            findVerticalNGrams(1, "", verticalNgrams);
-        }
-
-        return verticalNgrams;
+    private List<String> getVerticalNGram(int n) {
+        ArrayList<String> verticalNGrams = new ArrayList<>();
+        getVerticalNGram(verticalNGrams, n);
+        return verticalNGrams;
     }
-    private void findVerticalNGrams(int n, String oldGram, Collection<String> verticalNGrams) {
-        verticalNGrams.add(gram + oldGram);
+    private void getVerticalNGram(List<String> verticalNGram, int n) {
+        if (verticalNGram.size() >= n)
+            return;
 
-        if (n < maxN && parent != null) {
-            parent.findVerticalNGrams(n + 1, joiner + gram + oldGram, verticalNGrams);
-        }
-    }
-    public Collection<String> getHorizontalNGrams() {
-        if (horizontalNgrams != null) {
-            return horizontalNgrams;
-        }
+        verticalNGram.add(0, gram);
 
-        horizontalNgrams = new LinkedList<>();
-        for (int n = 1; n <= maxN; n++) {
-            gram: for (int start = 0; start < children.size(); start++) {
-                StringBuilder sb = new StringBuilder();
-                for (int i = start; i < start+n; i++) {
-                    if (i >= children.size())
-                        break gram;
-
-                    sb.append(children.get(i).gram).append('|');
-                }
-                if (sb.length() > 0) {
-                    sb.deleteCharAt(sb.length() - 1);
-                    horizontalNgrams.add(sb.toString());
-                }
+        if (parent != null) {
+            parent.getVerticalNGram(verticalNGram, n);
+        } else {
+            for (int i=verticalNGram.size(); i < n; i++) {
+                verticalNGram.add(0, startGram);
             }
         }
+    }
+    public double stupidBackoffScore(String childGram, FrequencyTable verticalFrequencyTable, double discount) {
+        List<String> ngram = getVerticalNGram(verticalFrequencyTable.maxN - 1);
+        ngram.add(childGram);
+        return stupidBackoffScore(ngram, verticalFrequencyTable, discount);
+    }
+    private double stupidBackoffScore(List<String> ngram, FrequencyTable verticalFrequencyTable, double discount) {
+        if (ngram.size() == 1)
+            return verticalFrequencyTable.getFrequency(ngram) / Math.log(verticalFrequencyTable.getTotal());
 
-        return horizontalNgrams;
+        int thisFrequency = verticalFrequencyTable.getFrequency(ngram);
+        if (thisFrequency == 0)
+            return discount * stupidBackoffScore(ngram.subList(1, ngram.size()), verticalFrequencyTable, discount);
+
+        int parentFrequency = verticalFrequencyTable.getFrequency(ngram.subList(0, ngram.size()-1));
+
+        return thisFrequency / (double) parentFrequency;
     }
 
-    public float verticalLogProbability(FrequencyTable verticalFrequencyTable) {
-        return verticalFrequencyTable.getFrequency(verticalNgrams);
+    public static void main(String[] args) {
+        GramNode the = new GramNode("the");
+        GramNode car = new GramNode("car", the);
+        GramNode is = new GramNode("is", car);
+        GramNode down = new GramNode("down", is);
+        GramNode the2 = new GramNode("the", down);
+        GramNode road = new GramNode("road", the2);
+
+        GramNode up = new GramNode("up", is);
+        GramNode the3 = new GramNode("the", up);
+        GramNode road2 = new GramNode("road", the3);
+
+        GramNode a = new GramNode("a", is);
+        GramNode car2 = new GramNode("car", a);
+        GramNode not = new GramNode("not", car2);
+        GramNode a2 = new GramNode("a", not);
+        GramNode truck = new GramNode("truck", a2);
+        GramNode but = new GramNode("but", truck);
+        GramNode a3 = new GramNode("a", but);
+        GramNode car3 = new GramNode("car", a3);
+
+
+        System.out.println(the.getVerticalNGram(4));
+        System.out.println(is.getVerticalNGram(4));
+        System.out.println(road.getVerticalNGram(4));
+
+        FrequencyTable frequencyTable = new SimpleTrie(5);
+        the.recursivelyIncrementNgrams(frequencyTable);
+
+        System.out.println(frequencyTable);
+
+        System.out.println(the2.getVerticalNGram(5) + " ...");
+        System.out.println("road: " + the2.stupidBackoffScore("road", frequencyTable, 0.4));
+        System.out.println("car: " + the2.stupidBackoffScore("car", frequencyTable, 0.4));
+        System.out.println("a: " + the2.stupidBackoffScore("a", frequencyTable, 0.4));
+        System.out.println("jam: " + the2.stupidBackoffScore("jam", frequencyTable, 0.4));
+
+
     }
 }

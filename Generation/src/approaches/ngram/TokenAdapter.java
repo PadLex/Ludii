@@ -81,12 +81,5 @@ public class TokenAdapter {
         //System.out.println("callTree: " + description.callTree());
 
         TokenAdapter tokenAdapter = new TokenAdapter(description.tokenForest().tokenTree());
-
-        FrequencyTable verticalNGrams = new SimpleHashTable();
-        FrequencyTable horizontalNGrams = new SimpleHashTable();
-
-        tokenAdapter.incrementAll(5, verticalNGrams, horizontalNGrams);
-        System.out.println(verticalNGrams);
-        System.out.println(horizontalNGrams);
     }
 }

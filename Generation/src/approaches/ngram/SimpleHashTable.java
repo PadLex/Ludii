@@ -1,27 +1,28 @@
 package approaches.ngram;
 
 import java.util.HashMap;
+import java.util.List;
 
-public class SimpleHashTable implements FrequencyTable {
-    HashMap<Integer, Integer> counts = new HashMap<>();
+public class SimpleHashTable extends FrequencyTable {
     HashMap<String, Integer> frequencies = new HashMap<>();
 
-    @Override
-    public void increment(String ngram, int n) {
-        counts.merge(n, 1, Integer::sum);
-        frequencies.merge(ngram, 1, Integer::sum);
+    protected SimpleHashTable(int maxN) {
+        super(maxN);
     }
 
     @Override
-    public int getFrequency(String ngram) {
-        return frequencies.getOrDefault(ngram, 0);
+    protected void incrementSingle(List<String> ngram) {
+        frequencies.merge(ngramToString(ngram), 1, Integer::sum);
     }
 
     @Override
-    public int getCount(int n) {
-        return frequencies.getOrDefault(n, 0);
+    public int getFrequency(List<String> ngram) {
+        return frequencies.getOrDefault(ngramToString(ngram), 0);
     }
 
+    private String ngramToString(List<String> ngram) {
+        return ngram.stream().reduce((s1, s2) -> s1 + '|' + s2).orElseThrow();
+    }
     @Override
     public String toString() {
         return frequencies.toString();
