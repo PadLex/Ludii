@@ -1,4 +1,4 @@
-package approaches.ngram;
+package approaches.ngram.table;
 
 import java.util.HashMap;
 import java.util.List;
@@ -6,7 +6,7 @@ import java.util.List;
 public class SimpleHashTable extends FrequencyTable {
     HashMap<String, Integer> frequencies = new HashMap<>();
 
-    protected SimpleHashTable(int maxN) {
+    public SimpleHashTable(int maxN) {
         super(maxN);
     }
 

@@ -1,4 +1,4 @@
-package approaches.ngram;
+package approaches.ngram.table;
 
 import java.util.HashMap;
 import java.util.List;
@@ -6,7 +6,7 @@ import java.util.Map;
 
 public class SimpleTrie extends FrequencyTable {
     Node root = new Node();
-    protected SimpleTrie(int maxN) {
+    public SimpleTrie(int maxN) {
         super(maxN);
     }
     @Override

@@ -1,4 +1,4 @@
-package approaches.ngram;
+package approaches.ngram.facade;
 
 import compiler.Compiler;
 import game.Game;

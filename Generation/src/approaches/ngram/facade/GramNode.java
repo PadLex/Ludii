@@ -1,4 +1,7 @@
-package approaches.ngram;
+package approaches.ngram.facade;
+
+import approaches.ngram.table.FrequencyTable;
+import approaches.ngram.table.SimpleTrie;
 
 import java.util.*;
 
@@ -56,19 +59,7 @@ public class GramNode {
     public double stupidBackoffScore(String childGram, FrequencyTable verticalFrequencyTable, double discount) {
         List<String> ngram = getVerticalNGram(verticalFrequencyTable.maxN - 1);
         ngram.add(childGram);
-        return stupidBackoffScore(ngram, verticalFrequencyTable, discount);
-    }
-    private double stupidBackoffScore(List<String> ngram, FrequencyTable verticalFrequencyTable, double discount) {
-        if (ngram.size() == 1)
-            return verticalFrequencyTable.getFrequency(ngram) / Math.log(verticalFrequencyTable.getTotal());
-
-        int thisFrequency = verticalFrequencyTable.getFrequency(ngram);
-        if (thisFrequency == 0)
-            return discount * stupidBackoffScore(ngram.subList(1, ngram.size()), verticalFrequencyTable, discount);
-
-        int parentFrequency = verticalFrequencyTable.getFrequency(ngram.subList(0, ngram.size()-1));
-
-        return thisFrequency / (double) parentFrequency;
+        return verticalFrequencyTable.stupidBackoffScore(ngram, discount);
     }
 
     public static void main(String[] args) {
