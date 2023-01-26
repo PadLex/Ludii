@@ -41,7 +41,7 @@ public abstract class FrequencyTable {
 
         int parentFrequency = getFrequency(ngram.subList(0, ngram.size()-1));
 
-        System.out.println(thisFrequency + " / " + parentFrequency + " -> " + thisFrequency / (double) parentFrequency);
+        //System.out.println(thisFrequency + " / " + parentFrequency + " -> " + thisFrequency / (double) parentFrequency);
 
         return thisFrequency / (double) parentFrequency;
     }

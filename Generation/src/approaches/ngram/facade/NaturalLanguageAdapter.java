@@ -1,6 +1,7 @@
 package approaches.ngram.facade;
 
 import approaches.ngram.table.FrequencyTable;
+import approaches.ngram.table.SimpleHashTable;
 import approaches.ngram.table.SimpleTrie;
 
 import java.io.FileInputStream;
@@ -17,18 +18,25 @@ public class NaturalLanguageAdapter {
 
     FrequencyTable frequencyTable = new SimpleTrie(5);
 
-    HashSet<String> dictionary = new HashSet<>();
+    HashSet<String> dictionary;
 
     Random random = new Random();
+
+    NaturalLanguageAdapter() {
+        dictionary = new HashSet<>();
+        dictionary.add(endGram);
+    }
 
     public void addText(String str) {
         List<String> gramSequence = new ArrayList<>(Arrays.asList(str.split(" ")));
         dictionary.addAll(gramSequence);
-        gramSequence.add(0, startGram);
+        for (int i = 0; i < frequencyTable.maxN; i++) {
+            gramSequence.add(0, startGram);
+        }
         gramSequence.add(endGram);
         gramSequence = gramSequence.stream().map(String::strip).filter(s -> !s.isEmpty()).toList();
 
-        for (int i = 0; i < gramSequence.size() - frequencyTable.maxN; i++) {
+        for (int i = 0; i <= gramSequence.size() - frequencyTable.maxN; i++) {
             frequencyTable.incrementAll(gramSequence.subList(i, i + frequencyTable.maxN));
         }
     }
@@ -40,7 +48,8 @@ public class NaturalLanguageAdapter {
             ngram = ngram.subList(ngram.size() - frequencyTable.maxN + 1, ngram.size());
         }
         else if (ngram.size() < frequencyTable.maxN) {
-            for (int i = 0; i < frequencyTable.maxN - ngram.size() - 1; i++) {
+            int max = frequencyTable.maxN - ngram.size() - 1;
+            for (int i = 0; i < max; i++) {
                 ngram.add(0, startGram);
             }
         }
@@ -48,19 +57,27 @@ public class NaturalLanguageAdapter {
             ngram = ngram.subList(1, ngram.size());
         }
 
+        //System.out.println(ngram.size() + " " + frequencyTable.maxN + " " + ngram);
+
         HashMap<String, Double> options = new HashMap<>();
         double sum = 0;
         for (String gram: dictionary) {
             ngram.add(gram);
 
             double score = frequencyTable.stupidBackoffScore(ngram, 0.4);
-            options.put(gram, score);
-            sum += score;
+
+            if (Double.isInfinite(score) || Double.isNaN(score) || score < 0)
+                throw new Error("Double underflow, plz fix: " + ngram + " -> " + score);
+
+            if (score > 0) {
+                options.put(gram, score);
+                sum += score;
+            }
 
             ngram.remove(ngram.size() - 1);
         }
 
-        System.out.println(sum);
+        //System.out.println(sum);
 
 
         ArrayList<Map.Entry<String, Double>> sortedOptions = new ArrayList<>(options.entrySet());
@@ -89,15 +106,31 @@ public class NaturalLanguageAdapter {
             e.printStackTrace();
         }
     }
-    public static void main(String[] args) throws IOException {
 
+    public static void generationTest(String fileName, int outputLength) {
         NaturalLanguageAdapter nlGenerator = new NaturalLanguageAdapter();
 
-        nlGenerator.addTextFile("/Users/alex/Documents/Marble/Random Text/shakespeare.txt");
+        nlGenerator.addTextFile(fileName);
 
+        List<String> sentence = new ArrayList<>(Arrays.asList());
+        for (int i = 0; i < outputLength; i++) {
+            String nexGram = nlGenerator.predictNextGram(sentence);
+            sentence.add(nexGram);
 
-        String[] newSentence = {"<s>", ""};
-        System.out.println(nlGenerator.predictNextGram(Arrays.asList(newSentence)));
+            if (nexGram.equals(nlGenerator.endGram)) {
+                System.out.print('\n');
+                sentence.clear();
+            } else {
+                if (nexGram.matches("\\w*")) {
+                    System.out.print(' ');
+                }
+                System.out.print(nexGram);
+            }
 
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        generationTest("/Users/alex/Documents/Marble/Random Text/shakespeare.txt", 200);
     }
 }
