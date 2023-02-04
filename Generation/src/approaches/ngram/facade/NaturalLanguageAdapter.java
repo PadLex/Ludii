@@ -4,9 +4,9 @@ import approaches.ngram.table.FrequencyTable;
 import approaches.ngram.table.SimpleHashTable;
 import approaches.ngram.table.SimpleTrie;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Stream;
@@ -16,7 +16,7 @@ public class NaturalLanguageAdapter {
     String startGram = "<s>";
     String endGram = "</s>";
 
-    FrequencyTable frequencyTable = new SimpleTrie(5);
+    FrequencyTable frequencyTable = new SimpleTrie(6);
 
     HashSet<String> dictionary;
 
@@ -29,11 +29,13 @@ public class NaturalLanguageAdapter {
 
     public void addText(String str) {
         List<String> gramSequence = new ArrayList<>(Arrays.asList(str.split(" ")));
+
         dictionary.addAll(gramSequence);
         for (int i = 0; i < frequencyTable.maxN; i++) {
             gramSequence.add(0, startGram);
         }
         gramSequence.add(endGram);
+
         gramSequence = gramSequence.stream().map(String::strip).filter(s -> !s.isEmpty()).toList();
 
         for (int i = 0; i <= gramSequence.size() - frequencyTable.maxN; i++) {
@@ -64,7 +66,7 @@ public class NaturalLanguageAdapter {
         for (String gram: dictionary) {
             ngram.add(gram);
 
-            double score = frequencyTable.stupidBackoffScore(ngram, 0.4);
+            double score = frequencyTable.stupidBackoffScore(ngram, 0.8);
 
             if (Double.isInfinite(score) || Double.isNaN(score) || score < 0)
                 throw new Error("Double underflow, plz fix: " + ngram + " -> " + score);
@@ -76,9 +78,6 @@ public class NaturalLanguageAdapter {
 
             ngram.remove(ngram.size() - 1);
         }
-
-        //System.out.println(sum);
-
 
         ArrayList<Map.Entry<String, Double>> sortedOptions = new ArrayList<>(options.entrySet());
         sortedOptions.sort(Map.Entry.comparingByValue(Comparator.reverseOrder()));
@@ -106,7 +105,6 @@ public class NaturalLanguageAdapter {
             e.printStackTrace();
         }
     }
-
     public static void generationTest(String fileName, int outputLength) {
         NaturalLanguageAdapter nlGenerator = new NaturalLanguageAdapter();
 
@@ -130,7 +128,53 @@ public class NaturalLanguageAdapter {
         }
     }
 
+    public static void performanceTest(String fileName, int outputLength) {
+        NaturalLanguageAdapter nlGenerator = new NaturalLanguageAdapter();
+
+        Runtime runtime = Runtime.getRuntime();
+        long usedMemoryBefore = runtime.totalMemory() - runtime.freeMemory();
+
+        long startText = System.currentTimeMillis();
+        nlGenerator.addTextFile(fileName);
+
+        System.out.println("Table creation time: " + (System.currentTimeMillis() - startText) + "ms");
+        long memoryUsage = ((runtime.totalMemory() - runtime.freeMemory()) - usedMemoryBefore) / 1048576;
+        System.out.println("Table size: " + memoryUsage + "MB");
+
+        long startGeneration = System.currentTimeMillis();
+        List<String> sentence = new ArrayList<>(Arrays.asList());
+        for (int i = 0; i < outputLength; i++) {
+            nlGenerator.predictNextGram(sentence);
+        }
+        long generationTime = System.currentTimeMillis() - startGeneration;
+        System.out.println("Generation time: " + generationTime + "ms about " + generationTime / outputLength + "ms per token");
+    }
+
+    public static void dictionaryFromCounts(String inDirName, String outFileName, int minOccurrences, int maxSize) throws IOException {
+        HashMap<String, Integer> counts = new HashMap();
+
+        Stream<Path> paths = Files.walk(Paths.get(inDirName)).filter(Files::isRegularFile);
+
+        paths.forEach(path -> {
+            try (Stream<String> lines = Files.lines(path).filter(s -> !s.isEmpty())) {
+                lines.forEach(line -> {
+                    String[] split = line.split("\\s");
+                    counts.merge(split[0].trim(), Integer.parseInt(split[1].trim()), Integer::sum);
+                });
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+
+        Stream<String> dictionary = counts.entrySet().stream().filter(set -> set.getValue() > minOccurrences)
+                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder())).limit(maxSize).map(Map.Entry::getKey);;
+
+        Files.write(Paths.get(outFileName), (Iterable<String>) dictionary::iterator);
+    }
+
     public static void main(String[] args) throws IOException {
-        generationTest("/Users/alex/Documents/Marble/Random Text/shakespeare.txt", 200);
+        //generationTest("/Users/alex/Documents/Marble/Random Text/shakespeare.txt", 200);
+        //performanceTest("/Users/alex/Documents/Marble/Random Text/shakespeare.txt", 200);
+        dictionaryFromCounts("/Users/alex/Documents/Marble/Random Text/gutenberg/data/counts", "/Users/alex/Documents/Marble/Random Text/gutenberg/data/dictionary.txt", 5, 30000);
     }
 }
