@@ -13,30 +13,30 @@ import java.util.stream.Stream;
 
 public class NaturalLanguageAdapter {
 
+    final static int maxSize = 65536;
+
     String startGram = "<s>";
     String endGram = "</s>";
 
+    String outOfDictionaryGram = "<?>";
+
     FrequencyTable frequencyTable = new SimpleTrie(6);
 
-    HashSet<String> dictionary;
+    HashMap<String, Short> dictionary;
 
     Random random = new Random();
 
-    NaturalLanguageAdapter() {
-        dictionary = new HashSet<>();
-        dictionary.add(endGram);
+    NaturalLanguageAdapter(HashMap<String, Short> dictionary) {
+        this.dictionary = dictionary;
     }
 
-    public void addText(String str) {
-        List<String> gramSequence = new ArrayList<>(Arrays.asList(str.split(" ")));
+    public void incrementTokens(List<String> gramSequence) {
+        gramSequence = new ArrayList<>(gramSequence);
 
-        dictionary.addAll(gramSequence);
         for (int i = 0; i < frequencyTable.maxN; i++) {
             gramSequence.add(0, startGram);
         }
         gramSequence.add(endGram);
-
-        gramSequence = gramSequence.stream().map(String::strip).filter(s -> !s.isEmpty()).toList();
 
         for (int i = 0; i <= gramSequence.size() - frequencyTable.maxN; i++) {
             frequencyTable.incrementAll(gramSequence.subList(i, i + frequencyTable.maxN));
@@ -63,8 +63,8 @@ public class NaturalLanguageAdapter {
 
         HashMap<String, Double> options = new HashMap<>();
         double sum = 0;
-        for (String gram: dictionary) {
-            ngram.add(gram);
+        for (Map.Entry<String, Short> gram: dictionary.entrySet()) {
+            ngram.add(gram.getKey());
 
             double score = frequencyTable.stupidBackoffScore(ngram, 0.8);
 
@@ -72,7 +72,7 @@ public class NaturalLanguageAdapter {
                 throw new Error("Double underflow, plz fix: " + ngram + " -> " + score);
 
             if (score > 0) {
-                options.put(gram, score);
+                options.put(gram.getKey(), score);
                 sum += score;
             }
 
@@ -100,15 +100,44 @@ public class NaturalLanguageAdapter {
 
     public void addTextFile(String fileName) {
         try (Stream<String> stream = Files.lines(Paths.get(fileName))) {
-            stream.map(String::strip).filter(s -> !s.isEmpty()).forEach(this::addText);
+            stream.map(String::strip).filter(s -> !s.isEmpty()).map(s -> Arrays.asList(s.split(" "))).forEach(this::incrementTokens);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-    public static void generationTest(String fileName, int outputLength) {
-        NaturalLanguageAdapter nlGenerator = new NaturalLanguageAdapter();
 
-        nlGenerator.addTextFile(fileName);
+    public void addTokenFiles(String tokenDirectory) throws IOException {
+        Stream<Path> paths = Files.walk(Paths.get(tokenDirectory)).filter(Files::isRegularFile).limit(50);
+
+        paths.forEach(path -> {
+            try {
+                List<String> lines = Files.readAllLines(path).stream().map(String::strip).filter(s -> !s.isEmpty()).map(s -> dictionary.containsKey(s)? s : outOfDictionaryGram).toList();
+                if (lines.stream().filter(s -> s.equals(outOfDictionaryGram)).count() / (double) lines.size() > 0.05) {
+                    System.out.println("out of dict: " + path);
+                    return;
+                }
+
+
+                incrementTokens(lines);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    public static HashMap<String, Short> loadDictionary(String dictionaryFile) throws IOException {
+        HashMap<String, Short> dictionary = new HashMap<>();
+
+        Stream<String> stream = Files.lines(Paths.get(dictionaryFile)).limit(maxSize);
+        stream.map(String::strip).filter(s -> !s.isEmpty()).sequential().forEach(s -> dictionary.put(s, (short) (dictionary.size() - maxSize/2)));
+
+        return dictionary;
+    }
+    public static void generationTest(String dataDirectory, int outputLength) throws IOException {
+
+        NaturalLanguageAdapter nlGenerator = new NaturalLanguageAdapter(loadDictionary(dataDirectory + "/dictionary.txt"));
+
+        nlGenerator.addTokenFiles(dataDirectory + "/tokens/");
 
         List<String> sentence = new ArrayList<>(Arrays.asList());
         for (int i = 0; i < outputLength; i++) {
@@ -128,14 +157,13 @@ public class NaturalLanguageAdapter {
         }
     }
 
-    public static void performanceTest(String fileName, int outputLength) {
-        NaturalLanguageAdapter nlGenerator = new NaturalLanguageAdapter();
+    public static void performanceTest(String dataDirectory, int outputLength) throws IOException {
+        NaturalLanguageAdapter nlGenerator = new NaturalLanguageAdapter(loadDictionary(dataDirectory + "/dictionary.txt"));
 
         Runtime runtime = Runtime.getRuntime();
         long usedMemoryBefore = runtime.totalMemory() - runtime.freeMemory();
-
         long startText = System.currentTimeMillis();
-        nlGenerator.addTextFile(fileName);
+        nlGenerator.addTokenFiles(dataDirectory + "/tokens/");
 
         System.out.println("Table creation time: " + (System.currentTimeMillis() - startText) + "ms");
         long memoryUsage = ((runtime.totalMemory() - runtime.freeMemory()) - usedMemoryBefore) / 1048576;
@@ -150,10 +178,10 @@ public class NaturalLanguageAdapter {
         System.out.println("Generation time: " + generationTime + "ms about " + generationTime / outputLength + "ms per token");
     }
 
-    public static void dictionaryFromCounts(String inDirName, String outFileName, int minOccurrences, int maxSize) throws IOException {
+    public static void dictionaryFromCounts(String dataDirectory, int minOccurrences) throws IOException {
         HashMap<String, Integer> counts = new HashMap();
 
-        Stream<Path> paths = Files.walk(Paths.get(inDirName)).filter(Files::isRegularFile);
+        Stream<Path> paths = Files.walk(Paths.get(dataDirectory + "/counts/")).filter(Files::isRegularFile);
 
         paths.forEach(path -> {
             try (Stream<String> lines = Files.lines(path).filter(s -> !s.isEmpty())) {
@@ -169,12 +197,12 @@ public class NaturalLanguageAdapter {
         Stream<String> dictionary = counts.entrySet().stream().filter(set -> set.getValue() > minOccurrences)
                 .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder())).limit(maxSize).map(Map.Entry::getKey);;
 
-        Files.write(Paths.get(outFileName), (Iterable<String>) dictionary::iterator);
+        Files.write(Paths.get(dataDirectory + "/dictionary.txt"), (Iterable<String>) dictionary::iterator);
     }
 
     public static void main(String[] args) throws IOException {
-        //generationTest("/Users/alex/Documents/Marble/Random Text/shakespeare.txt", 200);
-        //performanceTest("/Users/alex/Documents/Marble/Random Text/shakespeare.txt", 200);
-        dictionaryFromCounts("/Users/alex/Documents/Marble/Random Text/gutenberg/data/counts", "/Users/alex/Documents/Marble/Random Text/gutenberg/data/dictionary.txt", 5, 30000);
+        //generationTest("/Users/alex/Documents/Marble/Random Text/gutenberg/data", 200);
+        performanceTest("/Users/alex/Documents/Marble/Random Text/gutenberg/data", 200);
+        //dictionaryFromCounts("/Users/alex/Documents/Marble/Random Text/gutenberg/data", 5);
     }
 }
