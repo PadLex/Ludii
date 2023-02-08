@@ -4,17 +4,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class SimpleTrie extends FrequencyTable {
+public class HashTableTrie extends FrequencyTable {
     Node root = new Node();
-    public SimpleTrie(int maxN) {
+    public HashTableTrie(int maxN) {
         super(maxN);
     }
     @Override
-    protected void incrementSingle(List<String> ngram) {
+    protected void incrementSingle(List<Short> ngram) {
         root.increment(ngram);
     }
     @Override
-    public int getFrequency(List<String> ngram) {
+    public int getFrequency(List<Short> ngram) {
         return root.getFrequency(ngram);
     }
     @Override
@@ -24,15 +24,15 @@ public class SimpleTrie extends FrequencyTable {
 
     private class Node {
         int count;
-        HashMap<String, Node> children = new HashMap<>();
+        HashMap<Short, Node> children = new HashMap<>();
 
         public Node() {
         }
-        public Node(String gram, Node parent) {
+        public Node(short gram, Node parent) {
             parent.children.put(gram, this);
         }
 
-        void increment(List<String> ngram) {
+        void increment(List<Short> ngram) {
             if (ngram.size() == 0) {
                 count++;
                 return;
@@ -44,7 +44,7 @@ public class SimpleTrie extends FrequencyTable {
 
             child.increment(ngram.subList(1, ngram.size()));
         }
-        int getFrequency(List<String> ngram) {
+        int getFrequency(List<Short> ngram) {
             if (ngram.size() == 0)
                 return count;
 
@@ -56,13 +56,14 @@ public class SimpleTrie extends FrequencyTable {
             return 0;
         }
 
-        HashMap<String, Integer> getCounts() {
-            HashMap<String, Integer> counts = new HashMap<>();
+        /*
+        HashMap<Short, Integer> getCounts() {
+            HashMap<Short, Integer> counts = new HashMap<>();
             getCounts(counts, "");
             return counts;
         }
 
-        void getCounts(HashMap<String, Integer> counts, String ngram) {
+        void getCounts(HashMap<String, Integer> counts, short[] ngram) {
             if (count > 0)
                 counts.put(ngram.substring(0, ngram.length()-1), count);
 
@@ -76,6 +77,6 @@ public class SimpleTrie extends FrequencyTable {
         @Override
         public String toString() {
             return getCounts().toString();
-        }
+        }*/
     }
 }

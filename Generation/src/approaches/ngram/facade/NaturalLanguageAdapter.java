@@ -1,8 +1,9 @@
 package approaches.ngram.facade;
 
 import approaches.ngram.table.FrequencyTable;
+import approaches.ngram.table.HashTableTrie;
+import approaches.ngram.table.ListTrie;
 import approaches.ngram.table.SimpleHashTable;
-import approaches.ngram.table.SimpleTrie;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -13,25 +14,23 @@ import java.util.stream.Stream;
 
 public class NaturalLanguageAdapter {
 
-    final static int maxSize = 65536;
+    final static short startGram = (short) 32768;
+    final static short endGram = (short) 32767;
+    final static short outOfDictionaryGram = (short) 32766;
+    final static int maxDictionarySize = 32765 * 2;
 
-    String startGram = "<s>";
-    String endGram = "</s>";
-
-    String outOfDictionaryGram = "<?>";
-
-    FrequencyTable frequencyTable = new SimpleTrie(6);
+    FrequencyTable frequencyTable = new ListTrie(4);
 
     HashMap<String, Short> dictionary;
 
-    Random random = new Random();
+    Random random = new Random(0);
 
     NaturalLanguageAdapter(HashMap<String, Short> dictionary) {
         this.dictionary = dictionary;
     }
 
-    public void incrementTokens(List<String> gramSequence) {
-        gramSequence = new ArrayList<>(gramSequence);
+    public void incrementTokens(List<String> gramStringSequence) {
+        List<Short> gramSequence = new ArrayList<>(gramStringSequence.stream().map(s -> dictionary.getOrDefault(s, outOfDictionaryGram)).toList());
 
         for (int i = 0; i < frequencyTable.maxN; i++) {
             gramSequence.add(0, startGram);
@@ -43,8 +42,8 @@ public class NaturalLanguageAdapter {
         }
     }
 
-    public String predictNextGram(List<String> gramSequence) {
-        List<String> ngram = new ArrayList<>(gramSequence);
+    public String predictNextGram(List<String> gramStringSequence) {
+        List<Short> ngram = new ArrayList<>(gramStringSequence.stream().map(s -> dictionary.getOrDefault(s, outOfDictionaryGram)).toList());
 
         if (ngram.size() > frequencyTable.maxN) {
             ngram = ngram.subList(ngram.size() - frequencyTable.maxN + 1, ngram.size());
@@ -64,12 +63,13 @@ public class NaturalLanguageAdapter {
         HashMap<String, Double> options = new HashMap<>();
         double sum = 0;
         for (Map.Entry<String, Short> gram: dictionary.entrySet()) {
-            ngram.add(gram.getKey());
+            ngram.add(gram.getValue());
 
-            double score = frequencyTable.stupidBackoffScore(ngram, 0.8);
+            double score = frequencyTable.stupidBackoffScore(ngram, 0.4);
 
             if (Double.isInfinite(score) || Double.isNaN(score) || score < 0)
-                throw new Error("Double underflow, plz fix: " + ngram + " -> " + score);
+                continue;
+                //throw new Error("Double underflow, plz fix: " + ngram + " -> " + score);
 
             if (score > 0) {
                 options.put(gram.getKey(), score);
@@ -107,12 +107,13 @@ public class NaturalLanguageAdapter {
     }
 
     public void addTokenFiles(String tokenDirectory) throws IOException {
-        Stream<Path> paths = Files.walk(Paths.get(tokenDirectory)).filter(Files::isRegularFile).limit(50);
+        Stream<Path> paths = Files.walk(Paths.get(tokenDirectory)).filter(Files::isRegularFile).limit(1000);
 
         paths.forEach(path -> {
             try {
-                List<String> lines = Files.readAllLines(path).stream().map(String::strip).filter(s -> !s.isEmpty()).map(s -> dictionary.containsKey(s)? s : outOfDictionaryGram).toList();
-                if (lines.stream().filter(s -> s.equals(outOfDictionaryGram)).count() / (double) lines.size() > 0.05) {
+                List<String> lines = Files.readAllLines(path).stream().map(String::strip).filter(s -> !s.isEmpty()).toList();
+
+                if (lines.stream().filter(s -> !dictionary.containsKey(s)).count() / (double) lines.size() > 0.05) {
                     System.out.println("out of dict: " + path);
                     return;
                 }
@@ -128,8 +129,8 @@ public class NaturalLanguageAdapter {
     public static HashMap<String, Short> loadDictionary(String dictionaryFile) throws IOException {
         HashMap<String, Short> dictionary = new HashMap<>();
 
-        Stream<String> stream = Files.lines(Paths.get(dictionaryFile)).limit(maxSize);
-        stream.map(String::strip).filter(s -> !s.isEmpty()).sequential().forEach(s -> dictionary.put(s, (short) (dictionary.size() - maxSize/2)));
+        Stream<String> stream = Files.lines(Paths.get(dictionaryFile)).limit(maxDictionarySize);
+        stream.map(String::strip).filter(s -> !s.isEmpty()).sequential().forEach(s -> dictionary.put(s, (short) (dictionary.size() - maxDictionarySize /2)));
 
         return dictionary;
     }
@@ -139,21 +140,27 @@ public class NaturalLanguageAdapter {
 
         nlGenerator.addTokenFiles(dataDirectory + "/tokens/");
 
-        List<String> sentence = new ArrayList<>(Arrays.asList());
-        for (int i = 0; i < outputLength; i++) {
-            String nexGram = nlGenerator.predictNextGram(sentence);
-            sentence.add(nexGram);
+        //System.out.println(nlGenerator.frequencyTable);
 
-            if (nexGram.equals(nlGenerator.endGram)) {
-                System.out.print('\n');
-                sentence.clear();
-            } else {
-                if (nexGram.matches("\\w*")) {
-                    System.out.print(' ');
+        String[] sentences = {"", "i ", "i will run to the ", "a car", "mit figuren erdteile länderkunde", "io voglio"};
+        for (String sentenceStrings: sentences) {
+            List<String> sentence = new ArrayList(Arrays.asList(sentenceStrings.split("\\s")));
+            System.out.print("\n" + sentence + " + ");
+            for (int i = 0; i < outputLength; i++) {
+                String nexGram = nlGenerator.predictNextGram(sentence);
+                sentence.add(nexGram);
+
+                if (nexGram.equals(nlGenerator.endGram)) {
+                    System.out.print('\n');
+                    sentence.clear();
+                } else {
+                    if (nexGram.matches("\\w*")) {
+                        System.out.print(' ');
+                    }
+                    System.out.print(nexGram);
                 }
-                System.out.print(nexGram);
-            }
 
+            }
         }
     }
 
@@ -195,14 +202,14 @@ public class NaturalLanguageAdapter {
         });
 
         Stream<String> dictionary = counts.entrySet().stream().filter(set -> set.getValue() > minOccurrences)
-                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder())).limit(maxSize).map(Map.Entry::getKey);;
+                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder())).limit(maxDictionarySize).map(Map.Entry::getKey);;
 
         Files.write(Paths.get(dataDirectory + "/dictionary.txt"), (Iterable<String>) dictionary::iterator);
     }
 
     public static void main(String[] args) throws IOException {
-        //generationTest("/Users/alex/Documents/Marble/Random Text/gutenberg/data", 200);
-        performanceTest("/Users/alex/Documents/Marble/Random Text/gutenberg/data", 200);
+        //generationTest("/Users/alex/Documents/Marble/Random Text/gutenberg/data", 10);
+        performanceTest("/Users/alex/Documents/Marble/Random Text/gutenberg/data", 20);
         //dictionaryFromCounts("/Users/alex/Documents/Marble/Random Text/gutenberg/data", 5);
     }
 }

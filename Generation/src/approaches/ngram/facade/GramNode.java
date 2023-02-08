@@ -1,24 +1,24 @@
 package approaches.ngram.facade;
 
 import approaches.ngram.table.FrequencyTable;
-import approaches.ngram.table.SimpleTrie;
+import approaches.ngram.table.HashTableTrie;
 
 import java.util.*;
 
 public class GramNode {
-    public static final String startGram = "~start~";
-    public static final String endGram = "~end~";
-    private String gram;
+    public static final short startGram = 0;
+    public static final short endGram = 1;
+    private short gram;
     private GramNode parent;
     private List<GramNode> children = new LinkedList<>();
 
     // root node
-    GramNode(String gram) {
+    GramNode(short gram) {
         this.gram = gram;
     }
 
     // Normal node
-    GramNode(String gram, GramNode parent) {
+    GramNode(short gram, GramNode parent) {
         this.gram = gram;
         this.parent = parent;
         parent.children.add(this);
@@ -32,17 +32,17 @@ public class GramNode {
         }
 
         if (children.size() == 0) {
-            List<String> ngram = getVerticalNGram(verticalFrequencyTable.maxN - 1);
+            List<Short> ngram = getVerticalNGram(verticalFrequencyTable.maxN - 1);
             ngram.add(endGram);
             verticalFrequencyTable.incrementAll(ngram);
         }
     }
-    private List<String> getVerticalNGram(int n) {
-        ArrayList<String> verticalNGrams = new ArrayList<>();
+    private List<Short> getVerticalNGram(int n) {
+        ArrayList<Short> verticalNGrams = new ArrayList<>();
         getVerticalNGram(verticalNGrams, n);
         return verticalNGrams;
     }
-    private void getVerticalNGram(List<String> verticalNGram, int n) {
+    private void getVerticalNGram(List<Short> verticalNGram, int n) {
         if (verticalNGram.size() >= n)
             return;
 
@@ -56,13 +56,14 @@ public class GramNode {
             }
         }
     }
-    public double stupidBackoffScore(String childGram, FrequencyTable verticalFrequencyTable, double discount) {
-        List<String> ngram = getVerticalNGram(verticalFrequencyTable.maxN - 1);
+    public double stupidBackoffScore(short childGram, FrequencyTable verticalFrequencyTable, double discount) {
+        List<Short> ngram = getVerticalNGram(verticalFrequencyTable.maxN - 1);
         ngram.add(childGram);
         return verticalFrequencyTable.stupidBackoffScore(ngram, discount);
     }
 
     public static void main(String[] args) {
+        /*
         GramNode the = new GramNode("the");
         GramNode car = new GramNode("car", the);
         GramNode is = new GramNode("is", car);
@@ -88,7 +89,7 @@ public class GramNode {
         System.out.println(is.getVerticalNGram(4));
         System.out.println(road.getVerticalNGram(4));
 
-        FrequencyTable frequencyTable = new SimpleTrie(5);
+        FrequencyTable frequencyTable = new HashTableTrie(5);
         the.recursivelyIncrementNgrams(frequencyTable);
 
         System.out.println(frequencyTable);
@@ -98,7 +99,7 @@ public class GramNode {
         System.out.println("car: " + the2.stupidBackoffScore("car", frequencyTable, 0.4));
         System.out.println("a: " + the2.stupidBackoffScore("a", frequencyTable, 0.4));
         System.out.println("jam: " + the2.stupidBackoffScore("jam", frequencyTable, 0.4));
-
+*/
 
     }
 }

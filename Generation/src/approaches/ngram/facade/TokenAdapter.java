@@ -9,12 +9,15 @@ import main.options.UserSelections;
 import parser.Parser;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.regex.Pattern;
 
 public class TokenAdapter {
     final Pattern isInteger = Pattern.compile("-?\\d+");
     final Pattern isFloat = Pattern.compile("-?\\d+\\.\\d+");
     final Pattern isString = Pattern.compile("\".+\"");
+
+    HashMap<String, Short> dictionary;
 
     public TokenAdapter(Token rootToken) {
         setNodeTree(rootToken);
@@ -33,23 +36,25 @@ public class TokenAdapter {
         }
     }
 
-    String toGram(Token token) {
+    short toGram(Token token) {
         if (token.isArray())
-            return "array";
+            return 2;
+
+        String name = token.name();
 
         if (token.isTerminal()) {
-            if (isInteger.matcher(token.name()).matches())
-                return "<int>";
+            if (isInteger.matcher(name).matches())
+                return 3;
 
-            if (isFloat.matcher(token.name()).matches())
-                return "<float>";
+            if (isFloat.matcher(name).matches())
+                return 4;
 
-            if (isString.matcher(token.name()).matches()) {
-                return "<string>";
+            if (isString.matcher(name).matches()) {
+                return 5;
             }
         }
 
-        return token.name();
+        return dictionary.get(name);
     }
 
     public static void main(String[] args) {
