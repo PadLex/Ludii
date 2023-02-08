@@ -1,7 +1,6 @@
 package approaches.ngram.facade;
 
 import approaches.ngram.table.FrequencyTable;
-import approaches.ngram.table.HashTableTrie;
 
 import java.util.*;
 

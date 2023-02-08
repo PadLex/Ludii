@@ -1,9 +1,7 @@
 package approaches.ngram.facade;
 
 import approaches.ngram.table.FrequencyTable;
-import approaches.ngram.table.HashTableTrie;
-import approaches.ngram.table.ListTrie;
-import approaches.ngram.table.SimpleHashTable;
+import approaches.ngram.table.TreeMapTrie;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -19,7 +17,7 @@ public class NaturalLanguageAdapter {
     final static short outOfDictionaryGram = (short) 32766;
     final static int maxDictionarySize = 32765 * 2;
 
-    FrequencyTable frequencyTable = new ListTrie(4);
+    FrequencyTable frequencyTable = new TreeMapTrie(4);
 
     HashMap<String, Short> dictionary;
 

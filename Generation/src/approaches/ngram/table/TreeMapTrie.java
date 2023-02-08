@@ -1,12 +1,11 @@
 package approaches.ngram.table;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.TreeMap;
 
-public class HashTableTrie extends FrequencyTable {
+public class TreeMapTrie extends FrequencyTable {
     Node root = new Node();
-    public HashTableTrie(int maxN) {
+    public TreeMapTrie(int maxN) {
         super(maxN);
     }
     @Override
@@ -24,8 +23,7 @@ public class HashTableTrie extends FrequencyTable {
 
     private class Node {
         int count;
-        HashMap<Short, Node> children = new HashMap<>();
-
+        TreeMap<Short, Node> children = new TreeMap<>();
         public Node() {
         }
         public Node(short gram, Node parent) {
