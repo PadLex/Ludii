@@ -3,17 +3,11 @@ package approaches.model;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
 
-import grammar.Grammar;
-import graphics.svg.SVGLoader;
 import main.grammar.Clause;
 import main.grammar.ClauseArg;
 import main.grammar.Symbol;
@@ -39,7 +33,7 @@ public class TokenizationParameters {
 	public static final int openArrayToken = 3;				// {
 	public static final int closeArrayToken = 4;			// }
 	public static final int coordinateJoiner = 5;			// Join A4 or N1
-	public static final int stringedTokensDelimeter = 6;	// " in "1,E,N,W"
+	public static final int stringedTokensDelimiter = 6;	// " in "1,E,N,W"
 	public static final int floatJoiner = 7;				//  Join 1 and 0.78 to form 1.78
 
 	public static final int baseTokens = 8;

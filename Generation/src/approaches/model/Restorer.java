@@ -6,7 +6,6 @@ import java.util.ListIterator;
 import compiler.Compiler;
 import game.Game;
 import main.grammar.Description;
-import main.grammar.Symbol;
 
 
 /* NumericTokens to LudiiTokens */
@@ -37,7 +36,7 @@ public class Restorer {
 				str.append(restoreDecimal(iter.next()));
 				str.append(separator);
 			}
-			else if (token == TokenizationParameters.stringedTokensDelimeter) {
+			else if (token == TokenizationParameters.stringedTokensDelimiter) {
 				if (separator == ' ') {
 					separator = ',';
 					str.append('"');
@@ -100,7 +99,7 @@ public class Restorer {
 				return "{";
 			case TokenizationParameters.closeArrayToken:
 				return "}";
-			case TokenizationParameters.stringedTokensDelimeter:
+			case TokenizationParameters.stringedTokensDelimiter:
 				return "\"";
 		}
 		

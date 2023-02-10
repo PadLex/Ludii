@@ -17,7 +17,7 @@ public class TokenAdapter {
     final Pattern isFloat = Pattern.compile("-?\\d+\\.\\d+");
     final Pattern isString = Pattern.compile("\".+\"");
 
-    HashMap<String, Short> dictionary;
+    HashMap<String, Integer> dictionary;
 
     public TokenAdapter(Token rootToken) {
         setNodeTree(rootToken);
@@ -36,7 +36,7 @@ public class TokenAdapter {
         }
     }
 
-    short toGram(Token token) {
+    int toGram(Token token) {
         if (token.isArray())
             return 2;
 

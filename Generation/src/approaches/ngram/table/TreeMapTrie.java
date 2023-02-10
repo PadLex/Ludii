@@ -9,11 +9,11 @@ public class TreeMapTrie extends FrequencyTable {
         super(maxN);
     }
     @Override
-    protected void incrementSingle(List<Short> ngram) {
+    protected void incrementSingle(List<Integer> ngram) {
         root.increment(ngram);
     }
     @Override
-    public int getFrequency(List<Short> ngram) {
+    public int getFrequency(List<Integer> ngram) {
         return root.getFrequency(ngram);
     }
     @Override
@@ -23,14 +23,14 @@ public class TreeMapTrie extends FrequencyTable {
 
     private class Node {
         int count;
-        TreeMap<Short, Node> children = new TreeMap<>();
+        TreeMap<Integer, Node> children = new TreeMap<>();
         public Node() {
         }
-        public Node(short gram, Node parent) {
+        public Node(int gram, Node parent) {
             parent.children.put(gram, this);
         }
 
-        void increment(List<Short> ngram) {
+        void increment(List<Integer> ngram) {
             if (ngram.size() == 0) {
                 count++;
                 return;
@@ -42,7 +42,7 @@ public class TreeMapTrie extends FrequencyTable {
 
             child.increment(ngram.subList(1, ngram.size()));
         }
-        int getFrequency(List<Short> ngram) {
+        int getFrequency(List<Integer> ngram) {
             if (ngram.size() == 0)
                 return count;
 
@@ -55,13 +55,13 @@ public class TreeMapTrie extends FrequencyTable {
         }
 
         /*
-        HashMap<Short, Integer> getCounts() {
-            HashMap<Short, Integer> counts = new HashMap<>();
+        HashMap<Integer, Integer> getCounts() {
+            HashMap<Integer, Integer> counts = new HashMap<>();
             getCounts(counts, "");
             return counts;
         }
 
-        void getCounts(HashMap<String, Integer> counts, short[] ngram) {
+        void getCounts(HashMap<String, Integer> counts, int[] ngram) {
             if (count > 0)
                 counts.put(ngram.substring(0, ngram.length()-1), count);
 

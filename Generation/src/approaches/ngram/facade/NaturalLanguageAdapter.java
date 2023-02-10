@@ -12,23 +12,23 @@ import java.util.stream.Stream;
 
 public class NaturalLanguageAdapter {
 
-    final static short startGram = (short) 32768;
-    final static short endGram = (short) 32767;
-    final static short outOfDictionaryGram = (short) 32766;
+    final static int startGram = (int) 32768;
+    final static int endGram = (int) 32767;
+    final static int outOfDictionaryGram = (int) 32766;
     final static int maxDictionarySize = 32765 * 2;
 
     FrequencyTable frequencyTable = new TreeMapTrie(4);
 
-    HashMap<String, Short> dictionary;
+    HashMap<String, Integer> dictionary;
 
     Random random = new Random(0);
 
-    NaturalLanguageAdapter(HashMap<String, Short> dictionary) {
+    NaturalLanguageAdapter(HashMap<String, Integer> dictionary) {
         this.dictionary = dictionary;
     }
 
     public void incrementTokens(List<String> gramStringSequence) {
-        List<Short> gramSequence = new ArrayList<>(gramStringSequence.stream().map(s -> dictionary.getOrDefault(s, outOfDictionaryGram)).toList());
+        List<Integer> gramSequence = new ArrayList<>(gramStringSequence.stream().map(s -> dictionary.getOrDefault(s, outOfDictionaryGram)).toList());
 
         for (int i = 0; i < frequencyTable.maxN; i++) {
             gramSequence.add(0, startGram);
@@ -41,7 +41,7 @@ public class NaturalLanguageAdapter {
     }
 
     public String predictNextGram(List<String> gramStringSequence) {
-        List<Short> ngram = new ArrayList<>(gramStringSequence.stream().map(s -> dictionary.getOrDefault(s, outOfDictionaryGram)).toList());
+        List<Integer> ngram = new ArrayList<>(gramStringSequence.stream().map(s -> dictionary.getOrDefault(s, outOfDictionaryGram)).toList());
 
         if (ngram.size() > frequencyTable.maxN) {
             ngram = ngram.subList(ngram.size() - frequencyTable.maxN + 1, ngram.size());
@@ -60,7 +60,7 @@ public class NaturalLanguageAdapter {
 
         HashMap<String, Double> options = new HashMap<>();
         double sum = 0;
-        for (Map.Entry<String, Short> gram: dictionary.entrySet()) {
+        for (Map.Entry<String, Integer> gram: dictionary.entrySet()) {
             ngram.add(gram.getValue());
 
             double score = frequencyTable.stupidBackoffScore(ngram, 0.4);
@@ -105,16 +105,18 @@ public class NaturalLanguageAdapter {
     }
 
     public void addTokenFiles(String tokenDirectory) throws IOException {
-        Stream<Path> paths = Files.walk(Paths.get(tokenDirectory)).filter(Files::isRegularFile).limit(1000);
+        Stream<Path> paths = Files.walk(Paths.get(tokenDirectory)).filter(Files::isRegularFile).limit(200);
 
         paths.forEach(path -> {
             try {
                 List<String> lines = Files.readAllLines(path).stream().map(String::strip).filter(s -> !s.isEmpty()).toList();
 
+                /*
                 if (lines.stream().filter(s -> !dictionary.containsKey(s)).count() / (double) lines.size() > 0.05) {
                     System.out.println("out of dict: " + path);
+                    Files.delete(path);
                     return;
-                }
+                }*/
 
 
                 incrementTokens(lines);
@@ -124,11 +126,11 @@ public class NaturalLanguageAdapter {
         });
     }
 
-    public static HashMap<String, Short> loadDictionary(String dictionaryFile) throws IOException {
-        HashMap<String, Short> dictionary = new HashMap<>();
+    public static HashMap<String, Integer> loadDictionary(String dictionaryFile) throws IOException {
+        HashMap<String, Integer> dictionary = new HashMap<>();
 
         Stream<String> stream = Files.lines(Paths.get(dictionaryFile)).limit(maxDictionarySize);
-        stream.map(String::strip).filter(s -> !s.isEmpty()).sequential().forEach(s -> dictionary.put(s, (short) (dictionary.size() - maxDictionarySize /2)));
+        stream.map(String::strip).filter(s -> !s.isEmpty()).sequential().forEach(s -> dictionary.put(s, (int) (dictionary.size() - maxDictionarySize /2)));
 
         return dictionary;
     }
@@ -206,8 +208,8 @@ public class NaturalLanguageAdapter {
     }
 
     public static void main(String[] args) throws IOException {
-        //generationTest("/Users/alex/Documents/Marble/Random Text/gutenberg/data", 10);
-        performanceTest("/Users/alex/Documents/Marble/Random Text/gutenberg/data", 20);
+        generationTest("/Users/alex/Documents/Marble/Random Text/gutenberg/data", 10);
+        //performanceTest("/Users/alex/Documents/Marble/Random Text/gutenberg/data", 20);
         //dictionaryFromCounts("/Users/alex/Documents/Marble/Random Text/gutenberg/data", 5);
     }
 }

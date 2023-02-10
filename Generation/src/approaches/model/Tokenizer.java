@@ -98,14 +98,14 @@ public class Tokenizer {
 		
 		// "1,E,N1,W"
 		else if (name.matches("\\\"\\S*,\\S*\\\"")) {
-			tokens.add(TokenizationParameters.stringedTokensDelimeter);
+			tokens.add(TokenizationParameters.stringedTokensDelimiter);
 			
 			String[] subTokens = name.substring(1, name.length()-1).split(",");
 			for (String subToken: subTokens) {
 				tokenizeLudiiToken(subToken);
 			}
 			
-			tokens.add(TokenizationParameters.stringedTokensDelimeter);			
+			tokens.add(TokenizationParameters.stringedTokensDelimiter);
 		}
 		
 		// N4 or "B2"
@@ -119,7 +119,7 @@ public class Tokenizer {
 			boolean hasQuotes = name.charAt(0) == '"';
 
 			if (hasQuotes)
-				tokens.add(TokenizationParameters.stringedTokensDelimeter);
+				tokens.add(TokenizationParameters.stringedTokensDelimiter);
 			
 			
 			tokens.add(tokenizeSymbol(letters.substring(0, 1)));
@@ -135,7 +135,7 @@ public class Tokenizer {
 			}
 			
 			if (hasQuotes)
-				tokens.add(TokenizationParameters.stringedTokensDelimeter);
+				tokens.add(TokenizationParameters.stringedTokensDelimiter);
 		}
 		
 		else if (name.charAt(0) == '"') {

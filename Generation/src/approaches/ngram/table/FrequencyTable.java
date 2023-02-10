@@ -10,7 +10,7 @@ public abstract class FrequencyTable {
         this.maxN = maxN;
     }
 
-    public void incrementAll(List<Short> ngram) {
+    public void incrementAll(List<Integer> ngram) {
         if (ngram.size() != maxN) {
             throw new IllegalArgumentException("ngram must be of size maxN");
         }
@@ -18,19 +18,19 @@ public abstract class FrequencyTable {
         total++;
         incrementRecursively(ngram);
     }
-    private void incrementRecursively(List<Short> ngram) {
+    private void incrementRecursively(List<Integer> ngram) {
         incrementSingle(ngram);
 
         if (ngram.size() > 1) {
             incrementRecursively(ngram.subList(1, ngram.size()));
         }
     }
-    protected abstract void incrementSingle(List<Short> ngram);
-    public abstract int getFrequency(List<Short> ngram);
+    protected abstract void incrementSingle(List<Integer> ngram);
+    public abstract int getFrequency(List<Integer> ngram);
     public int getTotal() {
         return total;
     }
-    public double stupidBackoffScore(List<Short> ngram, double discount) {
+    public double stupidBackoffScore(List<Integer> ngram, double discount) {
         if (ngram.size() == 1) {
             return getFrequency(ngram) / (double) getTotal();
         }

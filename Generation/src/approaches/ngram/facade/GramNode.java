@@ -5,19 +5,19 @@ import approaches.ngram.table.FrequencyTable;
 import java.util.*;
 
 public class GramNode {
-    public static final short startGram = 0;
-    public static final short endGram = 1;
-    private short gram;
+    public static final int startGram = 0;
+    public static final int endGram = 1;
+    private int gram;
     private GramNode parent;
     private List<GramNode> children = new LinkedList<>();
 
     // root node
-    GramNode(short gram) {
+    GramNode(int gram) {
         this.gram = gram;
     }
 
     // Normal node
-    GramNode(short gram, GramNode parent) {
+    GramNode(int gram, GramNode parent) {
         this.gram = gram;
         this.parent = parent;
         parent.children.add(this);
@@ -31,17 +31,17 @@ public class GramNode {
         }
 
         if (children.size() == 0) {
-            List<Short> ngram = getVerticalNGram(verticalFrequencyTable.maxN - 1);
+            List<Integer> ngram = getVerticalNGram(verticalFrequencyTable.maxN - 1);
             ngram.add(endGram);
             verticalFrequencyTable.incrementAll(ngram);
         }
     }
-    private List<Short> getVerticalNGram(int n) {
-        ArrayList<Short> verticalNGrams = new ArrayList<>();
+    private List<Integer> getVerticalNGram(int n) {
+        ArrayList<Integer> verticalNGrams = new ArrayList<>();
         getVerticalNGram(verticalNGrams, n);
         return verticalNGrams;
     }
-    private void getVerticalNGram(List<Short> verticalNGram, int n) {
+    private void getVerticalNGram(List<Integer> verticalNGram, int n) {
         if (verticalNGram.size() >= n)
             return;
 
@@ -55,8 +55,8 @@ public class GramNode {
             }
         }
     }
-    public double stupidBackoffScore(short childGram, FrequencyTable verticalFrequencyTable, double discount) {
-        List<Short> ngram = getVerticalNGram(verticalFrequencyTable.maxN - 1);
+    public double stupidBackoffScore(int childGram, FrequencyTable verticalFrequencyTable, double discount) {
+        List<Integer> ngram = getVerticalNGram(verticalFrequencyTable.maxN - 1);
         ngram.add(childGram);
         return verticalFrequencyTable.stupidBackoffScore(ngram, discount);
     }

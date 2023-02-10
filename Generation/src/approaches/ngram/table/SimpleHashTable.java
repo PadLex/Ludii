@@ -12,19 +12,19 @@ public class SimpleHashTable extends FrequencyTable {
     }
 
     @Override
-    protected void incrementSingle(List<Short> ngram) {
+    protected void incrementSingle(List<Integer> ngram) {
         frequencies.merge(ngramToKey(ngram), 1, Integer::sum);
     }
 
     @Override
-    public int getFrequency(List<Short> ngram) {
+    public int getFrequency(List<Integer> ngram) {
         return frequencies.getOrDefault(ngramToKey(ngram), 0);
     }
 
-    private String ngramToKey(List<Short> ngram) {
+    private String ngramToKey(List<Integer> ngram) {
         StringBuilder sb = new StringBuilder();
 
-        for (short n: ngram) {
+        for (int n: ngram) {
             sb.append(n);
             sb.append('|');
         }
@@ -39,19 +39,19 @@ public class SimpleHashTable extends FrequencyTable {
     public static void main(String[] args) {
         FrequencyTable table = new SimpleHashTable(3);
 
-        table.incrementAll(Arrays.asList((short) 3, (short) 4, (short) 5));
+        table.incrementAll(Arrays.asList((int) 3, (int) 4, (int) 5));
         System.out.println(table);
-        System.out.println(table.getFrequency(Arrays.asList((short) 3, (short) 4, (short) 5)));
+        System.out.println(table.getFrequency(Arrays.asList((int) 3, (int) 4, (int) 5)));
 
-        table.incrementAll(Arrays.asList((short) -32768, (short) 0, (short) 32767));
+        table.incrementAll(Arrays.asList((int) -32768, (int) 0, (int) 32767));
         System.out.println(table);
-        System.out.println(table.getFrequency(Arrays.asList((short) -32768, (short) 0, (short) 32767)));
+        System.out.println(table.getFrequency(Arrays.asList((int) -32768, (int) 0, (int) 32767)));
 
-        table.incrementAll(Arrays.asList((short) -8, (short) 0, (short) 32767));
+        table.incrementAll(Arrays.asList((int) -8, (int) 0, (int) 32767));
         System.out.println(table);
-        System.out.println(table.getFrequency(Arrays.asList((short) 6)));
+        System.out.println(table.getFrequency(Arrays.asList((int) 6)));
 
-        table.incrementAll(Arrays.asList((short) 0, (short) 32767, (short) 8));
+        table.incrementAll(Arrays.asList((int) 0, (int) 32767, (int) 8));
         System.out.println(table);
     }
 }
