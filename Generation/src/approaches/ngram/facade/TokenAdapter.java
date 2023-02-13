@@ -1,15 +1,25 @@
 package approaches.ngram.facade;
 
+import approaches.model.SymbolCollections;
+import approaches.model.TokenizationParameters;
+import approaches.ngram.table.FrequencyTable;
+import approaches.ngram.table.HashMapTrie;
+import approaches.ngram.table.SimpleHashTable;
+import approaches.ngram.table.TreeMapTrie;
 import compiler.Compiler;
 import game.Game;
+import grammar.Grammar;
 import main.grammar.Description;
 import main.grammar.Report;
+import main.grammar.Symbol;
 import main.grammar.Token;
 import main.options.UserSelections;
 import parser.Parser;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 public class TokenAdapter {
@@ -17,16 +27,29 @@ public class TokenAdapter {
     final Pattern isFloat = Pattern.compile("-?\\d+\\.\\d+");
     final Pattern isString = Pattern.compile("\".+\"");
 
-    HashMap<String, Integer> dictionary;
+    public final Token rootToken;
+    public final GramNode rootNode;
+    public final FrequencyTable verticalTable = new SimpleHashTable(5);
+
+    List<String> dictionary;
 
     public TokenAdapter(Token rootToken) {
-        setNodeTree(rootToken);
-    }
-    void setNodeTree(Token rootToken) {
-        GramNode root = new GramNode(toGram(rootToken));
+        dictionary = new ArrayList<>();
+        dictionary.add("%start%");
+        dictionary.add("%end%");
+        dictionary.add("%array%");
+        dictionary.add("%int%");
+        dictionary.add("%float%");
+        dictionary.add("%string%");
+        dictionary.addAll(SymbolCollections.smallBoardGameSymbolNames.stream().toList());
+
+        this.rootToken = rootToken;
+        rootNode = new GramNode(toGram(rootToken));
         for (Token childToken: rootToken.arguments()) {
-            setNodeTree(childToken, root);
+            setNodeTree(childToken, rootNode);
         }
+
+        rootNode.recursivelyIncrementNgrams(verticalTable);
     }
 
     private void setNodeTree(Token rootToken, GramNode parent) {
@@ -37,24 +60,37 @@ public class TokenAdapter {
     }
 
     int toGram(Token token) {
-        if (token.isArray())
-            return 2;
-
         String name = token.name();
 
-        if (token.isTerminal()) {
+        if (token.isArray())
+            name = "%array%";
+        else if (token.isTerminal()) {
             if (isInteger.matcher(name).matches())
-                return 3;
-
-            if (isFloat.matcher(name).matches())
-                return 4;
-
-            if (isString.matcher(name).matches()) {
-                return 5;
+                name = "%int%";
+            else if (isFloat.matcher(name).matches())
+                name = "%float%";
+            else if (isString.matcher(name).matches()) {
+                name = "%string%";
             }
         }
 
-        return dictionary.get(name);
+        if (!dictionary.contains(name))
+            System.out.println("Unknown symbol: " + name);
+
+        return dictionary.indexOf(name);
+    }
+
+    @Override
+    public String toString() {
+        HashMap<List<Integer>, Integer> counts = verticalTable.getFrequencies();
+        StringBuilder sb = new StringBuilder();
+        for (Map.Entry<List<Integer>, Integer> e : counts.entrySet()) {
+            sb.append(e.getKey().stream().map(s -> dictionary.get(s)).toList());
+            sb.append(": ").append(e.getValue());
+            sb.append(", ");
+        }
+
+        return sb.toString();
     }
 
     public static void main(String[] args) {
@@ -86,5 +122,6 @@ public class TokenAdapter {
         //System.out.println("callTree: " + description.callTree());
 
         TokenAdapter tokenAdapter = new TokenAdapter(description.tokenForest().tokenTree());
+        System.out.println("tokenAdapter: " + tokenAdapter);
     }
 }

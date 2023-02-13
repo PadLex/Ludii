@@ -31,9 +31,17 @@ public class SimpleHashTable extends FrequencyTable {
 
         return sb.toString();
     }
+
+    public HashMap<List<Integer>, Integer> getFrequencies() {
+        HashMap<List<Integer>, Integer> counts = new HashMap<>();
+        for (String key: frequencies.keySet()) {
+            counts.put(Arrays.stream(key.split("\\|")).filter(s -> !s.isEmpty()).map(Integer::parseInt).toList(), frequencies.get(key));
+        }
+        return counts;
+    }
     @Override
     public String toString() {
-        return frequencies.toString();
+        return getFrequencies().toString();
     }
 
     public static void main(String[] args) {

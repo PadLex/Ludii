@@ -36,6 +36,7 @@ public class GramNode {
             verticalFrequencyTable.incrementAll(ngram);
         }
     }
+
     private List<Integer> getVerticalNGram(int n) {
         ArrayList<Integer> verticalNGrams = new ArrayList<>();
         getVerticalNGram(verticalNGrams, n);

@@ -1,5 +1,6 @@
 package approaches.ngram.table;
 
+import java.util.HashMap;
 import java.util.List;
 
 public abstract class FrequencyTable {
@@ -30,6 +31,8 @@ public abstract class FrequencyTable {
     public int getTotal() {
         return total;
     }
+
+    public abstract HashMap<List<Integer>, Integer> getFrequencies();
     public double stupidBackoffScore(List<Integer> ngram, double discount) {
         if (ngram.size() == 1) {
             return getFrequency(ngram) / (double) getTotal();

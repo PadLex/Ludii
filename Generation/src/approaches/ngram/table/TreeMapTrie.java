@@ -1,7 +1,6 @@
 package approaches.ngram.table;
 
-import java.util.List;
-import java.util.TreeMap;
+import java.util.*;
 
 public class TreeMapTrie extends FrequencyTable {
     Node root = new Node();
@@ -16,9 +15,17 @@ public class TreeMapTrie extends FrequencyTable {
     public int getFrequency(List<Integer> ngram) {
         return root.getFrequency(ngram);
     }
+
+    @Override
+    public HashMap<List<Integer>, Integer> getFrequencies() {
+        HashMap<List<Integer>, Integer> counts = new HashMap<>();
+        root.getFrequencies(counts, new ArrayList<>());
+        return counts;
+    }
+
     @Override
     public String toString() {
-        return root.toString();
+        return getFrequencies().toString();
     }
 
     private class Node {
@@ -54,27 +61,17 @@ public class TreeMapTrie extends FrequencyTable {
             return 0;
         }
 
-        /*
-        HashMap<Integer, Integer> getCounts() {
-            HashMap<Integer, Integer> counts = new HashMap<>();
-            getCounts(counts, "");
-            return counts;
-        }
-
-        void getCounts(HashMap<String, Integer> counts, int[] ngram) {
+        void getFrequencies(HashMap<List<Integer>, Integer> counts, List<Integer> ngram) {
             if (count > 0)
-                counts.put(ngram.substring(0, ngram.length()-1), count);
+                counts.put(new ArrayList<>(ngram.subList(0, ngram.size()-1)), count);
 
             if (children.size() > 0) {
-                for (Map.Entry<String, Node> childEntry : children.entrySet()) {
-                    childEntry.getValue().getCounts(counts, ngram + childEntry.getKey() + '|');
+                for (Map.Entry<Integer, Node> childEntry : children.entrySet()) {
+                    ngram.add(childEntry.getKey());
+                    childEntry.getValue().getFrequencies(counts, ngram);
+                    ngram.remove(ngram.size()-1);
                 }
             }
         }
-
-        @Override
-        public String toString() {
-            return getCounts().toString();
-        }*/
     }
 }
