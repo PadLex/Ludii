@@ -1,19 +1,13 @@
 package approaches.ngram.facade;
 
-import approaches.model.SymbolCollections;
 import approaches.ngram.table.FrequencyTable;
 import approaches.ngram.table.SimpleHashTable;
-import compiler.Compiler;
-import game.Game;
-import grammar.Grammar;
 import main.grammar.Description;
 import main.grammar.Report;
 import main.grammar.Token;
 import main.options.UserSelections;
-import other.GameLoader;
 import parser.Parser;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,28 +18,20 @@ import java.util.stream.Stream;
 
 public class TokenAdapter {
     final Pattern isInteger = Pattern.compile("-?\\d+");
-    final Pattern isFloat = Pattern.compile("-?\\d+\\.\\d+");
+    final Pattern isFloat = Pattern.compile("-?\\d*\\.\\d+");
     final Pattern isString = Pattern.compile("\".+\"");
     public final FrequencyTable verticalTable = new SimpleHashTable(3);
-
-    HashMap<String, Integer> symbolToId;
-    List<String> idToSymbol;
-
+    HashMap<String, Integer> symbolToId = new HashMap<>();
+    List<String> idToSymbol = new ArrayList<>();
 
     public TokenAdapter() {
-        symbolToId = new HashMap<>();
-        idToSymbol = new ArrayList<>();
-        idToSymbol.add("%start%");
-        idToSymbol.add("%end%");
-        idToSymbol.add("%array%");
-        idToSymbol.add("%int%");
-        idToSymbol.add("%float%");
-        idToSymbol.add("%string%");
-        idToSymbol.add("%unknown%");
-        idToSymbol.addAll(SymbolCollections.smallBoardGameSymbolNames.stream().toList());
-        for (int i = 0; i < idToSymbol.size(); i++) {
-            symbolToId.put(idToSymbol.get(i), i);
-        }
+        addSymbol("%start%");
+        addSymbol("%end%");
+        addSymbol("%array%");
+        addSymbol("%int%");
+        addSymbol("%float%");
+        addSymbol("%string%");
+        addSymbol("%unknown%");
     }
 
     GramNode buildGameTree(Token rootToken) {
@@ -63,6 +49,51 @@ public class TokenAdapter {
         for (Token childToken: token.arguments()) {
             buildGameTree(childToken, root);
         }
+    }
+
+    void incrementLudiiLibrary() throws IOException {
+        String gamesRoot = "../Common/res/lud/board";
+        Stream<Path> paths = Files.walk(Paths.get(gamesRoot)).filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".lud")).limit(2000);
+        paths.forEach(path -> {
+
+            try {
+
+                final Description description = new Description(Files.readString(path));
+                final UserSelections userSelections = new UserSelections(new ArrayList<String>());
+                final Report report = new Report();
+
+                Parser.expandAndParse(description, userSelections, report, false);
+                //Game game = (Game) Compiler.compile(description, userSelections, report, false);
+                Token rootToken = description.tokenForest().tokenTree();
+                if (rootToken == null) {
+                    System.out.println("Null token, skipped " + path);
+                    return;
+                }
+
+                GramNode root = buildGameTree(description.tokenForest().tokenTree());
+                root.recursivelyIncrementNgrams(verticalTable);
+            } catch (Exception e) {
+                System.out.println("\n\nSomething went wrong, skipped " + path);
+                e.printStackTrace();
+            }
+        });
+    }
+
+    List<Double> evaluateChildSets(List<Token> ancestors, List<List<Token>> childSets) {
+        GramNode rootNode = new GramNode(toGram(ancestors.get(0)));
+        GramNode parent = rootNode;
+        for (Token child: ancestors.subList(1, ancestors.size())) {
+            parent = new GramNode(toGram(child), parent);
+        }
+
+        List<Double> evaluations = new ArrayList<>(childSets.size());
+        for (List<Token> childSet: childSets) {
+            for (Token token: childSet) {
+                parent.stupidBackoffScore(toGram(token), verticalTable, 0.4);
+            }
+        }
+
+        return evaluations;
     }
 
     int toGram(Token token) {
@@ -83,42 +114,20 @@ public class TokenAdapter {
         Integer index = symbolToId.get(name);
 
         if (index == null)
-            return symbolToId.get("%unknown%");
+            return addSymbol(name);
 
         return index;
     }
 
-    void incrementLudiiLibrary() throws IOException {
-        String gamesRoot = "../Common/res/lud/board";
-        Stream<Path> paths = Files.walk(Paths.get(gamesRoot)).filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".lud")).limit(2000);
-        paths.forEach(path -> {
-
-            try {
-
-                final Description description = new Description(Files.readString(path));
-                final UserSelections userSelections = new UserSelections(new ArrayList<String>());
-                final Report report = new Report();
-
-                //Parser.expandAndParse(description, userSelections, report, true);
-                Game game = (Game) Compiler.compile(description, userSelections, report, false);
-                Token rootToken = description.tokenForest().tokenTree();
-                if (rootToken == null) {
-                    System.out.println("Null token, skipped " + path);
-                    return;
-                }
-
-                GramNode root = buildGameTree(description.tokenForest().tokenTree());
-                root.recursivelyIncrementNgrams(verticalTable);
-            } catch (Exception e) {
-                System.out.println("\n\nSomething went wrong, skipped " + path);
-                e.printStackTrace();
-            }
-        });
+    int addSymbol(String symbol) {
+        idToSymbol.add(symbol);
+        symbolToId.put(symbol, idToSymbol.size());
+        return idToSymbol.size();
     }
 
     @Override
     public String toString() {
-        HashMap<List<Integer>, Integer> counts = verticalTable.getFrequencies();
+        HashMap<List<Integer>, Integer> counts = verticalTable.dumpAllFrequencies();
         StringBuilder sb = new StringBuilder();
         for (Map.Entry<List<Integer>, Integer> e : counts.entrySet()) {
             sb.append(e.getKey().stream().map(s -> idToSymbol.get(s)).toList());
@@ -161,10 +170,14 @@ public class TokenAdapter {
         TokenAdapter tokenAdapter = new TokenAdapter();
         GramNode hexRoot = tokenAdapter.buildGameTree(description.tokenForest().tokenTree());
 
-         */
+        */
         TokenAdapter tokenAdapter = new TokenAdapter();
-        tokenAdapter.incrementLudiiLibrary();
+        //tokenAdapter.incrementLudiiLibrary();
 
-        System.out.println("tokenAdapter: " + tokenAdapter.verticalTable.getFrequencies().size());
+        Report report = new Report();
+        Token game = new Token("game", report);
+        //tokenAdapter.evaluateChildSets()
+
+        System.out.println("tokenAdapter: " + tokenAdapter.verticalTable.dumpAllFrequencies().size());
     }
 }
