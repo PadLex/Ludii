@@ -90,7 +90,7 @@ public class TokenAdapter {
 
     void incrementLudiiLibrary() throws IOException {
         String gamesRoot = "../Common/res/lud/board";
-        Stream<Path> paths = Files.walk(Paths.get(gamesRoot)).filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".lud")).limit(200);
+        Stream<Path> paths = Files.walk(Paths.get(gamesRoot)).filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".lud")).limit(2000);
         paths.forEach(path -> {
 
             try {
@@ -99,8 +99,8 @@ public class TokenAdapter {
                 final UserSelections userSelections = new UserSelections(new ArrayList<String>());
                 final Report report = new Report();
 
-                Parser.expandAndParse(description, userSelections, report, false);
-                //Game game = (Game) Compiler.compile(description, userSelections, report, false);
+                //Parser.expandAndParse(description, userSelections, report, true);
+                Game game = (Game) Compiler.compile(description, userSelections, report, false);
                 Token rootToken = description.tokenForest().tokenTree();
                 if (rootToken == null) {
                     System.out.println("Null token, skipped " + path);
