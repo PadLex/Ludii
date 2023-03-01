@@ -169,14 +169,15 @@ public class TokenAdapter {
 
         TokenAdapter tokenAdapter = new TokenAdapter();
         GramNode hexRoot = tokenAdapter.buildGameTree(description.tokenForest().tokenTree());
-
         */
         TokenAdapter tokenAdapter = new TokenAdapter();
-        //tokenAdapter.incrementLudiiLibrary();
-
-        Report report = new Report();
-        Token game = new Token("game", report);
-        //tokenAdapter.evaluateChildSets()
+        Path path = Paths.get("/Users/alex/Documents/Marble/tokengrams.txt");
+        if (path.toFile().exists())
+            tokenAdapter.verticalTable.importStream(Files.readAllLines(path).stream());
+        else {
+            tokenAdapter.incrementLudiiLibrary();
+            Files.write(path, (Iterable<String>)tokenAdapter.verticalTable.exportStream()::iterator);
+        }
 
         System.out.println("tokenAdapter: " + tokenAdapter.verticalTable.dumpAllFrequencies().size());
     }

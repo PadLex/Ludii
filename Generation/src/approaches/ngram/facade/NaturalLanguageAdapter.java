@@ -1,6 +1,7 @@
 package approaches.ngram.facade;
 
 import approaches.ngram.table.FrequencyTable;
+import approaches.ngram.table.SimpleHashTable;
 import approaches.ngram.table.TreeMapTrie;
 
 import java.io.IOException;
@@ -12,9 +13,9 @@ import java.util.stream.Stream;
 
 public class NaturalLanguageAdapter {
 
-    final static int startGram = (int) 32768;
-    final static int endGram = (int) 32767;
-    final static int outOfDictionaryGram = (int) 32766;
+    final static int startGram = -1;
+    final static int endGram = -2;
+    final static int outOfDictionaryGram = -3;
     final static int maxDictionarySize = 32765 * 2;
 
     FrequencyTable frequencyTable = new TreeMapTrie(4);
@@ -105,7 +106,7 @@ public class NaturalLanguageAdapter {
     }
 
     public void addTokenFiles(String tokenDirectory) throws IOException {
-        Stream<Path> paths = Files.walk(Paths.get(tokenDirectory)).filter(Files::isRegularFile).limit(200);
+        Stream<Path> paths = Files.walk(Paths.get(tokenDirectory)).filter(Files::isRegularFile).limit(100);
 
         paths.forEach(path -> {
             try {
@@ -130,7 +131,7 @@ public class NaturalLanguageAdapter {
         HashMap<String, Integer> dictionary = new HashMap<>();
 
         Stream<String> stream = Files.lines(Paths.get(dictionaryFile)).limit(maxDictionarySize);
-        stream.map(String::strip).filter(s -> !s.isEmpty()).sequential().forEach(s -> dictionary.put(s, (int) (dictionary.size() - maxDictionarySize /2)));
+        stream.map(String::strip).filter(s -> !s.isEmpty()).sequential().forEach(s -> dictionary.put(s, dictionary.size()));
 
         return dictionary;
     }
@@ -138,7 +139,14 @@ public class NaturalLanguageAdapter {
 
         NaturalLanguageAdapter nlGenerator = new NaturalLanguageAdapter(loadDictionary(dataDirectory + "/dictionary.txt"));
 
-        nlGenerator.addTokenFiles(dataDirectory + "/tokens/");
+        Path path = Paths.get("/Users/alex/Documents/Marble/Random Text/gutenberg/ngrams.txt");
+        if (path.toFile().exists())
+            nlGenerator.frequencyTable.importStream(Files.readAllLines(path).stream());
+        else {
+            nlGenerator.addTokenFiles(dataDirectory + "/tokens/");
+            Files.write(path, (Iterable<String>)nlGenerator.frequencyTable.exportStream()::iterator);
+        }
+
 
         //System.out.println(nlGenerator.frequencyTable);
 

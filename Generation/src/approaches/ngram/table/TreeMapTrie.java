@@ -8,8 +8,8 @@ public class TreeMapTrie extends FrequencyTable {
         super(maxN);
     }
     @Override
-    protected void incrementSingle(List<Integer> ngram) {
-        root.increment(ngram);
+    protected void incrementSingle(List<Integer> ngram, int amount) {
+        root.increment(ngram, amount);
     }
     @Override
     public int getFrequency(List<Integer> ngram) {
@@ -17,7 +17,7 @@ public class TreeMapTrie extends FrequencyTable {
     }
 
     @Override
-    public HashMap<List<Integer>, Integer> getFrequencies() {
+    public HashMap<List<Integer>, Integer> dumpAllFrequencies() {
         HashMap<List<Integer>, Integer> counts = new HashMap<>();
         root.getFrequencies(counts, new ArrayList<>());
         return counts;
@@ -25,7 +25,7 @@ public class TreeMapTrie extends FrequencyTable {
 
     @Override
     public String toString() {
-        return getFrequencies().toString();
+        return dumpAllFrequencies().toString();
     }
 
     private class Node {
@@ -37,9 +37,9 @@ public class TreeMapTrie extends FrequencyTable {
             parent.children.put(gram, this);
         }
 
-        void increment(List<Integer> ngram) {
+        void increment(List<Integer> ngram, int amount) {
             if (ngram.size() == 0) {
-                count++;
+                count += amount;
                 return;
             }
 
@@ -47,7 +47,7 @@ public class TreeMapTrie extends FrequencyTable {
             if (child == null)
                 child = new Node(ngram.get(0), this);
 
-            child.increment(ngram.subList(1, ngram.size()));
+            child.increment(ngram.subList(1, ngram.size()), amount);
         }
         int getFrequency(List<Integer> ngram) {
             if (ngram.size() == 0)
@@ -62,10 +62,11 @@ public class TreeMapTrie extends FrequencyTable {
         }
 
         void getFrequencies(HashMap<List<Integer>, Integer> counts, List<Integer> ngram) {
-            if (count > 0)
-                counts.put(new ArrayList<>(ngram.subList(0, ngram.size()-1)), count);
+            if (ngram.size() == maxN) {
+                counts.put(new ArrayList<>(ngram), count);
+            }
 
-            if (children.size() > 0) {
+            else if (children.size() > 0) {
                 for (Map.Entry<Integer, Node> childEntry : children.entrySet()) {
                     ngram.add(childEntry.getKey());
                     childEntry.getValue().getFrequencies(counts, ngram);

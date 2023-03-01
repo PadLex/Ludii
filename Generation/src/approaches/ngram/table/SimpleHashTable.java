@@ -12,8 +12,8 @@ public class SimpleHashTable extends FrequencyTable {
     }
 
     @Override
-    protected void incrementSingle(List<Integer> ngram) {
-        frequencies.merge(ngramToKey(ngram), 1, Integer::sum);
+    protected void incrementSingle(List<Integer> ngram, int amount) {
+        frequencies.merge(ngramToKey(ngram), amount, Integer::sum);
     }
 
     @Override
@@ -32,16 +32,18 @@ public class SimpleHashTable extends FrequencyTable {
         return sb.toString();
     }
 
-    public HashMap<List<Integer>, Integer> getFrequencies() {
+    public HashMap<List<Integer>, Integer> dumpAllFrequencies() {
         HashMap<List<Integer>, Integer> counts = new HashMap<>();
         for (String key: frequencies.keySet()) {
-            counts.put(Arrays.stream(key.split("\\|")).filter(s -> !s.isEmpty()).map(Integer::parseInt).toList(), frequencies.get(key));
+            List<Integer> ids = Arrays.stream(key.split("\\|")).filter(s -> !s.isEmpty()).map(Integer::parseInt).toList();
+            if (ids.size() == maxN)
+                counts.put(ids, frequencies.get(key));
         }
         return counts;
     }
     @Override
     public String toString() {
-        return getFrequencies().toString();
+        return dumpAllFrequencies().toString();
     }
 
     public static void main(String[] args) {
