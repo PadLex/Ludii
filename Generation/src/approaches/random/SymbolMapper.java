@@ -18,21 +18,25 @@ public class SymbolMapper {
 
         buildReturnMap();
 
-        for (Symbol symbol: Grammar.grammar().symbolsByName("Board")) {
-            List<List<Symbol>> symbolSets = findParameterSets(symbol);
-            System.out.println(symbol.info());
-            System.out.println(" -> " + symbol.returnType());
-            for (List<Symbol> symbolSet : symbolSets) {
-                System.out.println(symbolSet);
-            }
+        // print largest sets in returnMap
+        System.out.println("Largest sets in returnMap:");
+        returnMap.entrySet().stream()
+                .sorted(Comparator.comparingInt(e -> -e.getValue().size())).limit(10)
+                .forEach(e -> System.out.println(e.getKey() + ": " + e.getValue().size()));
 
-            System.out.println("obtained from: " + returnMap.get(symbol.path()));
+        System.out.println("int: " + returnMap.get("int").stream().map(Symbol::token).toList());
 
-            System.out.println("\n\n\n");
+        Symbol symbol = Grammar.grammar().findSymbolByPath("game.functions.region.math.Expand");
+        List<List<Symbol>> symbolSets = findParameterSets(symbol);
+        System.out.println(symbol.info());
+        System.out.println(" -> " + symbol.returnType());
+        for (List<Symbol> symbolSet : symbolSets) {
+            System.out.println(symbolSet);
         }
 
+        System.out.println("obtained from: " + returnMap.get(symbol.path()));
 
-
+        System.out.println("\n\n\n");
 
 //        buildSymbolMap();
     }
@@ -55,6 +59,8 @@ public class SymbolMapper {
 
     private void buildSymbolMap() {
         for (Symbol symbol: symbols) {
+            System.out.println("Mapping " + symbol.path());
+
             List<List<Symbol>> parameterSets = findParameterSets(symbol);
             parameterSets.sort(Comparator.comparing(List::toString));
             symbolsMap.put(symbol, parameterSets);
@@ -65,12 +71,12 @@ public class SymbolMapper {
         List<List<Symbol>> constructorSets = new ArrayList<>();
 
         if (symbol.isTerminal()) {
-            System.out.println("Symbol " + symbol.name() + " is terminal " + symbol.ludemeType());
+            //System.out.println("Symbol " + symbol.name() + " is terminal " + symbol.ludemeType());
             return constructorSets;
         }
 
         if (symbol.rule() == null) {
-            System.out.println("Symbol " + symbol.name() + " has no rule " + symbol.ludemeType() + " " + symbol.isAbstract());
+            //System.out.println("Symbol " + symbol.name() + " has no rule " + symbol.ludemeType() + " " + symbol.isAbstract());
             return constructorSets;
         }
 
@@ -78,7 +84,7 @@ public class SymbolMapper {
             if (clause.args() == null) {
                 continue;
             }
-//            System.out.println("\n");
+            System.out.println("\n");
 //
             System.out.println(clause);
             System.out.println("args:    " + clause.args().stream().map(a -> a.symbol().path()).toList());
@@ -151,12 +157,16 @@ public class SymbolMapper {
         // filter for out-of-vocabulary symbols and duplicates
         constructorSets = new ArrayList<>(constructorSets.stream().distinct().filter(l -> symbols.containsAll(l.stream().filter(Objects::nonNull).toList())).toList());
 
-        System.out.println("constructorSets: " + constructorSets);
+        //System.out.println("constructorSets: " + constructorSets);
 
         List<List<Symbol>> parameterSets = new ArrayList<>();
 
         for (List<Symbol> constructorSet : constructorSets) {
-            parameterSets.addAll(cartesianProductOfReturnTypes(constructorSet));
+            System.out.println("constructorSet: " + constructorSet);
+            Set<List<Symbol>> products = cartesianProductOfReturnTypes(constructorSet);
+            System.out.println("size: " + products.size());
+            parameterSets.addAll(products);
+            System.out.println("\n\n----------------------------------------------\n\n ");
         }
 
         return parameterSets;
@@ -170,6 +180,7 @@ public class SymbolMapper {
         //System.out.println("traversedSymbols: " + traversedSymbols);
         // Base case
         if (remainingSymbols.isEmpty()) {
+            //System.out.println("final: " + traversedSymbols.stream().map(s -> s == null ? "null" : s.path()).toList());
             return Set.of(traversedSymbols);
         }
 
@@ -182,14 +193,14 @@ public class SymbolMapper {
             return cartesianProductOfReturnTypes(newlyTraversed, remainingSymbols.subList(1, remainingSymbols.size()));
         }
 
-
-
         // Core recursive cases
         Set<List<Symbol>> parameterSets = new HashSet<>();
 
-        // Eg. game.util.graph.Graph can be obtained by game.util.graph.Graph, game.functions.graph.GraphFunction, game.functions.graph.generators.basis.square.Square, ...
+        // Eg. game.util.graph.Graph can be obtained from game.util.graph.Graph, game.functions.graph.GraphFunction, game.functions.graph.generators.basis.square.Square, ...
         Set<Symbol> obtainedFrom = returnMap.getOrDefault(nextSymbol.path(), new HashSet<>());
+        //System.out.println("obtainedFrom: " + obtainedFrom);
 
+        // Eg. game.functions.graph.GraphFunction can't be obtained, so I'm treating it as its return type, game.util.graph.Graph
         if (nextSymbol.returnType() != nextSymbol) {
             if (Objects.equals(nextSymbol.returnType().path(), nextSymbol.path())) {
                 System.out.println("WARNING: " + nextSymbol.path() + " is misbehaving");
@@ -199,6 +210,13 @@ public class SymbolMapper {
         }
 
         for (Symbol returnSymbol: obtainedFrom) {
+
+            // TODO trying to filter symbols that can not be initialized
+            if (returnSymbol.hidden()) {
+                //System.out.println("Skipping: " + returnSymbol.path() + " is hidden");
+                continue;
+            }
+
             List<Symbol> newlyTraversed = new ArrayList<>(traversedSymbols);
             newlyTraversed.add(returnSymbol);
             parameterSets.addAll(cartesianProductOfReturnTypes(newlyTraversed, remainingSymbols.subList(1, remainingSymbols.size())));
