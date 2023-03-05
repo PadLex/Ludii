@@ -49,8 +49,19 @@ public class GeneratorNode {
     public static void main(String[] args) {
 
         // Find Game symbol
-        Symbol gameSymbol = Grammar.grammar().symbolsByName("Game").get(1);
-        GeneratorNode root = new GeneratorNode(gameSymbol);
+        //Symbol gameSymbol = Grammar.grammar().symbolsByName("Game").get(1);
+        //GeneratorNode root = new GeneratorNode(gameSymbol);
+
+        Symbol moveStepType = Grammar.grammar().symbolsByName("MoveStepType").get(0);
+        Symbol step = Grammar.grammar().symbolsByName("Step").get(2);
+        List<Symbol> symbols = Grammar.grammar().symbols();
+        System.out.println("is " + moveStepType + " in the grammar? " + symbols.contains(moveStepType));
+        System.out.println("is " + step.returnType() + " in the grammar? " + symbols.contains(step.returnType()));
+
+        System.out.println("disambiguation " + moveStepType.path() + step.returnType().path());
+
+        System.out.println(moveStepType.info());
+        System.out.println(step.returnType().info());
 
     }
 }

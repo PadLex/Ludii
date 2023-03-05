@@ -9,28 +9,87 @@ import java.util.*;
 import java.util.stream.IntStream;
 
 public class SymbolMapper {
+    private Set<Symbol> symbols = new HashSet<>();
+    private Map<String, Set<Symbol>> returnMap = new HashMap<>();
+    private Map<Symbol, List<List<Symbol>>> symbolsMap = new HashMap<>();
 
-    private static HashMap<Symbol, List<List<Symbol>>> symbolsMap = new HashMap<>();
+    public SymbolMapper(Collection<Symbol> symbols) {
+        this.symbols.addAll(symbols);
 
-    private static List<List<Symbol>> findParameterSets(Symbol symbol) {
-        List<List<Symbol>> parameterSets = new ArrayList<>();
+        buildReturnMap();
+
+        for (Symbol symbol: Grammar.grammar().symbolsByName("Board")) {
+            List<List<Symbol>> symbolSets = findParameterSets(symbol);
+            System.out.println(symbol.info());
+            System.out.println(" -> " + symbol.returnType());
+            for (List<Symbol> symbolSet : symbolSets) {
+                System.out.println(symbolSet);
+            }
+
+            System.out.println("obtained from: " + returnMap.get(symbol.path()));
+
+            System.out.println("\n\n\n");
+        }
+
+
+
+
+//        buildSymbolMap();
+    }
+
+    private void buildReturnMap() {
+//        for (Symbol symbol: symbols) {
+//            returnMap.put(symbol.path(), new HashSet<>());
+//        }
+//
+//        for (Symbol symbol: symbols) {
+//            returnMap.get(symbol.returnType().path()).add(symbol);
+//        }
+
+        for (Symbol symbol: symbols) {
+            Set<Symbol> returns = returnMap.getOrDefault(symbol.returnType().path(), new HashSet<>());
+            returns.add(symbol);
+            returnMap.put(symbol.returnType().path(), returns);
+        }
+    }
+
+    private void buildSymbolMap() {
+        for (Symbol symbol: symbols) {
+            List<List<Symbol>> parameterSets = findParameterSets(symbol);
+            parameterSets.sort(Comparator.comparing(List::toString));
+            symbolsMap.put(symbol, parameterSets);
+        }
+    }
+
+    private List<List<Symbol>> findParameterSets(Symbol symbol) {
+        List<List<Symbol>> constructorSets = new ArrayList<>();
+
+        if (symbol.isTerminal()) {
+            System.out.println("Symbol " + symbol.name() + " is terminal " + symbol.ludemeType());
+            return constructorSets;
+        }
+
+        if (symbol.rule() == null) {
+            System.out.println("Symbol " + symbol.name() + " has no rule " + symbol.ludemeType() + " " + symbol.isAbstract());
+            return constructorSets;
+        }
 
         for (Clause clause: symbol.rule().rhs()) {
             if (clause.args() == null) {
                 continue;
             }
-            System.out.println("\n");
-
+//            System.out.println("\n");
+//
             System.out.println(clause);
-            System.out.println("args:    " + clause.args());
-            System.out.println("or:      " + clause.args().stream().map(ClauseArg::orGroup).toList());
-            System.out.println("and:     " + clause.args().stream().map(ClauseArg::andGroup).toList());
-            System.out.println("not opt: " + clause.args().stream().map(arg -> arg.optional()? 0:1).toList());
+            System.out.println("args:    " + clause.args().stream().map(a -> a.symbol().path()).toList());
+//            System.out.println("or:      " + clause.args().stream().map(ClauseArg::orGroup).toList());
+//            System.out.println("and:     " + clause.args().stream().map(ClauseArg::andGroup).toList());
+//            System.out.println("not opt: " + clause.args().stream().map(arg -> arg.optional()? 0:1).toList());
+//
+//            System.out.println("man:     " + IntStream.range(0, clause.mandatory().length())
+//                    .mapToObj(b -> String.valueOf(clause.mandatory().get(b) ? 1 : 0)).toList());
 
-            System.out.println("man:     " + IntStream.range(0, clause.mandatory().length())
-                    .mapToObj(b -> String.valueOf(clause.mandatory().get(b) ? 1 : 0)).toList());
-
-            // Find optional flags
+            // Find flags
             // eg.                    *           *              *
             // orGroup:           [0, 1, 1, 0, 0, 2, 2, 2, 2, 2, 3, 3, 0, 0, 0]
             // argument.optional: [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
@@ -57,11 +116,11 @@ public class SymbolMapper {
                 }
             }
 
-            System.out.println("opt flag: " + IntStream.range(0, optionalFlags.length())
-                    .mapToObj(b -> String.valueOf(optionalFlags.get(b) ? 1 : 0)).toList());
-
-            System.out.println("man flag: " + IntStream.range(0, mandatoryFlags.length())
-                    .mapToObj(b -> String.valueOf(mandatoryFlags.get(b) ? 1 : 0)).toList());
+//            System.out.println("opt flag: " + IntStream.range(0, optionalFlags.length())
+//                    .mapToObj(b -> String.valueOf(optionalFlags.get(b) ? 1 : 0)).toList());
+//
+//            System.out.println("man flag: " + IntStream.range(0, mandatoryFlags.length())
+//                    .mapToObj(b -> String.valueOf(mandatoryFlags.get(b) ? 1 : 0)).toList());
 
             // Permute optional flags
             // optionalIndexes: [3, 4, 5, 10, 12, 13, 14]
@@ -77,21 +136,74 @@ public class SymbolMapper {
                 recursivelyShiftOrGroups(possibleSets.get(i), 1, clause.args(), possibleSets);
             }
 
-            System.out.println("test:    " + IntStream.range(0, optionalFlags.length())
-                    .mapToObj(b -> String.valueOf(possibleSets.get(possibleSets.size()-1).get(b) ? 1 : 0)).toList());
-            List<BitSet> test = new ArrayList<>();
-            recursivelyShiftOrGroups(possibleSets.get(possibleSets.size()-1), 1, clause.args(), test);
-            System.out.println("result: " + test.stream().map(set -> IntStream.range(0, clause.args().size())
-                    .mapToObj(b -> String.valueOf(set.get(b) ? 1 : 0)).toList()).toList());
-
             // check for duplicate sets
-            System.out.println("uniqueness check: " + (possibleSets.size() == possibleSets.stream().distinct().count()));
+//            System.out.println("uniqueness check: " + (possibleSets.size() == possibleSets.stream().distinct().count()));
+//
+//            System.out.println(possibleSets.size());
+//
+//            System.out.println("possibleSets: " + possibleSets.stream().map(set -> IntStream.range(0, clause.args().size())
+//                    .mapToObj(b -> String.valueOf(set.get(b) ? 1 : 0)).toList()).toList());
 
-            System.out.println(possibleSets.size());
-
-            System.out.println("possibleSets: " + possibleSets.stream().map(set -> IntStream.range(0, clause.args().size())
-                    .mapToObj(b -> String.valueOf(set.get(b) ? 1 : 0)).toList()).toList());
+            constructorSets.addAll(possibleSets.stream().map(set -> IntStream.range(0, clause.args().size())
+                    .mapToObj(b -> set.get(b) ? clause.args().get(b).symbol() : null).toList()).toList());
         }
+
+        // filter for out-of-vocabulary symbols and duplicates
+        constructorSets = new ArrayList<>(constructorSets.stream().distinct().filter(l -> symbols.containsAll(l.stream().filter(Objects::nonNull).toList())).toList());
+
+        System.out.println("constructorSets: " + constructorSets);
+
+        List<List<Symbol>> parameterSets = new ArrayList<>();
+
+        for (List<Symbol> constructorSet : constructorSets) {
+            parameterSets.addAll(cartesianProductOfReturnTypes(constructorSet));
+        }
+
+        return parameterSets;
+    }
+
+    /* Cartesian Product of return types */
+    private Set<List<Symbol>> cartesianProductOfReturnTypes(List<Symbol> symbols) {
+        return cartesianProductOfReturnTypes(new ArrayList<>(), symbols);
+    }
+    private Set<List<Symbol>> cartesianProductOfReturnTypes(List<Symbol> traversedSymbols, List<Symbol> remainingSymbols) {
+        //System.out.println("traversedSymbols: " + traversedSymbols);
+        // Base case
+        if (remainingSymbols.isEmpty()) {
+            return Set.of(traversedSymbols);
+        }
+
+        Symbol nextSymbol = remainingSymbols.get(0);
+
+        // Skip null symbols
+        if (nextSymbol == null) {
+            List<Symbol> newlyTraversed = new ArrayList<>(traversedSymbols);
+            newlyTraversed.add(null);
+            return cartesianProductOfReturnTypes(newlyTraversed, remainingSymbols.subList(1, remainingSymbols.size()));
+        }
+
+
+
+        // Core recursive cases
+        Set<List<Symbol>> parameterSets = new HashSet<>();
+
+        // Eg. game.util.graph.Graph can be obtained by game.util.graph.Graph, game.functions.graph.GraphFunction, game.functions.graph.generators.basis.square.Square, ...
+        Set<Symbol> obtainedFrom = returnMap.getOrDefault(nextSymbol.path(), new HashSet<>());
+
+        if (nextSymbol.returnType() != nextSymbol) {
+            if (Objects.equals(nextSymbol.returnType().path(), nextSymbol.path())) {
+                System.out.println("WARNING: " + nextSymbol.path() + " is misbehaving");
+            }
+
+            obtainedFrom.addAll(returnMap.getOrDefault(nextSymbol.returnType().path(), Set.of()));
+        }
+
+        for (Symbol returnSymbol: obtainedFrom) {
+            List<Symbol> newlyTraversed = new ArrayList<>(traversedSymbols);
+            newlyTraversed.add(returnSymbol);
+            parameterSets.addAll(cartesianProductOfReturnTypes(newlyTraversed, remainingSymbols.subList(1, remainingSymbols.size())));
+        }
+
 
         return parameterSets;
     }
@@ -101,10 +213,10 @@ public class SymbolMapper {
 
         int optionalParams = optionalFlags.cardinality();
         int[] optionalIndexes = IntStream.range(0, optionalFlags.length()).filter(optionalFlags::get).toArray();
-        System.out.println("optionalIndexes: " + Arrays.toString(optionalIndexes));
+//        System.out.println("optionalIndexes: " + Arrays.toString(optionalIndexes));
 
         int initialPermutations = (int) Math.pow(2, optionalParams);
-        System.out.println("initialPermutations: " + initialPermutations);
+//        System.out.println("initialPermutations: " + initialPermutations);
         for (int i = 0; i < initialPermutations; i++) {
             BitSet set = (BitSet) mandatoryFlags.clone();
             for (int j = 0; j < optionalIndexes.length; j++) {
@@ -162,11 +274,14 @@ public class SymbolMapper {
 
     }
 
-
     public static void main(String[] args) {
 
-        Symbol symbol = Grammar.grammar().symbolsByName("Place").get(0);
-        System.out.println(findParameterSets(symbol));
+        List<Symbol> symbols = Grammar.grammar().symbols().stream().filter(Symbol::usedInGrammar).toList();
+
+        new SymbolMapper(symbols);
+        System.out.println("done");
+
+        //System.out.println(symbolsMap.get("Sites"));
 
         /*
         for (Symbol symbol: Grammar.grammar().symbols()) {
