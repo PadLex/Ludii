@@ -7,38 +7,83 @@ import main.grammar.Symbol;
 
 import java.util.*;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class SymbolMapper {
     private Set<Symbol> symbols = new HashSet<>();
-    private Map<String, Set<Symbol>> returnMap = new HashMap<>();
-    private Map<Symbol, List<List<Symbol>>> symbolsMap = new HashMap<>();
+
+    // Maps symbols to the symbols that return them (aka base-symbols to the sources from which you can obtain them)
+    // eg game.util.graph.Graph can be obtained from game.util.graph.Graph, game.functions.graph.GraphFunction, game.functions.graph.generators.basis.square.Square, ...
+    private Map<String, Set<Symbol>> sourceMap = new HashMap<>();
+
+    // Maps symbols to every possible set of base-symbols (aka parameters) that can be used to initialize them.
+    // eg game.util.graph.Graph can be initialized using [<Float>, null], [<Float>, <Integer>], [], or [<graph>]
+    private Map<Symbol, List<List<Symbol>>> parameterMap = new HashMap<>();
+
+    // To obtain every possible set of symbols which can be used to initialize another symbol, you would need replace
+    // each base-symbol with it's corresponding source symbols and take their cartesian product. Unfortunately,
+    // this is too intensive to pre-compute.
 
     public SymbolMapper(Collection<Symbol> symbols) {
         this.symbols.addAll(symbols);
 
         buildReturnMap();
+        buildSymbolMap();
 
-        // print largest sets in returnMap
-        System.out.println("Largest sets in returnMap:");
-        returnMap.entrySet().stream()
-                .sorted(Comparator.comparingInt(e -> -e.getValue().size())).limit(10)
-                .forEach(e -> System.out.println(e.getKey() + ": " + e.getValue().size()));
+        List<Symbol> partialArgs = new ArrayList<>();
+        partialArgs.add(Grammar.grammar().findSymbolByPath("game.functions.graph.generators.basis.hex.Hex"));
+        partialArgs.add(null);
+        partialArgs.add(null);
+        partialArgs.add(null);
+        partialArgs.add(null);
+        partialArgs.add(null);
+        partialArgs.add(null);
+        System.out.println(partialArgs);
+        System.out.println(nextPossibilities(Grammar.grammar().findSymbolByPath("game.equipment.container.board.Board"), partialArgs));
 
-        System.out.println("int: " + returnMap.get("int").stream().map(Symbol::token).toList());
+//        Symbol symbol = Grammar.grammar().findSymbolByPath("game.util.graph.Graph");
+//        List<List<Symbol>> symbolSets = findParameterSets(symbol);
+//        System.out.println(symbol.info());
+//        System.out.println(" -> " + symbol.returnType());
+//        System.out.println("obtained from: " + sourceMap.get(symbol.path()));
+//        System.out.println("can be initialized with: ");
+//        symbolSets.forEach(System.out::println);
+    }
 
-        Symbol symbol = Grammar.grammar().findSymbolByPath("game.functions.region.math.Expand");
-        List<List<Symbol>> symbolSets = findParameterSets(symbol);
-        System.out.println(symbol.info());
-        System.out.println(" -> " + symbol.returnType());
-        for (List<Symbol> symbolSet : symbolSets) {
-            System.out.println(symbolSet);
-        }
+    public Set<Symbol> nextPossibilities(Symbol parent, List<Symbol> partialArguments) {
+        System.out.println(parameterMap.get(parent));
 
-        System.out.println("obtained from: " + returnMap.get(symbol.path()));
+        Stream<List<Symbol>> parameterSets = parameterMap.get(parent).stream();
 
-        System.out.println("\n\n\n");
+        parameterSets = parameterSets.filter(completeArguments -> {
+            for (int i = 0; i < partialArguments.size(); i++) {
 
-//        buildSymbolMap();
+                // TODO could I use symbol.matches() instead?
+                if (findBaseSymbol(completeArguments.get(i)) != findBaseSymbol(partialArguments.get(i))) {
+
+                    // TODO remove
+                    if (completeArguments.get(i) != null && partialArguments.get(i) != null && findBaseSymbol(completeArguments.get(i)).path() == findBaseSymbol(partialArguments.get(i)).path()) {
+                        throw new RuntimeException("UPS, I didn't think this could happen: " + completeArguments.get(i).path() + ", " + partialArguments.get(i));
+                    }
+                    return false;
+                }
+            }
+
+            return completeArguments.size() > partialArguments.size();
+        });
+
+
+        Set<Symbol> possibilities = new HashSet<>();
+        parameterSets.forEach(args -> {
+            Symbol lastSymbol = findBaseSymbol(args.get(partialArguments.size()));
+
+            if (lastSymbol != null) {
+                possibilities.addAll(sourceMap.getOrDefault(lastSymbol.path(), Set.of()));
+            } else {
+                possibilities.add(null);
+            }
+        });
+        return possibilities;
     }
 
     private void buildReturnMap() {
@@ -51,19 +96,17 @@ public class SymbolMapper {
 //        }
 
         for (Symbol symbol: symbols) {
-            Set<Symbol> returns = returnMap.getOrDefault(symbol.returnType().path(), new HashSet<>());
+            Set<Symbol> returns = sourceMap.getOrDefault(symbol.returnType().path(), new HashSet<>());
             returns.add(symbol);
-            returnMap.put(symbol.returnType().path(), returns);
+            sourceMap.put(symbol.returnType().path(), returns);
         }
     }
 
     private void buildSymbolMap() {
         for (Symbol symbol: symbols) {
-            System.out.println("Mapping " + symbol.path());
-
-            List<List<Symbol>> parameterSets = findParameterSets(symbol);
+            List<List<Symbol>> parameterSets = new ArrayList<>(findParameterSets(symbol));
             parameterSets.sort(Comparator.comparing(List::toString));
-            symbolsMap.put(symbol, parameterSets);
+            parameterMap.put(symbol, parameterSets);
         }
     }
 
@@ -84,10 +127,10 @@ public class SymbolMapper {
             if (clause.args() == null) {
                 continue;
             }
-            System.out.println("\n");
+//            System.out.println("\n");
 //
-            System.out.println(clause);
-            System.out.println("args:    " + clause.args().stream().map(a -> a.symbol().path()).toList());
+//            System.out.println(clause);
+//            System.out.println("args:    " + clause.args().stream().map(a -> a.symbol().path()).toList());
 //            System.out.println("or:      " + clause.args().stream().map(ClauseArg::orGroup).toList());
 //            System.out.println("and:     " + clause.args().stream().map(ClauseArg::andGroup).toList());
 //            System.out.println("not opt: " + clause.args().stream().map(arg -> arg.optional()? 0:1).toList());
@@ -155,75 +198,21 @@ public class SymbolMapper {
         }
 
         // filter for out-of-vocabulary symbols and duplicates
-        constructorSets = new ArrayList<>(constructorSets.stream().distinct().filter(l -> symbols.containsAll(l.stream().filter(Objects::nonNull).toList())).toList());
+        Stream<List<Symbol>> parameterStream = constructorSets.stream().distinct();
+        parameterStream = parameterStream.filter(l -> symbols.containsAll(l.stream().filter(Objects::nonNull).toList()));
 
-        //System.out.println("constructorSets: " + constructorSets);
+        // Recover base symbols
+        parameterStream = parameterStream.map(l -> l.stream().map(this::findBaseSymbol).toList());
 
-        List<List<Symbol>> parameterSets = new ArrayList<>();
-
-        for (List<Symbol> constructorSet : constructorSets) {
-            System.out.println("constructorSet: " + constructorSet);
-            Set<List<Symbol>> products = cartesianProductOfReturnTypes(constructorSet);
-            System.out.println("size: " + products.size());
-            parameterSets.addAll(products);
-            System.out.println("\n\n----------------------------------------------\n\n ");
-        }
-
-        return parameterSets;
+        return parameterStream.toList();
     }
 
-    /* Cartesian Product of return types */
-    private Set<List<Symbol>> cartesianProductOfReturnTypes(List<Symbol> symbols) {
-        return cartesianProductOfReturnTypes(new ArrayList<>(), symbols);
-    }
-    private Set<List<Symbol>> cartesianProductOfReturnTypes(List<Symbol> traversedSymbols, List<Symbol> remainingSymbols) {
-        //System.out.println("traversedSymbols: " + traversedSymbols);
-        // Base case
-        if (remainingSymbols.isEmpty()) {
-            //System.out.println("final: " + traversedSymbols.stream().map(s -> s == null ? "null" : s.path()).toList());
-            return Set.of(traversedSymbols);
-        }
+    // TODO: Why is this necessary? Why aren't arguments base-symbols by default?
+    private Symbol findBaseSymbol(Symbol symbol) {
+        if (symbol == null || symbol.returnType() == symbol)
+            return symbol;
 
-        Symbol nextSymbol = remainingSymbols.get(0);
-
-        // Skip null symbols
-        if (nextSymbol == null) {
-            List<Symbol> newlyTraversed = new ArrayList<>(traversedSymbols);
-            newlyTraversed.add(null);
-            return cartesianProductOfReturnTypes(newlyTraversed, remainingSymbols.subList(1, remainingSymbols.size()));
-        }
-
-        // Core recursive cases
-        Set<List<Symbol>> parameterSets = new HashSet<>();
-
-        // Eg. game.util.graph.Graph can be obtained from game.util.graph.Graph, game.functions.graph.GraphFunction, game.functions.graph.generators.basis.square.Square, ...
-        Set<Symbol> obtainedFrom = returnMap.getOrDefault(nextSymbol.path(), new HashSet<>());
-        //System.out.println("obtainedFrom: " + obtainedFrom);
-
-        // Eg. game.functions.graph.GraphFunction can't be obtained, so I'm treating it as its return type, game.util.graph.Graph
-        if (nextSymbol.returnType() != nextSymbol) {
-            if (Objects.equals(nextSymbol.returnType().path(), nextSymbol.path())) {
-                System.out.println("WARNING: " + nextSymbol.path() + " is misbehaving");
-            }
-
-            obtainedFrom.addAll(returnMap.getOrDefault(nextSymbol.returnType().path(), Set.of()));
-        }
-
-        for (Symbol returnSymbol: obtainedFrom) {
-
-            // TODO trying to filter symbols that can not be initialized
-            if (returnSymbol.hidden()) {
-                //System.out.println("Skipping: " + returnSymbol.path() + " is hidden");
-                continue;
-            }
-
-            List<Symbol> newlyTraversed = new ArrayList<>(traversedSymbols);
-            newlyTraversed.add(returnSymbol);
-            parameterSets.addAll(cartesianProductOfReturnTypes(newlyTraversed, remainingSymbols.subList(1, remainingSymbols.size())));
-        }
-
-
-        return parameterSets;
+        return findBaseSymbol(symbol.returnType());
     }
 
     private static List<BitSet> permuteFlags(BitSet optionalFlags, BitSet mandatoryFlags) {
@@ -294,10 +283,11 @@ public class SymbolMapper {
 
     public static void main(String[] args) {
 
+        //List<Symbol> symbols = Grammar.grammar().symbols();
         List<Symbol> symbols = Grammar.grammar().symbols().stream().filter(Symbol::usedInGrammar).toList();
 
-        new SymbolMapper(symbols);
-        System.out.println("done");
+        SymbolMapper symbolMapper = new SymbolMapper(symbols);
+        System.out.println("Finished mapping symbols. Found " + symbolMapper.parameterMap.values().stream().mapToInt(List::size).sum() + " parameter sets.");
 
         //System.out.println(symbolsMap.get("Sites"));
 
