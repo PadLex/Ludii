@@ -1,4 +1,4 @@
-package approaches.random;
+package approaches.symbolic;
 
 import grammar.Grammar;
 import main.grammar.Clause;
@@ -50,7 +50,7 @@ public class SymbolMapper {
 //        symbolSets.forEach(System.out::println);
     }
 
-    public Set<Symbol> nextPossibilities(Symbol parent, List<Symbol> partialArguments) {
+    public List<Symbol> nextPossibilities(Symbol parent, List<Symbol> partialArguments) {
         System.out.println(parameterMap.get(parent));
 
         Stream<List<Symbol>> parameterSets = parameterMap.get(parent).stream();
@@ -83,7 +83,8 @@ public class SymbolMapper {
                 possibilities.add(null);
             }
         });
-        return possibilities;
+
+        return possibilities.stream().sorted(Comparator.comparing(s -> s!=null? s.path():"")).toList();
     }
 
     private void buildReturnMap() {
@@ -96,6 +97,11 @@ public class SymbolMapper {
 //        }
 
         for (Symbol symbol: symbols) {
+            // Skip enum class but not it's instances
+            // eg skip the class <hexShapeType> but don't skip it's terminal constant Diamond
+            if (symbol.cls().isEnum() && !symbol.isTerminal())
+                continue;
+
             Set<Symbol> returns = sourceMap.getOrDefault(symbol.returnType().path(), new HashSet<>());
             returns.add(symbol);
             sourceMap.put(symbol.returnType().path(), returns);

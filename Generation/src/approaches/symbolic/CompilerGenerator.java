@@ -1,4 +1,4 @@
-package approaches.random;
+package approaches.symbolic;
 
 import compiler.Compiler;
 import game.Game;
@@ -10,6 +10,7 @@ import game.equipment.other.Regions;
 import game.functions.booleans.is.Is;
 import game.functions.booleans.is.IsConnectType;
 import game.functions.dim.DimConstant;
+import game.functions.graph.generators.basis.hex.DiamondOnHex;
 import game.functions.graph.generators.basis.hex.Hex;
 import game.functions.graph.generators.basis.hex.HexShapeType;
 import game.functions.region.RegionFunction;
@@ -68,6 +69,44 @@ public class CompilerGenerator {
                 null,
                 new Equipment(new Item[]{
                         new Board(Hex.construct(HexShapeType.Diamond, new DimConstant(11), null), null, null, null, null,  null, null),
+                        new Piece("Marker", RoleType.Each, null, null, null, null, null, null),
+                        new Regions(null, RoleType.P1, null, null, new RegionFunction[]{
+                                Sites.construct(SitesSideType.Side, null, null, null, CompassDirection.NE),
+                                Sites.construct(SitesSideType.Side, null, null, null, CompassDirection.SW)
+                        }, null, null, null),
+                        new Regions(null, RoleType.P2, null, null, new RegionFunction[]{
+                                Sites.construct(SitesSideType.Side, null, null, null, CompassDirection.NW),
+                                Sites.construct(SitesSideType.Side, null, null, null, CompassDirection.SE)
+                        }
+                                , null, null, null)
+                }),
+                new Rules(
+                        null,
+                        null,
+                        new Play(
+                                Move.construct(MoveSiteType.Add, null,
+                                        new To(null,
+                                                Sites.construct(SitesIndexType.Empty, null, null), null, null, null, null, null),
+                                        null, null, null
+                                )
+                        ),
+                        new End(
+                                new If(
+                                        Is.construct(IsConnectType.Connected, null, null, null, null, null, RoleType.Mover, null),
+                                        null, null,
+                                        new Result(RoleType.Mover, ResultType.Win)
+                                ),
+                                null
+                        )
+                )
+        );
+
+        Game game2 = new Game(
+                "hex",
+                new Players(2),
+                null,
+                new Equipment(new Item[]{
+                        new Board(new DiamondOnHex(new DimConstant(11), null), null, null, null, null,  null, null),
                         new Piece("Marker", RoleType.Each, null, null, null, null, null, null),
                         new Regions(null, RoleType.P1, null, null, new RegionFunction[]{
                                 Sites.construct(SitesSideType.Side, null, null, null, CompassDirection.NE),
