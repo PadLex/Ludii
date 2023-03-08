@@ -195,7 +195,11 @@ public class CompilerGenerator {
         for (int i = 0; i < depth; i++) {
             System.out.print("    ");
         }
-        System.out.print(call.type() + ": " + call.cls());
+
+        if (call.object() != null)
+            System.out.print(call.type() + ": " + call.cls() + " = " + call.object());
+        else
+            System.out.print(call.type() + ": " + call.cls());
 
         System.out.print("\n");
 
