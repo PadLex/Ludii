@@ -19,7 +19,7 @@ public class SymbolMapper {
 
     // Maps symbols to every possible set of base-symbols (aka parameters) that can be used to initialize them.
     // eg game.util.graph.Graph can be initialized using [<Float>, null], [<Float>, <Integer>], [], or [<graph>]
-    private Map<Symbol, List<List<Symbol>>> parameterMap = new HashMap<>();
+    private Map<String, List<List<Symbol>>> parameterMap = new HashMap<>();
 
     // To obtain every possible set of symbols which can be used to initialize another symbol, you would need replace
     // each base-symbol with it's corresponding source symbols and take their cartesian product. Unfortunately,
@@ -41,19 +41,28 @@ public class SymbolMapper {
     }
 
     public List<Symbol> nextPossibilities(Symbol parent, List<Symbol> partialArguments) {
-        System.out.println(parameterMap.get(parent));
+        System.out.println(parameterMap.get(parent.path()));
 
-        Stream<List<Symbol>> parameterSets = parameterMap.get(parent).stream();
+        Stream<List<Symbol>> parameterSets = parameterMap.get(parent.path()).stream();
 
         parameterSets = parameterSets.filter(completeArguments -> {
+            if (partialArguments.size() >= completeArguments.size())
+                return false;
+
             for (int i = 0; i < partialArguments.size(); i++) {
                 // TODO could I use symbol.matches() instead?
-                if (!Objects.equals(findBaseSymbol(completeArguments.get(i)).path(), findBaseSymbol(partialArguments.get(i)).path())) {
+                if (completeArguments.get(i) == partialArguments.get(i))
+                    return true;
+
+                if (completeArguments.get(i) == null || partialArguments.get(i) == null)
+                    return false;
+
+                if (!findBaseSymbol(completeArguments.get(i)).matches(findBaseSymbol(partialArguments.get(i)))) {
                     return false;
                 }
             }
 
-            return completeArguments.size() > partialArguments.size();
+            return true;
         });
 
 
@@ -100,7 +109,7 @@ public class SymbolMapper {
         for (Symbol symbol: symbols) {
             List<List<Symbol>> parameterSets = new ArrayList<>(findParameterSets(symbol));
             parameterSets.sort(Comparator.comparing(List::toString));
-            parameterMap.put(symbol, parameterSets);
+            parameterMap.put(symbol.path(), parameterSets);
         }
     }
 

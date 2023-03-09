@@ -8,6 +8,7 @@ import main.grammar.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import grammar.Grammar;
 import main.options.UserSelections;
@@ -74,7 +75,8 @@ public abstract class GeneratorNode {
 
             case Array -> {
                 // TODO how to get symbol correctly? This would fail if array was empty or 2D.
-                System.out.println(call.args().stream().map(Call::symbol).map(Symbol::cls).toList());
+                //System.out.println(call.args().stream().map(Call::symbol).map(Symbol::cls).toList());
+
                 Symbol newSymbol = new Symbol(call.args().get(0).symbol());
                 newSymbol.setNesting(newSymbol.nesting() + 1);
                 System.out.println("nesting: " + newSymbol.cls() + " " + newSymbol.nesting());
@@ -91,6 +93,35 @@ public abstract class GeneratorNode {
             default -> {return null;}
         }
     }
+
+    public boolean verifySymbolMap(SymbolMapper symbolMapper) {
+        List<Symbol> partialArguments = new ArrayList<>();
+        for (GeneratorNode child : parameterSet) {
+            System.out.println("\ncurrent path:" + symbol.path());
+            System.out.println(this);
+            System.out.println(parameterSet.stream().map(s -> s==null? null:symbol.name()).toList());
+
+            System.out.println("child path:" + (child != null? child.symbol.path() : null));
+
+            boolean isPossible = symbolMapper.nextPossibilities(symbol, partialArguments).stream()
+                    .anyMatch(s -> (child == null && s == null) || (s != null && child != null && (s.compatibleWith(child.symbol) || child.symbol.compatibleWith(s))));
+
+
+            System.out.println("options: " + symbolMapper.nextPossibilities(symbol, partialArguments));
+            System.out.println(isPossible);
+
+            if (!isPossible)
+                return false;
+
+            if (child != null && !child.verifySymbolMap(symbolMapper))
+                return false;
+
+            partialArguments.add(child != null? child.symbol : null);
+        }
+
+        return true;
+    }
+
     public static void main(String[] args) {
 
         SymbolMapper symbolMapper = new SymbolMapper(Grammar.grammar().symbols().stream().filter(Symbol::usedInGrammar).toList());
@@ -144,6 +175,7 @@ public abstract class GeneratorNode {
         Game newGame = (Game) rootNode.compile();
 
         System.out.println("Will it crash? " + newGame.willCrash());
+        System.out.println("Could I obtain it? " + rootNode.verifySymbolMap(symbolMapper));
 
     }
 }

@@ -42,8 +42,19 @@ public class ArrayNode extends GeneratorNode {
             Array.set(array, i, arguments.get(i));
         }
 
-
         return array;
+    }
+
+    public List<GeneratorNode> nextPossibleParameters(SymbolMapper symbolMapper) {
+        if (parameterSet.get(parameterSet.size() - 1) == null)
+            return List.of();
+
+        return Collections.unmodifiableList(nextSymbols);
+    }
+
+    @Override
+    public String toString() {
+        return "{" + String.join(", ", parameterSet.stream().map(s -> s!=null? s.toString() : "").toList()) + "}";
     }
 
     static Class<?> getSharedType(List<Object> objects) {
@@ -58,17 +69,5 @@ public class ArrayNode extends GeneratorNode {
 
             return type;
         }
-    }
-
-    public List<GeneratorNode> nextPossibleParameters(SymbolMapper symbolMapper) {
-        if (parameterSet.get(parameterSet.size() - 1) == null)
-            return List.of();
-
-        return Collections.unmodifiableList(nextSymbols);
-    }
-
-    @Override
-    public String toString() {
-        return "{" + String.join(", ", parameterSet.stream().map(s -> s!=null? s.toString() : "").toList()) + "}";
     }
 }
