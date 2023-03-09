@@ -40,6 +40,9 @@ public class PrimitiveNode extends GeneratorNode {
 
     @Override
     public String toString() {
+        if (value == null)
+            return "?";
+
         if (value instanceof String)
             return "\"" + value + "\"";
 

@@ -59,7 +59,8 @@ public class CompilerGenerator {
         System.out.println(Arrays.toString(Game.class.getConstructors()[0].getParameterAnnotations()));
 */
         //playingCustomCallTree();
-        playingWithCompiledCallTree();
+        System.out.println(Grammar.grammar().findSymbolByPath("game.functions.dim.DimFunction").isTerminal());
+        //playingWithCompiledCallTree();
     }
 
     static void playingCustomCallTree() {

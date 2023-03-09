@@ -7,16 +7,11 @@ import java.lang.reflect.Array;
 import java.util.*;
 
 public class ArrayNode extends GeneratorNode {
-    private final List<GeneratorNode> nextSymbols = new ArrayList<>();
+    //private final List<GeneratorNode> nextSymbols = new ArrayList<>();
     ArrayNode(Symbol symbol) {
         super(symbol);
 
         assert symbol.nesting() > 0;
-
-        nextSymbols.add(null);
-        Symbol childSymbol = new Symbol(symbol);
-        childSymbol.setNesting(symbol.nesting() - 1);
-        nextSymbols.add(GeneratorNode.fromSymbol(childSymbol));
     }
 
     public Object compile() {
@@ -46,10 +41,17 @@ public class ArrayNode extends GeneratorNode {
     }
 
     public List<GeneratorNode> nextPossibleParameters(SymbolMapper symbolMapper) {
-        if (parameterSet.get(parameterSet.size() - 1) == null)
+        if (!parameterSet.isEmpty() && parameterSet.get(parameterSet.size() - 1) == null)
             return List.of();
 
-        return Collections.unmodifiableList(nextSymbols);
+        System.out.println("nesting: " + symbol.nesting() + ", " + symbol.path() + " <- " + symbolMapper.getSources(symbol));
+
+        if (symbol.nesting() == 1)
+            return symbolMapper.getSources(symbol).stream().filter(s -> s.ludemeType() != Symbol.LudemeType.Structural).map(GeneratorNode::fromSymbol).toList();
+
+        Symbol childSymbol = new Symbol(symbol);
+        childSymbol.setNesting(symbol.nesting() - 1);
+        return List.of(GeneratorNode.fromSymbol(childSymbol));
     }
 
     @Override

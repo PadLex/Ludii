@@ -47,83 +47,107 @@ public abstract class GeneratorNode {
         return new ClassNode(symbol);
     }
 
-    public static GeneratorNode cloneCallTree(Call call) {
-        switch (call.type()) {
-            case Class -> {
-                GeneratorNode node = new ClassNode(call.symbol());
-
-                for (Call callArg: call.args()) {
-                    node.addParameter(cloneCallTree(callArg));
-                }
-
-                return node;
-            }
-
-            case Terminal -> {
-                if (call.symbol().cls().isEnum()) {
-                    return new EnumNode(call.symbol());
-                }
-
-                PrimitiveNode node = new PrimitiveNode(call.symbol());
-                if (call.object() instanceof DimConstant) {
-                    node.setValue(((DimConstant) call.object()).eval());
-                } else {
-                    node.setValue(call.object());
-                }
-                return node;
-            }
-
-            case Array -> {
-                // TODO how to get symbol correctly? This would fail if array was empty or 2D.
-                //System.out.println(call.args().stream().map(Call::symbol).map(Symbol::cls).toList());
-
-                Symbol newSymbol = new Symbol(call.args().get(0).symbol());
-                newSymbol.setNesting(newSymbol.nesting() + 1);
-                System.out.println("nesting: " + newSymbol.cls() + " " + newSymbol.nesting());
-
-                GeneratorNode node = new ArrayNode(newSymbol);
-
-                for (Call callArg: call.args()) {
-                    node.addParameter(cloneCallTree(callArg));
-                }
-
-                return node;
-            }
-
-            default -> {return null;}
-        }
+    public static GeneratorNode cloneCallTree(Call root, SymbolMapper symbolMapper) {
+        assert root.type() == Call.CallType.Class;
+        return cloneCallTree(root, List.of(new ClassNode(root.symbol())), symbolMapper);
     }
 
-    public boolean verifySymbolMap(SymbolMapper symbolMapper) {
-        List<Symbol> partialArguments = new ArrayList<>();
-        for (GeneratorNode child : parameterSet) {
-            System.out.println("\ncurrent path:" + symbol.path());
-            System.out.println(this);
-            System.out.println(parameterSet.stream().map(s -> s==null? null:symbol.name()).toList());
+    public static GeneratorNode cloneCallTree(Call call, List<GeneratorNode> options, SymbolMapper symbolMapper) {
+        System.out.println("options: " + options.stream().map(node -> node==null ? null : node.symbol).toList());
+        System.out.println("call: " + call.type() + ", " + call.cls());
 
-            System.out.println("child path:" + (child != null? child.symbol.path() : null));
+        GeneratorNode node = switch (call.type()) {
+            case Array -> {
+                int nesting = getNesting(call, 0);
+                List<Symbol> nestedSymbols = new ArrayList<>();
+                getNestedSymbols(call, nestedSymbols);
 
-            boolean isPossible = symbolMapper.nextPossibilities(symbol, partialArguments).stream()
-                    .anyMatch(s -> (child == null && s == null) || (s != null && child != null && (s.compatibleWith(child.symbol) || child.symbol.compatibleWith(s))));
+                System.out.println("nested symbols " + nestedSymbols);
 
+                optionLoop: for (GeneratorNode option: options) {
+                    if (option == null)
+                        continue;
 
-            System.out.println("options: " + symbolMapper.nextPossibilities(symbol, partialArguments));
-            System.out.println(isPossible);
+                    if (option.symbol.nesting() != nesting) {
+                        System.out.println(option.symbol.nesting() + " incompatible with " + nesting);
+                        continue;
+                    }
 
-            if (!isPossible)
-                return false;
+                    for (Symbol nestedSymbol: nestedSymbols) {
+                        assert nestedSymbol != null;
+                        System.out.println(option.symbol + " compatible with " + nestedSymbol + "? " + option.symbol.compatibleWith(nestedSymbol));
 
-            if (child != null && !child.verifySymbolMap(symbolMapper))
-                return false;
+                        if (!option.symbol.compatibleWith(nestedSymbol))
+                            continue optionLoop;
+                    }
 
-            partialArguments.add(child != null? child.symbol : null);
+                    yield option;
+                }
+
+                throw new RuntimeException("Could not find a compatible array type");
+            }
+
+            case Class, Terminal -> {
+                for (GeneratorNode option: options) {
+                    if (option == null)
+                        continue;
+
+                    if (option instanceof PrimitiveNode) {
+                        System.out.println(option.symbol + " compatible with " + call.symbol() + "? " + option.symbol.compatibleWith(call.symbol()));
+                        if (option.symbol.compatibleWith(call.symbol())) {
+                            ((PrimitiveNode) option).setValue(call.object());
+                            yield option;
+                        }
+                        continue;
+                    }
+
+                    if (option.symbol.matches(call.symbol())) {
+                        yield option;
+                    }
+                }
+
+                throw new RuntimeException("Could not find a compatible class");
+            }
+
+            case Null -> {
+                for (GeneratorNode option : options) {
+                    if (option == null)
+                        yield null;
+                }
+
+                throw new RuntimeException("null is not an option");
+            }
+        };
+        System.out.println("selected: " + (node == null? "null":node.symbol));
+
+        for (Call childCall: call.args()) {
+            assert node != null;
+            System.out.println("\nparent: " + node.symbol + ", " + node.getClass());
+            GeneratorNode child = cloneCallTree(childCall, node.nextPossibleParameters(symbolMapper), symbolMapper);
+            node.addParameter(child);
         }
 
-        return true;
+        return node;
+    }
+
+    private static int getNesting(Call call, int nesting) {
+        if (call.type() != Call.CallType.Array)
+            return nesting;
+
+        return getNesting(call.args().get(0), nesting+1);
+    }
+
+    private static void getNestedSymbols(Call call, List<Symbol> nestedSymbols) {
+        if (call.type() != Call.CallType.Array)
+            nestedSymbols.add(call.symbol());
+        else
+            call.args().forEach(child -> getNestedSymbols(child, nestedSymbols));
     }
 
     public static void main(String[] args) {
+        //System.out.println(Grammar.grammar().findSymbolByPath("game.equipment.Item"));
 
+//        SymbolMapper symbolMapper = new SymbolMapper(Grammar.grammar().symbols());
         SymbolMapper symbolMapper = new SymbolMapper(Grammar.grammar().symbols().stream().filter(Symbol::usedInGrammar).toList());
 
 //        GeneratorNode hex = new GeneratorNode(Grammar.grammar().findSymbolByPath("game.functions.graph.generators.basis.hex.Hex"));
@@ -171,11 +195,9 @@ public abstract class GeneratorNode {
         //Parser.expandAndParse(description, userSelections, report, false);
         Game originalGame = (Game) Compiler.compileTest(description, false);
 
-        GeneratorNode rootNode = cloneCallTree(description.callTree());
+        GeneratorNode rootNode = cloneCallTree(description.callTree(), symbolMapper);
         Game newGame = (Game) rootNode.compile();
 
         System.out.println("Will it crash? " + newGame.willCrash());
-        System.out.println("Could I obtain it? " + rootNode.verifySymbolMap(symbolMapper));
-
     }
 }

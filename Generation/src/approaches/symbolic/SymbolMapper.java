@@ -15,7 +15,7 @@ public class SymbolMapper {
 
     // Maps symbols to the symbols that return them (aka base-symbols to the sources from which you can obtain them)
     // eg game.util.graph.Graph can be obtained from game.util.graph.Graph, game.functions.graph.GraphFunction, game.functions.graph.generators.basis.square.Square, ...
-    private Map<String, Set<Symbol>> sourceMap = new HashMap<>();
+    private Map<String, List<Symbol>> sourceMap = new HashMap<>();
 
     // Maps symbols to every possible set of base-symbols (aka parameters) that can be used to initialize them.
     // eg game.util.graph.Graph can be initialized using [<Float>, null], [<Float>, <Integer>], [], or [<graph>]
@@ -29,8 +29,8 @@ public class SymbolMapper {
         this.symbols.addAll(symbols);
         this.paths.addAll(symbols.stream().map(Symbol::path).toList());
 
-        buildReturnMap();
         buildSymbolMap();
+        buildReturnMap();
 //        Symbol symbol = Grammar.grammar().findSymbolByPath("game.util.graph.Graph");
 //        List<List<Symbol>> symbolSets = findParameterSets(symbol);
 //        System.out.println(symbol.info());
@@ -40,9 +40,13 @@ public class SymbolMapper {
 //        symbolSets.forEach(System.out::println);
     }
 
-    public List<Symbol> nextPossibilities(Symbol parent, List<Symbol> partialArguments) {
-        System.out.println(parameterMap.get(parent.path()));
+    public List<Symbol> getSources(Symbol symbol) {
+        return Collections.unmodifiableList(sourceMap.get(symbol.path()));
+    }
 
+    public List<Symbol> nextPossibilities(Symbol parent, List<Symbol> partialArguments) {
+        System.out.println("Symbol mapper: " + parent.path() + " -> " + parameterMap.get(parent.path()));
+        //sourceMap.get(parent.path()).stream().mapMulti((source, consumer) -> parameterMap.get(source.path()).forEach(consumer))
         Stream<List<Symbol>> parameterSets = parameterMap.get(parent.path()).stream();
 
         parameterSets = parameterSets.filter(completeArguments -> {
@@ -66,22 +70,25 @@ public class SymbolMapper {
         });
 
 
-        Set<Symbol> possibilities = new HashSet<>();
+        Map<String, Symbol> possibilities = new HashMap<>();
         parameterSets.forEach(args -> {
             Symbol lastSymbol = findBaseSymbol(args.get(partialArguments.size()));
 
             if (lastSymbol != null) {
-                possibilities.addAll(sourceMap.getOrDefault(lastSymbol.path(), Set.of()).stream().map(s -> {
-                    Symbol newSymbol = new Symbol(s);
-                    newSymbol.setNesting(lastSymbol.nesting());
-                    return newSymbol;
-                }).toList());
+                sourceMap.getOrDefault(lastSymbol.path(), List.of()).forEach(s -> {
+                    // Excluded dead-ends unless it's a terminal ludeme or an array type
+                    if (lastSymbol.nesting() > 0 || s.isTerminal() || !parameterMap.get(s.path()).isEmpty()) {
+                        Symbol newSymbol = new Symbol(s);
+                        newSymbol.setNesting(lastSymbol.nesting());
+                        possibilities.put(newSymbol.path() + "|" + newSymbol.nesting(), newSymbol);
+                    }
+                });
             } else {
-                possibilities.add(null);
+                possibilities.put("null", null);
             }
         });
 
-        return possibilities.stream().sorted(Comparator.comparing(s -> s!=null? s.path():"")).toList();
+        return possibilities.values().stream().sorted(Comparator.comparing(s -> s!=null? s.path():"")).toList();
     }
 
     private void buildReturnMap() {
@@ -93,16 +100,39 @@ public class SymbolMapper {
 //            returnMap.get(symbol.returnType().path()).add(symbol);
 //        }
 
+        Map<String, Set<Symbol>> sourceSetMap = new HashMap<>();
+
         for (Symbol symbol: symbols) {
             // Skip enum class but not it's instances
             // eg skip the class <hexShapeType> but don't skip it's terminal constant Diamond
             if (symbol.cls().isEnum() && !symbol.isTerminal())
                 continue;
 
-            Set<Symbol> returns = sourceMap.getOrDefault(symbol.returnType().path(), new HashSet<>());
-            returns.add(symbol);
-            sourceMap.put(symbol.returnType().path(), returns);
+//            boolean isInstantiable = symbol.returnType().cls().getConstructors().length != 0;
+//            boolean isFunction = Arrays.stream(symbol.returnType().cls().getMethods()).anyMatch(m -> m.getName().equals("construct"));
+//            if (!symbol.returnType().cls().isEnum() && !isInstantiable && !isFunction)
+//                System.out.println("KJNASDKNJ " + symbol.returnType().path());
+
+
+            Set<Symbol> returns = sourceSetMap.getOrDefault(symbol.returnType().path(), new HashSet<>());
+
+            for (Symbol symbol2: symbols) {
+
+//              symbol2.ludemeType() != Symbol.LudemeType.Structural &&
+                if (symbol.returnType().compatibleWith(symbol2)) {
+                    returns.add(symbol2);
+
+//                    if (parameterMap.get(symbol2.path()).size() == 0) {
+//                        System.out.println("Filter: " + symbol2.ludemeType() + " " + symbol2.path());
+//                    }
+                }
+
+            }
+
+            sourceSetMap.put(symbol.returnType().path(), returns);
         }
+
+        sourceSetMap.forEach((path, symbolSet) -> sourceMap.put(path, symbolSet.stream().sorted(Comparator.comparing(Symbol::path)).toList()));
     }
 
     private void buildSymbolMap() {
@@ -221,6 +251,7 @@ public class SymbolMapper {
     }
 
     // TODO: Why is this necessary? Why aren't arguments base-symbols by default?
+    // TODO Shouldn't DimFunction return dim constant? Shouldn't dim constant be a primitive?
     private Symbol findBaseSymbol(Symbol symbol) {
         if (symbol == null || Objects.equals(symbol.returnType().path(), symbol.path()))
             return symbol;
