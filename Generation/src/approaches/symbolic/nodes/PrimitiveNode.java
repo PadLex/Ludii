@@ -26,7 +26,7 @@ public class PrimitiveNode extends GeneratorNode {
             } catch (InvocationTargetException | IllegalAccessException | InstantiationException | IllegalArgumentException ignored) {}
         }
 
-        throw new RuntimeException("Failed to compile primitive node: " + symbol + ", " + value);
+        throw new RuntimeException("Failed to compile primitive node: " + symbol + ", " + value + ": " + value.getClass());
     }
 
     public List<GeneratorNode> nextPossibleParameters(SymbolMapper symbolMapper) {

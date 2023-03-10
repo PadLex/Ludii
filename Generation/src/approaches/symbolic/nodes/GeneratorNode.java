@@ -1,5 +1,6 @@
 package approaches.symbolic.nodes;
 
+import approaches.random.Generator;
 import approaches.symbolic.SymbolMapper;
 import compiler.Compiler;
 import game.Game;
@@ -95,7 +96,11 @@ public abstract class GeneratorNode {
                     if (option instanceof PrimitiveNode) {
                         System.out.println(option.symbol + " compatible with " + call.symbol() + "? " + option.symbol.compatibleWith(call.symbol()));
                         if (option.symbol.compatibleWith(call.symbol())) {
-                            ((PrimitiveNode) option).setValue(call.object());
+                            if (call.object() instanceof DimConstant)
+                                ((PrimitiveNode) option).setValue(((DimConstant) call.object()).eval());
+                            else
+                                ((PrimitiveNode) option).setValue(call.object());
+
                             yield option;
                         }
                         continue;
@@ -147,8 +152,9 @@ public abstract class GeneratorNode {
     public static void main(String[] args) {
         //System.out.println(Grammar.grammar().findSymbolByPath("game.equipment.Item"));
 
-//        SymbolMapper symbolMapper = new SymbolMapper(Grammar.grammar().symbols());
-        SymbolMapper symbolMapper = new SymbolMapper(Grammar.grammar().symbols().stream().filter(Symbol::usedInGrammar).toList());
+        List<Symbol> symbols = Grammar.grammar().symbols().stream().filter(s -> s.usedInGrammar() || s.usedInDescription() || !s.usedInMetadata()).toList();
+
+        SymbolMapper symbolMapper = new SymbolMapper(symbols);
 
 //        GeneratorNode hex = new GeneratorNode(Grammar.grammar().findSymbolByPath("game.functions.graph.generators.basis.hex.Hex"));
 //
@@ -196,8 +202,17 @@ public abstract class GeneratorNode {
         Game originalGame = (Game) Compiler.compileTest(description, false);
 
         GeneratorNode rootNode = cloneCallTree(description.callTree(), symbolMapper);
+
+        System.out.println("\n\nGAME: " + rootNode + "\n\n");
+
         Game newGame = (Game) rootNode.compile();
 
+        System.out.println("hasMissingRequirement? " + newGame.hasMissingRequirement());
         System.out.println("Will it crash? " + newGame.willCrash());
+
+        System.out.println("Functional? " + Generator.isFunctional(newGame));
+        System.out.println("isPlayable? " + Generator.isPlayable(newGame));
+        System.out.println("isFunctionalAndWithOnlyDecision? " + Generator.isFunctionalAndWithOnlyDecision(newGame));
+
     }
 }

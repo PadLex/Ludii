@@ -1,5 +1,6 @@
 package approaches.symbolic;
 
+import approaches.random.Generator;
 import compiler.Compiler;
 import game.Game;
 import game.equipment.Equipment;
@@ -58,8 +59,7 @@ public class CompilerGenerator {
         System.out.println(Arrays.toString(Game.class.getConstructors()[0].getParameterTypes()));
         System.out.println(Arrays.toString(Game.class.getConstructors()[0].getParameterAnnotations()));
 */
-        //playingCustomCallTree();
-        System.out.println(Grammar.grammar().findSymbolByPath("game.functions.dim.DimFunction").isTerminal());
+        playingCustomCallTree();
         //playingWithCompiledCallTree();
     }
 
@@ -140,7 +140,12 @@ public class CompilerGenerator {
                 )
         );
 
-        System.out.println(game.willCrash());
+        System.out.println("hasMissingRequirement? " + game.hasMissingRequirement());
+        System.out.println("Will it crash? " + game.willCrash());
+
+        System.out.println("Functional? " + Generator.isFunctional(game));
+        System.out.println("isPlayable? " + Generator.isPlayable(game));
+        System.out.println("isFunctionalAndWithOnlyDecision? " + Generator.isFunctionalAndWithOnlyDecision(game));
     }
 
     static void playingWithCompiledCallTree() {

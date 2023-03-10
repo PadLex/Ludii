@@ -45,7 +45,7 @@ public class SymbolMapper {
     }
 
     public List<Symbol> nextPossibilities(Symbol parent, List<Symbol> partialArguments) {
-        System.out.println("Symbol mapper: " + parent.path() + " -> " + parameterMap.get(parent.path()));
+        //System.out.println("Symbol mapper: " + parent.path() + " -> " + parameterMap.get(parent.path()));
         //sourceMap.get(parent.path()).stream().mapMulti((source, consumer) -> parameterMap.get(source.path()).forEach(consumer))
         Stream<List<ClauseArg>> parameterSets = parameterMap.get(parent.path()).stream();
 
@@ -54,16 +54,25 @@ public class SymbolMapper {
                 return false;
 
             for (int i = 0; i < partialArguments.size(); i++) {
-                if (completeArguments.get(i) == null || partialArguments.get(i) == null)
+
+                if (completeArguments.get(i) == null ^ partialArguments.get(i) == null)
                     return false;
 
-                // TODO could I use symbol.matches() instead?
-                if (completeArguments.get(i).symbol().path().equals(partialArguments.get(i).path()))
-                    return true;
+                if (completeArguments.get(i) == null && partialArguments.get(i) == null)
+                    continue;
 
-                if (!findBaseSymbol(completeArguments.get(i).symbol()).matches(findBaseSymbol(partialArguments.get(i)))) {
-                    return false;
+                if (completeArguments.get(i).symbol().compatibleWith(partialArguments.get(i)))
+                    continue;
+
+                if (partialArguments.get(i).compatibleWith(completeArguments.get(i).symbol())) {
+                    continue;
                 }
+
+                if (partialArguments.get(i).validReturnType(completeArguments.get(i))) {
+                    continue;
+                }
+
+                return false;
             }
 
             return true;
@@ -78,17 +87,35 @@ public class SymbolMapper {
                 return;
             }
 
-            Symbol lastSymbol = new Symbol(findBaseSymbol(arg.symbol()));
-            lastSymbol.setNesting(arg.nesting());
+            Symbol argSymbol = arg.symbol();
 
-            sourceMap.getOrDefault(lastSymbol.path(), List.of()).forEach(s -> {
-                // Excluded dead-ends unless it's a terminal ludeme or an array type
-                if (lastSymbol.nesting() > 0 || s.isTerminal() || !parameterMap.get(s.path()).isEmpty()) {
-                    Symbol newSymbol = new Symbol(s);
-                    newSymbol.setNesting(lastSymbol.nesting());
+//            Symbol argSymbol = new Symbol(arg.symbol());
+//            argSymbol.setNesting(arg.nesting());
+
+            //System.out.println("argSymbol.path() " + argSymbol.path());
+
+            //possibilities.put(argSymbol.path() + "|" + argSymbol.nesting(), argSymbol);
+
+            for (Symbol symbol: symbols) {
+                if (symbol.compatibleWith(argSymbol) || argSymbol.compatibleWith(symbol)) {
+                    Symbol newSymbol = new Symbol(symbol);
+                    newSymbol.setNesting(arg.nesting());
                     possibilities.put(newSymbol.path() + "|" + newSymbol.nesting(), newSymbol);
                 }
-            });
+            }
+
+
+//            sourceMap.getOrDefault(findBaseSymbol(argSymbol).path(), List.of()).forEach(s -> {
+//                if (s.path().equals("class game.functions.dim.DimConstant"))
+//                    System.out.println("uuuuuu");
+//
+//                // Excluded dead-ends unless it's a terminal ludeme or an array type
+//                if (argSymbol.nesting() > 0 || s.isTerminal() || !parameterMap.get(s.path()).isEmpty()) {
+//                    Symbol newSymbol = new Symbol(s);
+//                    newSymbol.setNesting(argSymbol.nesting());
+//                    possibilities.put(newSymbol.path() + "|" + newSymbol.nesting(), newSymbol);
+//                }
+//            });
 
         });
 
@@ -320,7 +347,10 @@ public class SymbolMapper {
     public static void main(String[] args) {
 
         //List<Symbol> symbols = Grammar.grammar().symbols();
-        List<Symbol> symbols = Grammar.grammar().symbols().stream().filter(Symbol::usedInGrammar).toList();
+        // TODO why is game.functions.dim.DimConstant not in the grammar or the description?
+        List<Symbol> symbols = Grammar.grammar().symbols().stream().filter(s -> s.usedInGrammar() || s.usedInDescription() || !s.usedInMetadata()).toList();
+
+
 
         SymbolMapper symbolMapper = new SymbolMapper(symbols);
         System.out.println("Finished mapping symbols. Found " + symbolMapper.parameterMap.values().stream().mapToInt(List::size).sum() + " parameter sets.");
