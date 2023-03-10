@@ -19,7 +19,7 @@ public class SymbolMapper {
 
     // Maps symbols to every possible set of base-symbols (aka parameters) that can be used to initialize them.
     // eg game.util.graph.Graph can be initialized using [<Float>, null], [<Float>, <Integer>], [], or [<graph>]
-    private Map<String, List<List<Symbol>>> parameterMap = new HashMap<>();
+    private Map<String, List<List<ClauseArg>>> parameterMap = new HashMap<>();
 
     // To obtain every possible set of symbols which can be used to initialize another symbol, you would need replace
     // each base-symbol with it's corresponding source symbols and take their cartesian product. Unfortunately,
@@ -47,21 +47,21 @@ public class SymbolMapper {
     public List<Symbol> nextPossibilities(Symbol parent, List<Symbol> partialArguments) {
         System.out.println("Symbol mapper: " + parent.path() + " -> " + parameterMap.get(parent.path()));
         //sourceMap.get(parent.path()).stream().mapMulti((source, consumer) -> parameterMap.get(source.path()).forEach(consumer))
-        Stream<List<Symbol>> parameterSets = parameterMap.get(parent.path()).stream();
+        Stream<List<ClauseArg>> parameterSets = parameterMap.get(parent.path()).stream();
 
         parameterSets = parameterSets.filter(completeArguments -> {
             if (partialArguments.size() >= completeArguments.size())
                 return false;
 
             for (int i = 0; i < partialArguments.size(); i++) {
-                // TODO could I use symbol.matches() instead?
-                if (completeArguments.get(i) == partialArguments.get(i))
-                    return true;
-
                 if (completeArguments.get(i) == null || partialArguments.get(i) == null)
                     return false;
 
-                if (!findBaseSymbol(completeArguments.get(i)).matches(findBaseSymbol(partialArguments.get(i)))) {
+                // TODO could I use symbol.matches() instead?
+                if (completeArguments.get(i).symbol().path().equals(partialArguments.get(i).path()))
+                    return true;
+
+                if (!findBaseSymbol(completeArguments.get(i).symbol()).matches(findBaseSymbol(partialArguments.get(i)))) {
                     return false;
                 }
             }
@@ -72,20 +72,24 @@ public class SymbolMapper {
 
         Map<String, Symbol> possibilities = new HashMap<>();
         parameterSets.forEach(args -> {
-            Symbol lastSymbol = findBaseSymbol(args.get(partialArguments.size()));
-
-            if (lastSymbol != null) {
-                sourceMap.getOrDefault(lastSymbol.path(), List.of()).forEach(s -> {
-                    // Excluded dead-ends unless it's a terminal ludeme or an array type
-                    if (lastSymbol.nesting() > 0 || s.isTerminal() || !parameterMap.get(s.path()).isEmpty()) {
-                        Symbol newSymbol = new Symbol(s);
-                        newSymbol.setNesting(lastSymbol.nesting());
-                        possibilities.put(newSymbol.path() + "|" + newSymbol.nesting(), newSymbol);
-                    }
-                });
-            } else {
+            ClauseArg arg = args.get(partialArguments.size());
+            if (arg == null) {
                 possibilities.put("null", null);
+                return;
             }
+
+            Symbol lastSymbol = new Symbol(findBaseSymbol(arg.symbol()));
+            lastSymbol.setNesting(arg.nesting());
+
+            sourceMap.getOrDefault(lastSymbol.path(), List.of()).forEach(s -> {
+                // Excluded dead-ends unless it's a terminal ludeme or an array type
+                if (lastSymbol.nesting() > 0 || s.isTerminal() || !parameterMap.get(s.path()).isEmpty()) {
+                    Symbol newSymbol = new Symbol(s);
+                    newSymbol.setNesting(lastSymbol.nesting());
+                    possibilities.put(newSymbol.path() + "|" + newSymbol.nesting(), newSymbol);
+                }
+            });
+
         });
 
         return possibilities.values().stream().sorted(Comparator.comparing(s -> s!=null? s.path():"")).toList();
@@ -137,14 +141,14 @@ public class SymbolMapper {
 
     private void buildSymbolMap() {
         for (Symbol symbol: symbols) {
-            List<List<Symbol>> parameterSets = new ArrayList<>(findParameterSets(symbol));
+            List<List<ClauseArg>> parameterSets = new ArrayList<>(findParameterSets(symbol));
             parameterSets.sort(Comparator.comparing(List::toString));
             parameterMap.put(symbol.path(), parameterSets);
         }
     }
 
-    private List<List<Symbol>> findParameterSets(Symbol symbol) {
-        List<List<Symbol>> constructorSets = new ArrayList<>();
+    private List<List<ClauseArg>> findParameterSets(Symbol symbol) {
+        List<List<ClauseArg>> constructorSets = new ArrayList<>();
 
         if (symbol.isTerminal()) {
             //System.out.println("Symbol " + symbol.name() + " is terminal " + symbol.ludemeType());
@@ -157,6 +161,7 @@ public class SymbolMapper {
         }
 
         for (Clause clause: symbol.rule().rhs()) {
+
             if (clause.args() == null) {
                 continue;
             }
@@ -227,25 +232,12 @@ public class SymbolMapper {
 //                    .mapToObj(b -> String.valueOf(set.get(b) ? 1 : 0)).toList()).toList());
 
             constructorSets.addAll(possibleSets.stream().map(set -> IntStream.range(0, clause.args().size())
-                    .mapToObj(b -> {
-                        if (!set.get(b))
-                            return null;
-
-                        ClauseArg arg = clause.args().get(b);
-                        Symbol newSymbol = new Symbol(arg.symbol());
-                        newSymbol.setNesting(arg.nesting());
-
-                        assert newSymbol.path().equals(arg.symbol().path());
-                        return newSymbol;
-                    }).toList()).toList());
+                    .mapToObj(i -> set.get(i)? clause.args().get(i) : null).toList()).toList());
         }
 
         // filter for out-of-vocabulary symbols and duplicates
-        Stream<List<Symbol>> parameterStream = constructorSets.stream().distinct();
-        parameterStream = parameterStream.filter(l -> paths.containsAll(l.stream().filter(Objects::nonNull).map(Symbol::path).toList()));
-
-        // Recover base symbols
-        parameterStream = parameterStream.map(l -> l.stream().map(this::findBaseSymbol).toList());
+        Stream<List<ClauseArg>> parameterStream = constructorSets.stream().distinct();
+        parameterStream = parameterStream.filter(l -> paths.containsAll(l.stream().filter(Objects::nonNull).map(ClauseArg::symbol).map(Symbol::path).toList()));
 
         return parameterStream.toList();
     }
@@ -256,10 +248,7 @@ public class SymbolMapper {
         if (symbol == null || Objects.equals(symbol.returnType().path(), symbol.path()))
             return symbol;
 
-        Symbol newSymbol = new Symbol(symbol.returnType());
-        newSymbol.setNesting(symbol.nesting());
-
-        return findBaseSymbol(newSymbol);
+        return findBaseSymbol(symbol.returnType());
     }
 
     private static List<BitSet> permuteFlags(BitSet optionalFlags, BitSet mandatoryFlags) {
