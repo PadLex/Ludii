@@ -47,7 +47,7 @@ public class ArrayNode extends GeneratorNode {
         //System.out.println("nesting: " + symbol.nesting() + ", " + symbol.path() + " <- " + symbolMapper.getSources(symbol));
 
         if (symbol.nesting() == 1)
-            return symbolMapper.getSources(symbol).stream().filter(s -> s.ludemeType() != Symbol.LudemeType.Structural).map(GeneratorNode::fromSymbol).toList();
+            return symbolMapper.getCompatibleSymbols(symbol).stream().filter(s -> s.ludemeType() != Symbol.LudemeType.Structural).map(GeneratorNode::fromSymbol).toList();
 
         Symbol childSymbol = new Symbol(symbol);
         childSymbol.setNesting(symbol.nesting() - 1);

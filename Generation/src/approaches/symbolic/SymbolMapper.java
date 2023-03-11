@@ -12,10 +12,7 @@ import java.util.stream.Stream;
 public class SymbolMapper {
     private Set<Symbol> symbols = new HashSet<>();
     private Set<String> paths = new HashSet<>();
-
-    // Maps symbols to the symbols that return them (aka base-symbols to the sources from which you can obtain them)
-    // eg game.util.graph.Graph can be obtained from game.util.graph.Graph, game.functions.graph.GraphFunction, game.functions.graph.generators.basis.square.Square, ...
-    private Map<String, List<Symbol>> sourceMap = new HashMap<>();
+    private Map<String, List<Symbol>> compatibilityMap = new HashMap<>();
 
     // Maps symbols to every possible set of base-symbols (aka parameters) that can be used to initialize them.
     // eg game.util.graph.Graph can be initialized using [<Float>, null], [<Float>, <Integer>], [], or [<graph>]
@@ -30,7 +27,7 @@ public class SymbolMapper {
         this.paths.addAll(symbols.stream().map(Symbol::path).toList());
 
         buildSymbolMap();
-        buildReturnMap();
+        buildCompatibilityMap();
 //        Symbol symbol = Grammar.grammar().findSymbolByPath("game.util.graph.Graph");
 //        List<List<Symbol>> symbolSets = findParameterSets(symbol);
 //        System.out.println(symbol.info());
@@ -38,10 +35,6 @@ public class SymbolMapper {
 //        System.out.println("obtained from: " + sourceMap.get(symbol.path()));
 //        System.out.println("can be initialized with: ");
 //        symbolSets.forEach(System.out::println);
-    }
-
-    public List<Symbol> getSources(Symbol symbol) {
-        return Collections.unmodifiableList(sourceMap.get(symbol.path()));
     }
 
     public List<Symbol> nextPossibilities(Symbol parent, List<Symbol> partialArguments) {
@@ -64,13 +57,13 @@ public class SymbolMapper {
                 if (completeArguments.get(i).symbol().compatibleWith(partialArguments.get(i)))
                     continue;
 
-                if (partialArguments.get(i).compatibleWith(completeArguments.get(i).symbol())) {
-                    continue;
-                }
-
-                if (partialArguments.get(i).validReturnType(completeArguments.get(i))) {
-                    continue;
-                }
+//                if (partialArguments.get(i).compatibleWith(completeArguments.get(i).symbol())) {
+//                    continue;
+//                }
+//
+//                if (partialArguments.get(i).validReturnType(completeArguments.get(i))) {
+//                    continue;
+//                }
 
                 return false;
             }
@@ -87,83 +80,28 @@ public class SymbolMapper {
                 return;
             }
 
-            Symbol argSymbol = arg.symbol();
-
-//            Symbol argSymbol = new Symbol(arg.symbol());
-//            argSymbol.setNesting(arg.nesting());
-
-            //System.out.println("argSymbol.path() " + argSymbol.path());
-
-            //possibilities.put(argSymbol.path() + "|" + argSymbol.nesting(), argSymbol);
-
-            for (Symbol symbol: symbols) {
-                if (symbol.compatibleWith(argSymbol) || argSymbol.compatibleWith(symbol)) {
-                    Symbol newSymbol = new Symbol(symbol);
-                    newSymbol.setNesting(arg.nesting());
-                    possibilities.put(newSymbol.path() + "|" + newSymbol.nesting(), newSymbol);
-                }
+            for (Symbol symbol: compatibilityMap.get(arg.symbol().path())) {
+                symbol = new Symbol(symbol);
+                symbol.setNesting(arg.nesting());
+                possibilities.put(symbol.path() + "|" + symbol.nesting(), symbol);
             }
-
-
-//            sourceMap.getOrDefault(findBaseSymbol(argSymbol).path(), List.of()).forEach(s -> {
-//                if (s.path().equals("class game.functions.dim.DimConstant"))
-//                    System.out.println("uuuuuu");
-//
-//                // Excluded dead-ends unless it's a terminal ludeme or an array type
-//                if (argSymbol.nesting() > 0 || s.isTerminal() || !parameterMap.get(s.path()).isEmpty()) {
-//                    Symbol newSymbol = new Symbol(s);
-//                    newSymbol.setNesting(argSymbol.nesting());
-//                    possibilities.put(newSymbol.path() + "|" + newSymbol.nesting(), newSymbol);
-//                }
-//            });
 
         });
 
         return possibilities.values().stream().sorted(Comparator.comparing(s -> s!=null? s.path():"")).toList();
     }
-
-    private void buildReturnMap() {
-//        for (Symbol symbol: symbols) {
-//            returnMap.put(symbol.path(), new HashSet<>());
-//        }
-//
-//        for (Symbol symbol: symbols) {
-//            returnMap.get(symbol.returnType().path()).add(symbol);
-//        }
-
-        Map<String, Set<Symbol>> sourceSetMap = new HashMap<>();
-
+    private void buildCompatibilityMap() {
         for (Symbol symbol: symbols) {
-            // Skip enum class but not it's instances
-            // eg skip the class <hexShapeType> but don't skip it's terminal constant Diamond
-            if (symbol.cls().isEnum() && !symbol.isTerminal())
-                continue;
-
-//            boolean isInstantiable = symbol.returnType().cls().getConstructors().length != 0;
-//            boolean isFunction = Arrays.stream(symbol.returnType().cls().getMethods()).anyMatch(m -> m.getName().equals("construct"));
-//            if (!symbol.returnType().cls().isEnum() && !isInstantiable && !isFunction)
-//                System.out.println("KJNASDKNJ " + symbol.returnType().path());
-
-
-            Set<Symbol> returns = sourceSetMap.getOrDefault(symbol.returnType().path(), new HashSet<>());
-
-            for (Symbol symbol2: symbols) {
-
-//              symbol2.ludemeType() != Symbol.LudemeType.Structural &&
-                if (symbol.returnType().compatibleWith(symbol2)) {
-                    returns.add(symbol2);
-
-//                    if (parameterMap.get(symbol2.path()).size() == 0) {
-//                        System.out.println("Filter: " + symbol2.ludemeType() + " " + symbol2.path());
-//                    }
-                }
-
-            }
-
-            sourceSetMap.put(symbol.returnType().path(), returns);
+            compatibilityMap.put(symbol.path(), new ArrayList<>());
         }
 
-        sourceSetMap.forEach((path, symbolSet) -> sourceMap.put(path, symbolSet.stream().sorted(Comparator.comparing(Symbol::path)).toList()));
+        for (Symbol symbol: symbols) {
+            for (Symbol other: symbols) {
+                if (symbol.compatibleWith(other)) {
+                    compatibilityMap.get(symbol.path()).add(other);
+                }
+            }
+        }
     }
 
     private void buildSymbolMap() {
@@ -342,6 +280,10 @@ public class SymbolMapper {
             }
         }
 
+    }
+
+    public List<Symbol> getCompatibleSymbols(Symbol symbol) {
+        return Collections.unmodifiableList(compatibilityMap.get(symbol.path()));
     }
 
     public static void main(String[] args) {
