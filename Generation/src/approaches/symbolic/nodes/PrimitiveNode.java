@@ -18,8 +18,8 @@ public class PrimitiveNode extends GeneratorNode {
     }
     public Object compile() {
         Class<?> clazz = symbol.cls();
-        System.out.println(Arrays.toString(clazz.getConstructors()));
-        System.out.println(value.getClass());
+//        System.out.println(Arrays.toString(clazz.getConstructors()));
+//        System.out.println(value.getClass());
         for (Constructor<?> constructor: symbol.cls().getConstructors()) {
             try {
                 return constructor.newInstance(value);

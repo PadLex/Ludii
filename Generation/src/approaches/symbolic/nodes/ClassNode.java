@@ -19,31 +19,31 @@ public class ClassNode extends GeneratorNode {
 
     public Object compile() {
         List<Object> arguments = parameterSet.stream().map(param -> param != null? param.compile():null).toList();
-        System.out.println("\nCompiling: " + this);
-        System.out.println("Args value " + arguments);
-        System.out.println("Args type  " + arguments.stream().filter(Objects::nonNull).map(Object::getClass).toList());
+//        System.out.println("\nCompiling: " + this);
+//        System.out.println("Args value " + arguments);
+//        System.out.println("Args type  " + arguments.stream().filter(Objects::nonNull).map(Object::getClass).toList());
 
         // TODO how to know whether to use constructor or static .construct();
         for (Method method: symbol.cls().getMethods()) {
             if (method.getName().equals("construct")) {
-                System.out.println("Found " + Arrays.toString(method.getParameterTypes()));
+//                System.out.println("Found " + Arrays.toString(method.getParameterTypes()));
 
                 try {
                     return method.invoke(null, arguments.toArray());
                 } catch (IllegalArgumentException | IllegalAccessException | InvocationTargetException e) {
-                    System.out.println("Skipped Method " + e.getMessage());
+//                    System.out.println("Skipped Method " + e.getMessage());
                 }
             }
         }
 
         for (Constructor<?> constructor: symbol.cls().getConstructors()) {
-            System.out.println("Found " + Arrays.toString(constructor.getParameterTypes()));
+//            System.out.println("Found " + Arrays.toString(constructor.getParameterTypes()));
 
             try {
                 return constructor.newInstance(arguments.toArray());
             } catch (IllegalArgumentException | IllegalAccessException | InvocationTargetException |
                      InstantiationException e) {
-                System.out.println("Skipped Constructor " + e.getMessage());
+//                System.out.println("Skipped Constructor " + e.getMessage());
             }
         }
 

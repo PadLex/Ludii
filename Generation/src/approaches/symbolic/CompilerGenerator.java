@@ -36,6 +36,7 @@ import main.grammar.ebnf.EBNF;
 import main.options.UserSelections;
 import parser.Parser;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -102,43 +103,11 @@ public class CompilerGenerator {
                 )
         );
 
-        Game game2 = new Game(
-                "hex",
-                new Players(2),
-                null,
-                new Equipment(new Item[]{
-                        new Board(new DiamondOnHex(new DimConstant(11), null), null, null, null, null,  null, null),
-                        new Piece("Marker", RoleType.Each, null, null, null, null, null, null),
-                        new Regions(null, RoleType.P1, null, null, new RegionFunction[]{
-                                Sites.construct(SitesSideType.Side, null, null, null, CompassDirection.NE),
-                                Sites.construct(SitesSideType.Side, null, null, null, CompassDirection.SW)
-                        }, null, null, null),
-                        new Regions(null, RoleType.P2, null, null, new RegionFunction[]{
-                                Sites.construct(SitesSideType.Side, null, null, null, CompassDirection.NW),
-                                Sites.construct(SitesSideType.Side, null, null, null, CompassDirection.SE)
-                        }
-                                , null, null, null)
-                }),
-                new Rules(
-                        null,
-                        null,
-                        new Play(
-                                Move.construct(MoveSiteType.Add, null,
-                                        new To(null,
-                                                Sites.construct(SitesIndexType.Empty, null, null), null, null, null, null, null),
-                                        null, null, null
-                                )
-                        ),
-                        new End(
-                                new If(
-                                        Is.construct(IsConnectType.Connected, null, null, null, null, null, RoleType.Mover, null),
-                                        null, null,
-                                        new Result(RoleType.Mover, ResultType.Win)
-                                ),
-                                null
-                        )
-                )
-        );
+        try {
+            game.getClass().getMethod("create").invoke(game);
+        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
 
         System.out.println("hasMissingRequirement? " + game.hasMissingRequirement());
         System.out.println("Will it crash? " + game.willCrash());

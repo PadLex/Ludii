@@ -7,6 +7,7 @@ import game.Game;
 import game.functions.dim.DimConstant;
 import main.grammar.*;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -50,12 +51,12 @@ public abstract class GeneratorNode {
 
     public static GeneratorNode cloneCallTree(Call root, SymbolMapper symbolMapper) {
         assert root.type() == Call.CallType.Class;
-        return cloneCallTree(root, List.of(new ClassNode(root.symbol())), symbolMapper);
+        return cloneCallTree(root, List.of(new GameNode(root.symbol())), symbolMapper);
     }
 
     public static GeneratorNode cloneCallTree(Call call, List<GeneratorNode> options, SymbolMapper symbolMapper) {
-        System.out.println("options: " + options.stream().map(node -> node==null ? null : node.symbol).toList());
-        System.out.println("call: " + call.type() + ", " + call.cls());
+//        System.out.println("options: " + options.stream().map(node -> node==null ? null : node.symbol).toList());
+//        System.out.println("call: " + call.type() + ", " + call.cls());
 
         GeneratorNode node = switch (call.type()) {
             case Array -> {
@@ -63,7 +64,7 @@ public abstract class GeneratorNode {
                 List<Symbol> nestedSymbols = new ArrayList<>();
                 getNestedSymbols(call, nestedSymbols);
 
-                System.out.println("nested symbols " + nestedSymbols);
+//                System.out.println("nested symbols " + nestedSymbols);
 
                 optionLoop: for (GeneratorNode option: options) {
                     if (option == null)
@@ -76,7 +77,7 @@ public abstract class GeneratorNode {
 
                     for (Symbol nestedSymbol: nestedSymbols) {
                         assert nestedSymbol != null;
-                        System.out.println(option.symbol + " compatible with " + nestedSymbol + "? " + option.symbol.compatibleWith(nestedSymbol));
+//                        System.out.println(option.symbol + " compatible with " + nestedSymbol + "? " + option.symbol.compatibleWith(nestedSymbol));
 
                         if (!option.symbol.compatibleWith(nestedSymbol))
                             continue optionLoop;
@@ -94,7 +95,7 @@ public abstract class GeneratorNode {
                         continue;
 
                     if (option instanceof PrimitiveNode) {
-                        System.out.println(option.symbol + " compatible with " + call.symbol() + "? " + option.symbol.compatibleWith(call.symbol()));
+//                        System.out.println(option.symbol + " compatible with " + call.symbol() + "? " + option.symbol.compatibleWith(call.symbol()));
                         if (option.symbol.compatibleWith(call.symbol())) {
                             if (call.object() instanceof DimConstant)
                                 ((PrimitiveNode) option).setValue(((DimConstant) call.object()).eval());
@@ -123,11 +124,11 @@ public abstract class GeneratorNode {
                 throw new RuntimeException("null is not an option");
             }
         };
-        System.out.println("selected: " + (node == null? "null":node.symbol));
+//        System.out.println("selected: " + (node == null? "null":node.symbol));
 
         for (Call childCall: call.args()) {
             assert node != null;
-            System.out.println("\nparent: " + node.symbol + ", " + node.getClass());
+//            System.out.println("\nparent: " + node.symbol + ", " + node.getClass());
             GeneratorNode child = cloneCallTree(childCall, node.nextPossibleParameters(symbolMapper), symbolMapper);
             node.addParameter(child);
         }
@@ -156,29 +157,6 @@ public abstract class GeneratorNode {
 
         SymbolMapper symbolMapper = new SymbolMapper(symbols);
 
-//        GeneratorNode hex = new GeneratorNode(Grammar.grammar().findSymbolByPath("game.functions.graph.generators.basis.hex.Hex"));
-//
-//        List<GeneratorNode> arguments = new ArrayList<>();
-//        List<Symbol> nextPossibleSymbols = symbolMapper.nextPossibilities(hex.symbol, arguments.stream().map(GeneratorNode::symbol).toList());
-//        System.out.println("nextPossibleSymbols " + nextPossibleSymbols.stream().map(s -> s!=null? s.name():"null").toList());
-//
-//        GeneratorNode diamond = new GeneratorNode(nextPossibleSymbols.stream().filter(Objects::nonNull).filter(s -> Objects.equals(s.name(), "Diamond")).findFirst().get());
-//        GeneratorNode dim = new GeneratorNode(Grammar.grammar().findSymbolByPath("game.functions.dim.DimConstant"));
-//        dim.primitiveValue = 11;
-//
-//        System.out.println("hex " + hex.symbol);
-//        System.out.println("diamond " + diamond.symbol);
-//        System.out.println("dim " + dim.symbol);
-//
-//        arguments.add(diamond);
-//        arguments.add(dim);
-//        arguments.add(null);
-//
-//        hex.parameterSet = arguments;
-//
-//        System.out.println(hex.compile());
-
-
         String str =
                 "(game \"Hex\" \n" +
                         "    (players 2) \n" +
@@ -194,18 +172,26 @@ public abstract class GeneratorNode {
                         "    )\n" +
                         ")";
 
+        final long startCompiler = System.currentTimeMillis();
         final Description description = new Description(str);
         final UserSelections userSelections = new UserSelections(new ArrayList<String>());
         final Report report = new Report();
 
         //Parser.expandAndParse(description, userSelections, report, false);
         Game originalGame = (Game) Compiler.compileTest(description, false);
+        final long endCompiler = System.currentTimeMillis();
+
+        final long startMine = System.currentTimeMillis();
 
         GeneratorNode rootNode = cloneCallTree(description.callTree(), symbolMapper);
 
-        System.out.println("\n\nGAME: " + rootNode + "\n\n");
-
         Game newGame = (Game) rootNode.compile();
+        final long endMine = System.currentTimeMillis();
+
+        System.out.println("Compiler time: " + (endCompiler - startCompiler));
+        System.out.println("Mine time: " + (endMine - startMine));
+
+        System.out.println("\n\nGAME: " + rootNode + "\n\n");
 
         System.out.println("hasMissingRequirement? " + newGame.hasMissingRequirement());
         System.out.println("Will it crash? " + newGame.willCrash());

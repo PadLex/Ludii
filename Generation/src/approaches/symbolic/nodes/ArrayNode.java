@@ -17,9 +17,9 @@ public class ArrayNode extends GeneratorNode {
     public Object compile() {
         List<Object> arguments = parameterSet.stream().filter(Objects::nonNull).map(GeneratorNode::compile).toList();
 
-        System.out.println("\nCompiling: " + this);
-        System.out.println("Args value " + arguments);
-        System.out.println("Args type  " + arguments.stream().filter(Objects::nonNull).map(Object::getClass).toList());
+//        System.out.println("\nCompiling: " + this);
+//        System.out.println("Args value " + arguments);
+//        System.out.println("Args type  " + arguments.stream().filter(Objects::nonNull).map(Object::getClass).toList());
 
         Class<?> type;
         if (arguments.size() == 0)
@@ -27,11 +27,11 @@ public class ArrayNode extends GeneratorNode {
         else
             type = getSharedType(arguments);
 
-        System.out.println("array type " + type);
+//        System.out.println("array type " + type);
 
         Object array = Array.newInstance(type, arguments.size());
 
-        System.out.println("array thing " + array);
+//        System.out.println("array thing " + array);
 
         for (int i = 0; i < arguments.size(); i++) {
             Array.set(array, i, arguments.get(i));
@@ -44,7 +44,7 @@ public class ArrayNode extends GeneratorNode {
         if (!parameterSet.isEmpty() && parameterSet.get(parameterSet.size() - 1) == null)
             return List.of();
 
-        System.out.println("nesting: " + symbol.nesting() + ", " + symbol.path() + " <- " + symbolMapper.getSources(symbol));
+        //System.out.println("nesting: " + symbol.nesting() + ", " + symbol.path() + " <- " + symbolMapper.getSources(symbol));
 
         if (symbol.nesting() == 1)
             return symbolMapper.getSources(symbol).stream().filter(s -> s.ludemeType() != Symbol.LudemeType.Structural).map(GeneratorNode::fromSymbol).toList();
