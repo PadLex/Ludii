@@ -9,10 +9,10 @@ import java.util.Arrays;
 import java.util.List;
 
 public class EnumNode extends GeneratorNode {
-    EnumNode(Symbol symbol) {
-        super(symbol);
+    EnumNode(Symbol symbol, GeneratorNode parent) {
+        super(symbol, parent);
     }
-    public Object compile() {
+    Object instantiate() {
         try {
             return symbol.cls().getMethod("valueOf", String.class).invoke(null, symbol.name());
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {

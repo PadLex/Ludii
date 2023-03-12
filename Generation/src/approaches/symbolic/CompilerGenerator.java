@@ -60,8 +60,8 @@ public class CompilerGenerator {
         System.out.println(Arrays.toString(Game.class.getConstructors()[0].getParameterTypes()));
         System.out.println(Arrays.toString(Game.class.getConstructors()[0].getParameterAnnotations()));
 */
-        playingCustomCallTree();
-        //playingWithCompiledCallTree();
+        //playingCustomCallTree();
+        playingWithCompiledCallTree();
     }
 
     static void playingCustomCallTree() {
@@ -118,20 +118,20 @@ public class CompilerGenerator {
     }
 
     static void playingWithCompiledCallTree() {
-        String str =
-                "(game \"Hex\" \n" +
-                        "    (players 2) \n" +
-                        "    (equipment { \n" +
-                        "        (board (hex Diamond 11)) \n" +
-                        "        (piece \"Marker\" Each)\n" +
-                        "        (regions P1 {(sites Side NE) (sites Side SW) })\n" +
-                        "        (regions P2 {(sites Side NW) (sites Side SE) })\n" +
-                        "    }) \n" +
-                        "    (rules \n" +
-                        "        (play (move Add (to (sites Empty))))\n" +
-                        "        (end (if (is Connected Mover) (result Mover Win))) \n" +
-                        "    )\n" +
-                        ")";
+        String str = """
+                (match "Grand Trictrac"
+                    (players 2)
+                   \s
+                    (games {
+                        (subgame "GrandTrictracSubgame")
+                    })
+                   \s
+                    (end {\s
+                        (if (>= (matchScore P1) 12) (result P1 Win))
+                        (if (>= (matchScore P2) 12) (result P2 Win))
+                    })
+                )
+                        """;
 
         final Description description = new Description(str);
         final UserSelections userSelections = new UserSelections(new ArrayList<String>());

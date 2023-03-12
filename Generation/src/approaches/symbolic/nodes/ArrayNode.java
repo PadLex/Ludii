@@ -8,30 +8,20 @@ import java.util.*;
 
 public class ArrayNode extends GeneratorNode {
     //private final List<GeneratorNode> nextSymbols = new ArrayList<>();
-    ArrayNode(Symbol symbol) {
-        super(symbol);
+    ArrayNode(Symbol symbol, GeneratorNode parent) {
+        super(symbol, parent);
 
         assert symbol.nesting() > 0;
     }
 
-    public Object compile() {
+    Object instantiate() {
         List<Object> arguments = parameterSet.stream().filter(Objects::nonNull).map(GeneratorNode::compile).toList();
 
 //        System.out.println("\nCompiling: " + this);
 //        System.out.println("Args value " + arguments);
 //        System.out.println("Args type  " + arguments.stream().filter(Objects::nonNull).map(Object::getClass).toList());
 
-        Class<?> type;
-        if (arguments.size() == 0)
-            type = symbol.cls();
-        else
-            type = getSharedType(arguments);
-
-//        System.out.println("array type " + type);
-
-        Object array = Array.newInstance(type, arguments.size());
-
-//        System.out.println("array thing " + array);
+        Object array = Array.newInstance(symbol.cls(), arguments.size());
 
         for (int i = 0; i < arguments.size(); i++) {
             Array.set(array, i, arguments.get(i));
@@ -47,16 +37,16 @@ public class ArrayNode extends GeneratorNode {
         //System.out.println("nesting: " + symbol.nesting() + ", " + symbol.path() + " <- " + symbolMapper.getSources(symbol));
 
         if (symbol.nesting() == 1)
-            return symbolMapper.getCompatibleSymbols(symbol).stream().filter(s -> s.ludemeType() != Symbol.LudemeType.Structural).map(GeneratorNode::fromSymbol).toList();
+            return symbolMapper.getCompatibleSymbols(symbol).stream().filter(s -> s.ludemeType() != Symbol.LudemeType.Structural).map(s -> fromSymbol(s, this)).toList();
 
         Symbol childSymbol = new Symbol(symbol);
         childSymbol.setNesting(symbol.nesting() - 1);
-        return List.of(GeneratorNode.fromSymbol(childSymbol));
+        return List.of(GeneratorNode.fromSymbol(childSymbol, this));
     }
 
     @Override
     public String toString() {
-        return "{" + String.join(", ", parameterSet.stream().map(s -> s!=null? s.toString() : "").toList()) + "}";
+        return "{" + String.join(", ", parameterSet.stream().map(s -> s!=null? s.toString() : "null").toList()) + "}";
     }
 
     static Class<?> getSharedType(List<Object> objects) {

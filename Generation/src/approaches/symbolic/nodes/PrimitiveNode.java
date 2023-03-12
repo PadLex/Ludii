@@ -1,6 +1,7 @@
 package approaches.symbolic.nodes;
 
 import approaches.symbolic.SymbolMapper;
+import game.functions.dim.DimConstant;
 import main.grammar.Symbol;
 
 import java.lang.reflect.Constructor;
@@ -10,15 +11,14 @@ import java.util.List;
 
 public class PrimitiveNode extends GeneratorNode {
     private Object value;
-    PrimitiveNode(Symbol symbol) {
-        super(symbol);
+    PrimitiveNode(Symbol symbol, GeneratorNode parent) {
+        super(symbol, parent);
+        assert symbol.cls().equals(Integer.class) || symbol.cls().equals(String.class) || symbol.cls().equals(DimConstant.class);
     }
     public void setValue(Object value) {
         this.value = value;
     }
-    public Object compile() {
-        Class<?> clazz = symbol.cls();
-//        System.out.println(Arrays.toString(clazz.getConstructors()));
+    Object instantiate() {
 //        System.out.println(value.getClass());
         for (Constructor<?> constructor: symbol.cls().getConstructors()) {
             try {

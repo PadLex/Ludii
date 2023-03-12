@@ -7,51 +7,75 @@ import game.Game;
 import game.functions.dim.DimConstant;
 import main.grammar.*;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import grammar.Grammar;
 import main.options.UserSelections;
 
 public abstract class GeneratorNode {
     final Symbol symbol;
+    GeneratorNode parent;
     final List<GeneratorNode> parameterSet = new ArrayList<>();
 
-    GeneratorNode(Symbol symbol) {
+    Object compilerCache = null;
+
+    GeneratorNode(Symbol symbol, GeneratorNode parent) {
         assert symbol != null;
         this.symbol = symbol;
+        this.parent = parent;
     }
 
-    public abstract Object compile();
+    public Object compile() {
+        if (compilerCache == null)
+            compilerCache = instantiate();
+
+        return compilerCache;
+    }
+
+    abstract Object instantiate();
 
     public abstract List<GeneratorNode> nextPossibleParameters(SymbolMapper symbolMapper);
 
+    // TODO do I need termination Nodes? if I select (game <string>) instead of
+    //  (game <string> <players> [<mode>] <equipment> <rules.rules>) should I pad parameterSet with null values?
+    //  Rn the add parameter wil force you to define players
     public void addParameter(GeneratorNode param) {
         parameterSet.add(param);
     }
 
-    public static GeneratorNode fromSymbol(Symbol symbol) {
+    public void clearParameters() {
+        parameterSet.clear();
+        clearCompilerCache();
+    }
+
+    public void clearCompilerCache() {
+        if (parent.compilerCache != null)
+            parent.clearCompilerCache();
+
+        compilerCache = null;
+    }
+
+    public static GeneratorNode fromSymbol(Symbol symbol, GeneratorNode parent) {
         if (symbol.nesting() > 0) {
-            return new ArrayNode(symbol);
+            return new ArrayNode(symbol, parent);
         }
 
         switch (symbol.path()) {
             case "java.lang.Integer", "java.lang.Float", "java.lang.String", "game.functions.dim.DimConstant" -> {
-                return new PrimitiveNode(symbol);
+                return new PrimitiveNode(symbol, parent);
             }
         }
 
         if (symbol.cls().isEnum())
-            return new EnumNode(symbol);
+            return new EnumNode(symbol, parent);
 
-        return new ClassNode(symbol);
+        return new ClassNode(symbol, parent);
     }
 
-    public static GeneratorNode cloneCallTree(Call root, SymbolMapper symbolMapper) {
+    public static GameNode cloneCallTree(Call root, SymbolMapper symbolMapper) {
         assert root.type() == Call.CallType.Class;
-        return cloneCallTree(root, List.of(new GameNode(root.symbol())), symbolMapper);
+        return (GameNode) cloneCallTree(root, List.of(new GameNode(root.symbol())), symbolMapper);
     }
 
     public static GeneratorNode cloneCallTree(Call call, List<GeneratorNode> options, SymbolMapper symbolMapper) {
@@ -111,8 +135,8 @@ public abstract class GeneratorNode {
                         yield option;
                     }
                 }
-
-                throw new RuntimeException("Could not find a compatible class");
+//                System.out.println("options: " + options.stream().map(n -> n==null ? null : n.symbol).toList());
+                throw new RuntimeException("Could not find a compatible class " + call.symbol());
             }
 
             case Null -> {
@@ -172,33 +196,42 @@ public abstract class GeneratorNode {
                         "    )\n" +
                         ")";
 
-        final long startCompiler = System.currentTimeMillis();
+        final long startPreCompilation = System.currentTimeMillis();
         final Description description = new Description(str);
         final UserSelections userSelections = new UserSelections(new ArrayList<String>());
         final Report report = new Report();
 
         //Parser.expandAndParse(description, userSelections, report, false);
         Game originalGame = (Game) Compiler.compileTest(description, false);
-        final long endCompiler = System.currentTimeMillis();
+        final long endPreCompilation = System.currentTimeMillis();
 
-        final long startMine = System.currentTimeMillis();
+        GameNode rootNode = cloneCallTree(description.callTree(), symbolMapper);
 
-        GeneratorNode rootNode = cloneCallTree(description.callTree(), symbolMapper);
+        final long endClone = System.currentTimeMillis();
 
-        Game newGame = (Game) rootNode.compile();
-        final long endMine = System.currentTimeMillis();
+        Game game1 = rootNode.compile();
 
-        System.out.println("Compiler time: " + (endCompiler - startCompiler));
-        System.out.println("Mine time: " + (endMine - startMine));
+        final long endCompile = System.currentTimeMillis();
+
+        //rootNode.equipmentNode().clearCompilerCache();
+
+        Game game = rootNode.compile();
+
+        final long endRecompile = System.currentTimeMillis();
+
+        System.out.println("PreCompilation time: " + (endPreCompilation - startPreCompilation));
+        System.out.println("Clone time: " + (endClone - endPreCompilation));
+        System.out.println("Compile time: " + (endCompile - endClone));
+        System.out.println("Recompile time: " + (endRecompile - endCompile));
 
         System.out.println("\n\nGAME: " + rootNode + "\n\n");
 
-        System.out.println("hasMissingRequirement? " + newGame.hasMissingRequirement());
-        System.out.println("Will it crash? " + newGame.willCrash());
+        System.out.println("hasMissingRequirement? " + game.hasMissingRequirement());
+        System.out.println("Will it crash? " + game.willCrash());
 
-        System.out.println("Functional? " + Generator.isFunctional(newGame));
-        System.out.println("isPlayable? " + Generator.isPlayable(newGame));
-        System.out.println("isFunctionalAndWithOnlyDecision? " + Generator.isFunctionalAndWithOnlyDecision(newGame));
+        System.out.println("Functional? " + Generator.isFunctional(game));
+        System.out.println("isPlayable? " + Generator.isPlayable(game));
+        System.out.println("isFunctionalAndWithOnlyDecision? " + Generator.isFunctionalAndWithOnlyDecision(game));
 
     }
 }

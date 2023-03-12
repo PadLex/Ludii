@@ -2,22 +2,18 @@ package approaches.symbolic.nodes;
 
 import approaches.symbolic.SymbolMapper;
 import main.grammar.Symbol;
-import other.BaseLudeme;
 
-import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
 public class ClassNode extends GeneratorNode {
-    ClassNode(Symbol symbol) {
-        super(symbol);
+    ClassNode(Symbol symbol, GeneratorNode parent) {
+        super(symbol, parent);
     }
 
-    public Object compile() {
+    Object instantiate() {
         List<Object> arguments = parameterSet.stream().map(param -> param != null? param.compile():null).toList();
 //        System.out.println("\nCompiling: " + this);
 //        System.out.println("Args value " + arguments);
@@ -53,11 +49,11 @@ public class ClassNode extends GeneratorNode {
     public List<GeneratorNode> nextPossibleParameters(SymbolMapper symbolMapper) {
         List<Symbol> partialParameters = parameterSet.stream().map(node -> node != null? node.symbol : null).toList();
         List<Symbol> possibleSymbols = symbolMapper.nextPossibilities(symbol, partialParameters);
-        return possibleSymbols.stream().map(s -> s != null? GeneratorNode.fromSymbol(s) : null).toList();
+        return possibleSymbols.stream().map(s -> s != null? GeneratorNode.fromSymbol(s, this) : null).toList();
     }
 
     @Override
     public String toString() {
-        return "(" + symbol + ": " + String.join(", ", parameterSet.stream().map(s -> s!=null? s.toString() : "").toList()) + ")";
+        return "(" + symbol.token() + ": " + String.join(", ", parameterSet.stream().map(s -> s!=null? s.toString() : "null").toList()) + ")";
     }
 }

@@ -292,10 +292,12 @@ public class SymbolMapper {
         // TODO why is game.functions.dim.DimConstant not in the grammar or the description?
         List<Symbol> symbols = Grammar.grammar().symbols().stream().filter(s -> s.usedInGrammar() || s.usedInDescription() || !s.usedInMetadata()).toList();
 
-
-
         SymbolMapper symbolMapper = new SymbolMapper(symbols);
         System.out.println("Finished mapping symbols. Found " + symbolMapper.parameterMap.values().stream().mapToInt(List::size).sum() + " parameter sets.");
+
+
+        System.out.println(Grammar.grammar().findSymbolByPath("game.Game").rule().rhs());
+
 
         //System.out.println(symbolsMap.get("Sites"));
 
