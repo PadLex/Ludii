@@ -70,7 +70,7 @@ public class GameNode extends GeneratorNode {
             }
             case 2 -> {
                 ArrayList<GeneratorNode> options = new ArrayList<>(2);
-                options.add(null);
+                options.add(EmptyNode.instance);
                 options.add(new ClassNode(modeSymbol, this));
                 return options;
             }
@@ -81,7 +81,7 @@ public class GameNode extends GeneratorNode {
                 return List.of(new ClassNode(rulesSymbol, this));
             }
             default -> {
-                return List.of();
+                return List.of(EndOfClauseNode.instance);
             }
         }
     }

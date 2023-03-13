@@ -25,6 +25,11 @@ public class EnumNode extends GeneratorNode {
     }
 
     @Override
+    public boolean isComplete() {
+        return true;
+    }
+
+    @Override
     public void addParameter(GeneratorNode param) {
         throw new RuntimeException("Enum nodes are terminal");
     }

@@ -17,8 +17,8 @@ public abstract class GeneratorNode {
     final Symbol symbol;
     GeneratorNode parent;
     final List<GeneratorNode> parameterSet = new ArrayList<>();
-
     Object compilerCache = null;
+    boolean complete;
 
     GeneratorNode(Symbol symbol, GeneratorNode parent) {
         assert symbol != null;
@@ -41,12 +41,20 @@ public abstract class GeneratorNode {
     //  (game <string> <players> [<mode>] <equipment> <rules.rules>) should I pad parameterSet with null values?
     //  Rn the add parameter wil force you to define players
     public void addParameter(GeneratorNode param) {
+        assert param != null;
+
+        if (param == EndOfClauseNode.instance) {
+            complete = true;
+            return;
+        }
+
         parameterSet.add(param);
     }
 
     public void clearParameters() {
         parameterSet.clear();
         clearCompilerCache();
+        complete = false;
     }
 
     public void clearCompilerCache() {
@@ -56,6 +64,10 @@ public abstract class GeneratorNode {
         compilerCache = null;
     }
 
+    public boolean isComplete() {
+        return complete;
+    };
+
     public static GeneratorNode fromSymbol(Symbol symbol, GeneratorNode parent) {
         if (symbol.nesting() > 0) {
             return new ArrayNode(symbol, parent);
@@ -64,6 +76,12 @@ public abstract class GeneratorNode {
         switch (symbol.path()) {
             case "java.lang.Integer", "java.lang.Float", "java.lang.String", "game.functions.dim.DimConstant" -> {
                 return new PrimitiveNode(symbol, parent);
+            }
+            case "mapper.empty" -> {
+                return EmptyNode.instance;
+            }
+            case "mapper.endOfClause" -> {
+                return EndOfClauseNode.instance;
             }
         }
 
@@ -95,7 +113,7 @@ public abstract class GeneratorNode {
                         continue;
 
                     if (option.symbol.nesting() != nesting) {
-                        System.out.println(option.symbol.nesting() + " incompatible with " + nesting);
+                        System.out.println(option.symbol + ": " + option.symbol.nesting() + " incompatible with " + nesting);
                         continue;
                     }
 
@@ -115,7 +133,7 @@ public abstract class GeneratorNode {
 
             case Class, Terminal -> {
                 for (GeneratorNode option: options) {
-                    if (option == null)
+                    if (option == EmptyNode.instance)
                         continue;
 
                     if (option instanceof PrimitiveNode) {
@@ -141,21 +159,31 @@ public abstract class GeneratorNode {
 
             case Null -> {
                 for (GeneratorNode option : options) {
-                    if (option == null)
-                        yield null;
+                    //System.out.println(option.symbol);
+
+                    if (option == EmptyNode.instance)
+                        yield EmptyNode.instance;
+
+
                 }
 
                 throw new RuntimeException("null is not an option");
             }
         };
-//        System.out.println("selected: " + (node == null? "null":node.symbol));
+//        System.out.println("selected: " + node.symbol);
 
         for (Call childCall: call.args()) {
-            assert node != null;
+            assert node != EmptyNode.instance;
 //            System.out.println("\nparent: " + node.symbol + ", " + node.getClass());
             GeneratorNode child = cloneCallTree(childCall, node.nextPossibleParameters(symbolMapper), symbolMapper);
             node.addParameter(child);
         }
+
+        if (call.args().size() > 0) {
+            assert node.nextPossibleParameters(symbolMapper).contains(EndOfClauseNode.instance);
+            node.addParameter(EndOfClauseNode.instance);
+        }
+        assert node.isComplete();
 
         return node;
     }
@@ -214,19 +242,20 @@ public abstract class GeneratorNode {
         final long endCompile = System.currentTimeMillis();
 
         //rootNode.equipmentNode().clearCompilerCache();
+        rootNode.rulesNode().clearCompilerCache();
 
         Game game = rootNode.compile();
 
         final long endRecompile = System.currentTimeMillis();
 
-        System.out.println("PreCompilation time: " + (endPreCompilation - startPreCompilation));
-        System.out.println("Clone time: " + (endClone - endPreCompilation));
-        System.out.println("Compile time: " + (endCompile - endClone));
-        System.out.println("Recompile time: " + (endRecompile - endCompile));
+        System.out.println("\nPreCompilation time: " + (endPreCompilation - startPreCompilation) + "ms");
+        System.out.println("Clone time: " + (endClone - endPreCompilation) + "ms");
+        System.out.println("Compile time: " + (endCompile - endClone) + "ms");
+        System.out.println("Recompile time: " + (endRecompile - endCompile) + "ms");
 
-        System.out.println("\n\nGAME: " + rootNode + "\n\n");
+        System.out.println("\nGAME: " + rootNode);
 
-        System.out.println("hasMissingRequirement? " + game.hasMissingRequirement());
+        System.out.println("\nhasMissingRequirement? " + game.hasMissingRequirement());
         System.out.println("Will it crash? " + game.willCrash());
 
         System.out.println("Functional? " + Generator.isFunctional(game));

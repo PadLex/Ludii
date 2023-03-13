@@ -47,13 +47,13 @@ public class ClassNode extends GeneratorNode {
     }
 
     public List<GeneratorNode> nextPossibleParameters(SymbolMapper symbolMapper) {
-        List<Symbol> partialParameters = parameterSet.stream().map(node -> node != null? node.symbol : null).toList();
+        List<Symbol> partialParameters = parameterSet.stream().map(node -> node.symbol).toList();
         List<Symbol> possibleSymbols = symbolMapper.nextPossibilities(symbol, partialParameters);
-        return possibleSymbols.stream().map(s -> s != null? GeneratorNode.fromSymbol(s, this) : null).toList();
+        return possibleSymbols.stream().map(s -> GeneratorNode.fromSymbol(s, this)).toList();
     }
 
     @Override
     public String toString() {
-        return "(" + symbol.token() + ": " + String.join(", ", parameterSet.stream().map(s -> s!=null? s.toString() : "null").toList()) + ")";
+        return "(" + symbol.token() + ": " + String.join(", ", parameterSet.stream().map(GeneratorNode::toString).toList()) + ")";
     }
 }

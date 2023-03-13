@@ -5,6 +5,7 @@ import main.grammar.Symbol;
 
 import java.lang.reflect.Array;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ArrayNode extends GeneratorNode {
     //private final List<GeneratorNode> nextSymbols = new ArrayList<>();
@@ -31,17 +32,22 @@ public class ArrayNode extends GeneratorNode {
     }
 
     public List<GeneratorNode> nextPossibleParameters(SymbolMapper symbolMapper) {
-        if (!parameterSet.isEmpty() && parameterSet.get(parameterSet.size() - 1) == null)
+        if (!parameterSet.isEmpty() && parameterSet.get(parameterSet.size() - 1) == EndOfClauseNode.instance)
             return List.of();
 
-        //System.out.println("nesting: " + symbol.nesting() + ", " + symbol.path() + " <- " + symbolMapper.getSources(symbol));
+//        System.out.println("nesting: " + symbol.nesting() + ", " + symbol.path() + " <- " + symbolMapper.getCompatibleSymbols(symbol));
 
-        if (symbol.nesting() == 1)
-            return symbolMapper.getCompatibleSymbols(symbol).stream().filter(s -> s.ludemeType() != Symbol.LudemeType.Structural).map(s -> fromSymbol(s, this)).toList();
+        List<GeneratorNode> options = new ArrayList<>();
+        if (symbol.nesting() == 1) {
+            options.addAll(symbolMapper.getCompatibleSymbols(symbol).stream().filter(s -> s.ludemeType() != Symbol.LudemeType.Structural).map(s -> fromSymbol(s, this)).toList());
+        } else {
+            Symbol childSymbol = new Symbol(symbol);
+            childSymbol.setNesting(symbol.nesting() - 1);
+            options.add(GeneratorNode.fromSymbol(childSymbol, this));
+        }
 
-        Symbol childSymbol = new Symbol(symbol);
-        childSymbol.setNesting(symbol.nesting() - 1);
-        return List.of(GeneratorNode.fromSymbol(childSymbol, this));
+        options.add(EndOfClauseNode.instance);
+        return options;
     }
 
     @Override

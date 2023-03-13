@@ -39,6 +39,10 @@ public class PrimitiveNode extends GeneratorNode {
     }
 
     @Override
+    public boolean isComplete() {
+        return value != null;
+    }
+    @Override
     public String toString() {
         if (value == null)
             return "?";
