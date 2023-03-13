@@ -20,15 +20,14 @@ public class GameNode extends GeneratorNode {
     static Symbol modeSymbol = Grammar.grammar().findSymbolByPath("game.mode.Mode");
     static Symbol rulesSymbol = Grammar.grammar().findSymbolByPath("game.rules.Rules");
 
-    GameNode(Symbol symbol) {
+    public GameNode(Symbol symbol) {
         super(symbol, null);
         assert symbol.path().equals("game.Game");
     }
 
     @Override
     public Game compile() {
-        if (compilerCache != null)
-            return (Game) compilerCache;
+        if (compilerCache != null) return (Game) compilerCache;
 
         boolean skipEquipment = parameterSet.get(3).compilerCache != null;
 
@@ -36,10 +35,8 @@ public class GameNode extends GeneratorNode {
 
         Game game = instantiate();
 
-        if (skipEquipment)
-            game.createGame();
-        else
-            game.create();
+        if (skipEquipment) game.createGame();
+        else game.create();
 
         System.out.println("totalDefaultSites: " + game.equipment().totalDefaultSites());
 
@@ -50,13 +47,7 @@ public class GameNode extends GeneratorNode {
 
     @Override
     Game instantiate() {
-        return new Game(
-                (String) nameNode().compile(),
-                (Players) playersNode().compile(),
-                modeNode() != null? (Mode) modeNode().compile() : null,
-                (Equipment) equipmentNode().compile(),
-                (Rules) rulesNode().compile()
-        );
+        return new Game((String) nameNode().compile(), (Players) playersNode().compile(), modeNode() != null ? (Mode) modeNode().compile() : null, (Equipment) equipmentNode().compile(), (Rules) rulesNode().compile());
     }
 
     @Override
@@ -93,7 +84,7 @@ public class GameNode extends GeneratorNode {
 
     @Override
     public String toString() {
-        return "(" + symbol.token() + ": " + String.join(", ", parameterSet.stream().map(s -> s!=null? s.toString() : "null").toList()) + ")";
+        return "(" + symbol.token() + ": " + String.join(", ", parameterSet.stream().map(s -> s != null ? s.toString() : "null").toList()) + ")";
     }
 
     public GeneratorNode nameNode() {
@@ -107,6 +98,7 @@ public class GameNode extends GeneratorNode {
     public GeneratorNode modeNode() {
         return parameterSet.get(2);
     }
+
     public GeneratorNode equipmentNode() {
         return parameterSet.get(3);
     }

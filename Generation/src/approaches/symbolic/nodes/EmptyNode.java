@@ -7,9 +7,11 @@ import java.util.List;
 
 public class EmptyNode extends GeneratorNode {
     public static final EmptyNode instance = new EmptyNode(SymbolMapper.emptySymbol, null);
+
     private EmptyNode(Symbol symbol, GeneratorNode parent) {
         super(symbol, parent);
     }
+
     @Override
     Object instantiate() {
         return null;

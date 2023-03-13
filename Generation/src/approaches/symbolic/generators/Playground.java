@@ -1,4 +1,4 @@
-package approaches.symbolic;
+package approaches.symbolic.generators;
 
 import approaches.random.Generator;
 import compiler.Compiler;
@@ -11,7 +11,6 @@ import game.equipment.other.Regions;
 import game.functions.booleans.is.Is;
 import game.functions.booleans.is.IsConnectType;
 import game.functions.dim.DimConstant;
-import game.functions.graph.generators.basis.hex.DiamondOnHex;
 import game.functions.graph.generators.basis.hex.Hex;
 import game.functions.graph.generators.basis.hex.HexShapeType;
 import game.functions.region.RegionFunction;
@@ -30,18 +29,13 @@ import game.types.play.ResultType;
 import game.types.play.RoleType;
 import game.util.directions.CompassDirection;
 import game.util.moves.To;
-import grammar.Grammar;
 import main.grammar.*;
-import main.grammar.ebnf.EBNF;
 import main.options.UserSelections;
-import parser.Parser;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
-public class CompilerGenerator {
+public class Playground {
     public static void main(String[] args) {
         /*
         List<GrammarRule> rules = Grammar.grammar().getRules();

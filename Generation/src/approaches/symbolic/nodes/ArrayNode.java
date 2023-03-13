@@ -4,23 +4,34 @@ import approaches.symbolic.SymbolMapper;
 import main.grammar.Symbol;
 
 import java.lang.reflect.Array;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 public class ArrayNode extends GeneratorNode {
-    //private final List<GeneratorNode> nextSymbols = new ArrayList<>();
     ArrayNode(Symbol symbol, GeneratorNode parent) {
         super(symbol, parent);
 
         assert symbol.nesting() > 0;
     }
 
+    static Class<?> getSharedType(List<Object> objects) {
+        Class<?> type = objects.get(0).getClass();
+        out:
+        while (true) {
+            for (Object o : objects) {
+                if (!type.isInstance(o)) {
+                    type = type.getSuperclass();
+                    continue out;
+                }
+            }
+
+            return type;
+        }
+    }
+
     Object instantiate() {
         List<Object> arguments = parameterSet.stream().filter(Objects::nonNull).map(GeneratorNode::compile).toList();
-
-//        System.out.println("\nCompiling: " + this);
-//        System.out.println("Args value " + arguments);
-//        System.out.println("Args type  " + arguments.stream().filter(Objects::nonNull).map(Object::getClass).toList());
 
         Object array = Array.newInstance(symbol.cls(), arguments.size());
 
@@ -34,8 +45,6 @@ public class ArrayNode extends GeneratorNode {
     public List<GeneratorNode> nextPossibleParameters(SymbolMapper symbolMapper) {
         if (!parameterSet.isEmpty() && parameterSet.get(parameterSet.size() - 1) == EndOfClauseNode.instance)
             return List.of();
-
-//        System.out.println("nesting: " + symbol.nesting() + ", " + symbol.path() + " <- " + symbolMapper.getCompatibleSymbols(symbol));
 
         List<GeneratorNode> options = new ArrayList<>();
         if (symbol.nesting() == 1) {
@@ -52,20 +61,6 @@ public class ArrayNode extends GeneratorNode {
 
     @Override
     public String toString() {
-        return "{" + String.join(", ", parameterSet.stream().map(s -> s!=null? s.toString() : "null").toList()) + "}";
-    }
-
-    static Class<?> getSharedType(List<Object> objects) {
-        Class<?> type = objects.get(0).getClass();
-        out: while (true) {
-            for (Object o: objects) {
-                if (!type.isInstance(o)) {
-                    type = type.getSuperclass();
-                    continue out;
-                }
-            }
-
-            return type;
-        }
+        return "{" + String.join(", ", parameterSet.stream().map(s -> s != null ? s.toString() : "null").toList()) + "}";
     }
 }

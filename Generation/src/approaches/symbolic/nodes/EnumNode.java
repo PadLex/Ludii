@@ -3,15 +3,14 @@ package approaches.symbolic.nodes;
 import approaches.symbolic.SymbolMapper;
 import main.grammar.Symbol;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Arrays;
 import java.util.List;
 
 public class EnumNode extends GeneratorNode {
     EnumNode(Symbol symbol, GeneratorNode parent) {
         super(symbol, parent);
     }
+
     Object instantiate() {
         try {
             return symbol.cls().getMethod("valueOf", String.class).invoke(null, symbol.name());

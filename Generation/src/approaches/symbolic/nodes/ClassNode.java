@@ -15,32 +15,20 @@ public class ClassNode extends GeneratorNode {
 
     Object instantiate() {
         List<Object> arguments = parameterSet.stream().map(param -> param != null? param.compile():null).toList();
-//        System.out.println("\nCompiling: " + this);
-//        System.out.println("Args value " + arguments);
-//        System.out.println("Args type  " + arguments.stream().filter(Objects::nonNull).map(Object::getClass).toList());
 
         // TODO how to know whether to use constructor or static .construct();
         for (Method method: symbol.cls().getMethods()) {
             if (method.getName().equals("construct")) {
-//                System.out.println("Found " + Arrays.toString(method.getParameterTypes()));
-
                 try {
                     return method.invoke(null, arguments.toArray());
-                } catch (IllegalArgumentException | IllegalAccessException | InvocationTargetException e) {
-//                    System.out.println("Skipped Method " + e.getMessage());
-                }
+                } catch (IllegalArgumentException | IllegalAccessException | InvocationTargetException ignored) {}
             }
         }
 
         for (Constructor<?> constructor: symbol.cls().getConstructors()) {
-//            System.out.println("Found " + Arrays.toString(constructor.getParameterTypes()));
-
             try {
                 return constructor.newInstance(arguments.toArray());
-            } catch (IllegalArgumentException | IllegalAccessException | InvocationTargetException |
-                     InstantiationException e) {
-//                System.out.println("Skipped Constructor " + e.getMessage());
-            }
+            } catch (IllegalAccessException | InvocationTargetException | InstantiationException ignored) {}
         }
 
         throw new RuntimeException("Failed to compile: " + symbol);
