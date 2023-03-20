@@ -13,7 +13,7 @@ public class PrimitiveNode extends GeneratorNode {
 
     PrimitiveNode(Symbol symbol, GeneratorNode parent) {
         super(symbol, parent);
-        assert symbol.cls().equals(Integer.class) || symbol.cls().equals(String.class) || symbol.cls().equals(DimConstant.class);
+        assert symbol.cls().equals(Integer.class) || symbol.cls().equals(Float.class) || symbol.cls().equals(String.class) || symbol.cls().equals(DimConstant.class);
     }
 
     public void setValue(Object value) {
@@ -55,5 +55,12 @@ public class PrimitiveNode extends GeneratorNode {
             return "\"" + value + "\"";
 
         return value.toString();
+    }
+
+    @Override
+    public PrimitiveNode clone() {
+        PrimitiveNode clone = (PrimitiveNode) super.clone();
+        clone.setValue(value);
+        return clone;
     }
 }

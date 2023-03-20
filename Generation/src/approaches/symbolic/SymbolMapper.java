@@ -31,6 +31,9 @@ public class SymbolMapper {
 
         buildSymbolMap();
         buildCompatibilityMap();
+
+        //parameterMap.get("game.functions.region.sites.Sites").stream().map(s -> s.path()).forEach(System.out::println);
+        //compatibilityMap.get("game.functions.region.sites.around.Around").forEach(System.out::println);
     }
 
     private static List<BitSet> permuteFlags(BitSet optionalFlags, BitSet mandatoryFlags) {
@@ -109,16 +112,18 @@ public class SymbolMapper {
         SymbolMapper symbolMapper = new SymbolMapper(symbols);
         System.out.println("Finished mapping symbols. Found " + symbolMapper.parameterMap.values().stream().mapToInt(List::size).sum() + " parameter sets.");
 
+        //System.out.println(Grammar.grammar().findSymbolByPath(""));
+
         // TODO, is int handled correctly? I don't think so.
 //        Grammar.grammar().symbols().stream().max(Comparator.comparingInt(s -> s.rule() == null? 0:s.rule().rhs().size())).ifPresent(s -> System.out.println(s.path() + " " + s.rule().rhs()));
 //        System.out.println(symbolMapper.parameterMap.get("int"));
 //        System.out.println(symbolMapper.nextPossibilities(Grammar.grammar().findSymbolByPath("java.lang.Integer"), new ArrayList<>()));
 
 
-        ArrayList<Symbol> partialSymbols = new ArrayList<>();
-        partialSymbols.add(Grammar.grammar().findSymbolByPath("java.lang.String"));
-        partialSymbols.add(endOfClauseSymbol);
-        System.out.println(symbolMapper.nextPossibilities(Grammar.grammar().findSymbolByPath("game.Game"), partialSymbols));
+//        ArrayList<Symbol> partialSymbols = new ArrayList<>();
+//        partialSymbols.add(Grammar.grammar().findSymbolByPath("java.lang.String"));
+//        partialSymbols.add(endOfClauseSymbol);
+//        System.out.println(symbolMapper.nextPossibilities(Grammar.grammar().findSymbolByPath("game.Game"), partialSymbols));
     }
 
     public List<Symbol> nextPossibilities(Symbol parent, List<Symbol> partialArguments) {
@@ -168,7 +173,8 @@ public class SymbolMapper {
 
         for (Symbol symbol : symbols) {
             for (Symbol other : symbols) {
-                if (symbol.compatibleWith(other)) {
+                // TODO should I exclude subludemes? They don't have rules and I can't find any examples
+                if (symbol.compatibleWith(other) && other.ludemeType() != Symbol.LudemeType.SubLudeme) {
                     compatibilityMap.get(symbol.path()).add(other);
                 }
             }
@@ -269,7 +275,7 @@ public class SymbolMapper {
 
     static class EmptySymbol extends Symbol {
         private EmptySymbol() {
-            super(null, "mapper.empty", null, SymbolMapper.class);
+            super(null, "mapper.unused", null, SymbolMapper.class);
         }
 
         @Override

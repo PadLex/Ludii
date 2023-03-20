@@ -4,6 +4,7 @@ import approaches.symbolic.SymbolMapper;
 import main.grammar.Symbol;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public abstract class GeneratorNode {
@@ -25,10 +26,10 @@ public abstract class GeneratorNode {
         }
 
         switch (symbol.path()) {
-            case "java.lang.Integer", "java.lang.Float", "java.lang.String", "game.functions.dim.DimConstant" -> {
+            case "java.lang.Integer", "java.lang.Float", "java.lang.String", "java.lang.Boolean", "game.functions.dim.DimConstant" -> {
                 return new PrimitiveNode(symbol, parent);
             }
-            case "mapper.empty" -> {
+            case "mapper.unused" -> {
                 return EmptyNode.instance;
             }
             case "mapper.endOfClause" -> {
@@ -84,7 +85,37 @@ public abstract class GeneratorNode {
         return complete;
     }
 
+    public boolean isRecursivelyComplete() {
+        return complete && parameterSet.stream().allMatch(GeneratorNode::isRecursivelyComplete);
+    }
+
     public Symbol symbol() {
         return symbol;
+    }
+
+    public GeneratorNode parent() {
+        return parent;
+    }
+
+    public List<GeneratorNode> parameterSet() {
+        return Collections.unmodifiableList(parameterSet);
+    }
+
+    public GeneratorNode find(String token) {
+        for (GeneratorNode node : parameterSet) {
+            if (node.symbol.token().equals(token))
+                return node;
+        }
+
+        return null;
+    }
+
+    // TODO fix this
+    public GeneratorNode clone() {
+        GeneratorNode clone = fromSymbol(symbol, parent);
+        clone.parameterSet.addAll(parameterSet.stream().map(GeneratorNode::clone).toList());
+        clone.complete = complete;
+        clone.compilerCache = compilerCache;
+        return clone;
     }
 }

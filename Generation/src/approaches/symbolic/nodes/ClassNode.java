@@ -28,7 +28,7 @@ public class ClassNode extends GeneratorNode {
         for (Constructor<?> constructor: symbol.cls().getConstructors()) {
             try {
                 return constructor.newInstance(arguments.toArray());
-            } catch (IllegalAccessException | InvocationTargetException | InstantiationException ignored) {}
+            } catch (IllegalArgumentException | IllegalAccessException | InvocationTargetException | InstantiationException ignored) {}
         }
 
         throw new RuntimeException("Failed to compile: " + symbol);

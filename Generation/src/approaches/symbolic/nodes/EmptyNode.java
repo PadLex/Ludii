@@ -29,6 +29,6 @@ public class EmptyNode extends GeneratorNode {
 
     @Override
     public String toString() {
-        return "empty";
+        return "NULL";
     }
 }

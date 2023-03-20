@@ -31,6 +31,7 @@ import game.util.directions.CompassDirection;
 import game.util.moves.To;
 import main.grammar.*;
 import main.options.UserSelections;
+import other.GameLoader;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -128,6 +129,7 @@ public class Playground {
                         """;
 
         final Description description = new Description(str);
+        //Description description = GameLoader.loadGameFromName("Tic-Tac-Toe.lud").description();
         final UserSelections userSelections = new UserSelections(new ArrayList<String>());
         final Report report = new Report();
 
