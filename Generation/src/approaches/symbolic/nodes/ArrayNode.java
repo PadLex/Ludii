@@ -15,27 +15,18 @@ public class ArrayNode extends GeneratorNode {
         assert symbol.nesting() > 0;
     }
 
-    static Class<?> getSharedType(List<Object> objects) {
-        Class<?> type = objects.get(0).getClass();
-        out:
-        while (true) {
-            for (Object o : objects) {
-                if (!type.isInstance(o)) {
-                    type = type.getSuperclass();
-                    continue out;
-                }
-            }
-
-            return type;
-        }
-    }
-
     Object instantiate() {
         List<Object> arguments = parameterSet.stream().filter(Objects::nonNull).map(GeneratorNode::compile).toList();
 
-        Object array = Array.newInstance(symbol.cls(), arguments.size());
+        Object array;
+        if (symbol.nesting() == 1)
+            array = Array.newInstance(symbol.cls(), arguments.size());
+        else {
+            array = Array.newInstance(arguments.get(0).getClass(), arguments.size());
+        }
 
         for (int i = 0; i < arguments.size(); i++) {
+            //System.out.println("Compiling: " + symbol + "-" + symbol.nesting() + " adding: " + arguments.get(i).getClass() + " vs " + array.getClass());
             Array.set(array, i, arguments.get(i));
         }
 
@@ -52,7 +43,7 @@ public class ArrayNode extends GeneratorNode {
         } else {
             Symbol childSymbol = new Symbol(symbol);
             childSymbol.setNesting(symbol.nesting() - 1);
-            options.add(GeneratorNode.fromSymbol(childSymbol, this));
+            options.add(new ArrayNode(childSymbol, this));
         }
 
         options.add(EndOfClauseNode.instance);

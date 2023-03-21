@@ -1,5 +1,6 @@
 package approaches.symbolic.generators;
 
+import approaches.ngram.facade.GramNode;
 import approaches.random.Generator;
 import approaches.symbolic.SymbolMapper;
 import approaches.symbolic.nodes.*;
@@ -7,12 +8,17 @@ import compiler.Compiler;
 import game.Game;
 import game.functions.dim.DimConstant;
 import grammar.Grammar;
-import main.grammar.Call;
-import main.grammar.Description;
-import main.grammar.Symbol;
+import main.grammar.*;
+import main.options.UserSelections;
+import parser.Parser;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 public class CallTreeCloner {
     public static GameNode cloneCallTree(Call root, SymbolMapper symbolMapper) {
@@ -29,10 +35,7 @@ public class CallTreeCloner {
 
                 optionLoop:
                 for (GeneratorNode option : options) {
-                    if (option == null)
-                        continue;
-
-                    if (option.symbol().nesting() != nesting) {
+                    if (option.symbol().nesting() != nesting && option != EmptyNode.instance) {
                         System.out.println(option.symbol() + ": " + option.symbol().nesting() + " incompatible with " + nesting);
                         continue;
                     }
@@ -46,33 +49,33 @@ public class CallTreeCloner {
 
                     yield option;
                 }
-
-                throw new RuntimeException("Could not find a compatible array type");
+                System.out.println("Could not find a compatible array type " + call.symbol() + " with nesting " + nesting + " and symbols " + nestedSymbols);
+                System.out.println("Options: " + options);
+                throw new RuntimeException("Could not find a compatible array type ");
             }
 
-            case Class, Terminal -> {
+            case Class -> {
                 for (GeneratorNode option : options) {
-                    if (option == EmptyNode.instance)
-                        continue;
-
-                    if (option instanceof PrimitiveNode) {
-                        if (option.symbol().compatibleWith(call.symbol())) {
-                            if (call.object() instanceof DimConstant)
-                                ((PrimitiveNode) option).setValue(((DimConstant) call.object()).eval());
-                            else
-                                ((PrimitiveNode) option).setValue(call.object());
-
-                            yield option;
-                        }
-                        continue;
-                    }
-
                     if (option.symbol().matches(call.symbol())) {
                         yield option;
                     }
                 }
 
                 throw new RuntimeException("Could not find a compatible class " + call.symbol());
+            }
+
+            case Terminal -> {
+                for (GeneratorNode option : options) {
+                    if (option.symbol().matches(call.symbol())) {
+
+                        if (option instanceof PrimitiveNode)
+                            ((PrimitiveNode) option).setValue(call.object());
+
+                        yield option;
+                    }
+                }
+
+                throw new RuntimeException("Could not find a compatible terminal class " + call.symbol());
             }
 
             case Null -> {
@@ -87,14 +90,19 @@ public class CallTreeCloner {
 
         for (Call childCall : call.args()) {
             assert node != EmptyNode.instance;
+            //System.out.println(node.symbol() + ": " + node.parameterSet().stream().map(GeneratorNode::symbol).toList());
+            //System.out.println("options: " + node.nextPossibleParameters(symbolMapper));
             GeneratorNode child = cloneCallTree(childCall, node.nextPossibleParameters(symbolMapper), symbolMapper);
             node.addParameter(child);
         }
 
-        if (call.args().size() > 0) {
+        if (call.type() == Call.CallType.Array || call.type() == Call.CallType.Class) {
             assert node.nextPossibleParameters(symbolMapper).contains(EndOfClauseNode.instance);
             node.addParameter(EndOfClauseNode.instance);
         }
+
+        if (!node.isComplete())
+            System.out.println(node.symbol().path() + " " + call.object());
         assert node.isComplete();
 
         return node;
@@ -114,7 +122,65 @@ public class CallTreeCloner {
             call.args().forEach(child -> getNestedSymbols(child, nestedSymbols));
     }
 
-    public static void main(String[] args) {
+    static void testLudiiLibrary() throws IOException {
+        List<Symbol> symbols = Grammar.grammar().symbols().stream().filter(s -> s.usedInGrammar() || s.usedInDescription() || !s.usedInMetadata()).toList();
+        SymbolMapper symbolMapper = new SymbolMapper(symbols);
+
+        String gamesRoot = "../Common/res/lud/board";
+        List<Path> paths = Files.walk(Paths.get(gamesRoot)).filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".lud")).limit(2000).toList();
+        int count = 0;
+        int preCompilation = 0;
+        int clone = 0;
+        int compile = 0;
+        int recompile = 0;
+        for (Path path : paths) {
+            String gameStr = Files.readString(path);
+
+            if (gameStr.contains("match"))
+                continue;
+
+            System.out.println("Loaded " + path.getFileName() + " (" + count + " games)");
+
+            Description description = new Description(gameStr);
+
+            final UserSelections userSelections = new UserSelections(new ArrayList<String>());
+            final Report report = new Report();
+
+            final long startPreCompilation = System.currentTimeMillis();
+            Game originalGame = (Game) Compiler.compile(description, userSelections, report, false);
+            final long endPreCompilation = System.currentTimeMillis();
+
+            Playground.printCallTree(originalGame.description().callTree(), 0);
+
+            GameNode rootNode = cloneCallTree(description.callTree(), symbolMapper);
+
+            final long endClone = System.currentTimeMillis();
+
+            Game game1 = rootNode.compile();
+
+            final long endCompile = System.currentTimeMillis();
+
+            rootNode.rulesNode().clearCompilerCache();
+
+            Game game = rootNode.compile();
+
+            final long endRecompile = System.currentTimeMillis();
+
+            count += 1;
+            preCompilation += endPreCompilation - startPreCompilation;
+            clone += endClone - endPreCompilation;
+            compile += endCompile - endClone;
+            recompile += endRecompile - endCompile;
+        }
+
+        System.out.println("Games: " + count);
+        System.out.println("Pre-compilation: " + preCompilation + "ms");
+        System.out.println("Clone: " + clone + "ms");
+        System.out.println("Compile: " + compile + "ms");
+        System.out.println("Recompile: " + recompile + "ms");
+    }
+
+    static void testHex() {
         List<Symbol> symbols = Grammar.grammar().symbols().stream().filter(s -> s.usedInGrammar() || s.usedInDescription() || !s.usedInMetadata()).toList();
 
         SymbolMapper symbolMapper = new SymbolMapper(symbols);
@@ -167,6 +233,9 @@ public class CallTreeCloner {
         System.out.println("Functional? " + Generator.isFunctional(game));
         System.out.println("isPlayable? " + Generator.isPlayable(game));
         System.out.println("isFunctionalAndWithOnlyDecision? " + Generator.isFunctionalAndWithOnlyDecision(game));
+    }
 
+    public static void main(String[] args) throws IOException {
+        testLudiiLibrary();
     }
 }

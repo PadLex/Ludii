@@ -14,6 +14,8 @@ public abstract class GeneratorNode {
     Object compilerCache = null;
     boolean complete;
 
+
+
     GeneratorNode(Symbol symbol, GeneratorNode parent) {
         assert symbol != null;
         this.symbol = symbol;
@@ -26,7 +28,11 @@ public abstract class GeneratorNode {
         }
 
         switch (symbol.path()) {
-            case "java.lang.Integer", "java.lang.Float", "java.lang.String", "java.lang.Boolean", "game.functions.dim.DimConstant" -> {
+            case    "java.lang.Integer", "game.functions.ints.IntConstant", "game.functions.dim.DimConstant",
+                    "java.lang.Float", "game.functions.floats.FloatConstant",
+                    "java.lang.String", "game.functions.strings.StringConstant",
+                    "java.lang.Boolean", "game.functions.booleans.BooleanConstant", "game.functions.booleans.TrueConstant", "game.functions.booleans.FalseConstant"
+                    -> {
                 return new PrimitiveNode(symbol, parent);
             }
             case "mapper.unused" -> {

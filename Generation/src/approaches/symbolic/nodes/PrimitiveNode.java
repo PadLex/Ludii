@@ -2,6 +2,8 @@ package approaches.symbolic.nodes;
 
 import approaches.symbolic.SymbolMapper;
 import game.functions.dim.DimConstant;
+import game.functions.floats.FloatConstant;
+import game.functions.ints.IntConstant;
 import main.grammar.Symbol;
 
 import java.lang.reflect.Constructor;
@@ -11,9 +13,10 @@ import java.util.List;
 public class PrimitiveNode extends GeneratorNode {
     private Object value;
 
+
+
     PrimitiveNode(Symbol symbol, GeneratorNode parent) {
         super(symbol, parent);
-        assert symbol.cls().equals(Integer.class) || symbol.cls().equals(Float.class) || symbol.cls().equals(String.class) || symbol.cls().equals(DimConstant.class);
     }
 
     public void setValue(Object value) {
@@ -21,15 +24,7 @@ public class PrimitiveNode extends GeneratorNode {
     }
 
     Object instantiate() {
-        for (Constructor<?> constructor : symbol.cls().getConstructors()) {
-            try {
-                return constructor.newInstance(value);
-            } catch (InvocationTargetException | IllegalAccessException | InstantiationException |
-                     IllegalArgumentException ignored) {
-            }
-        }
-
-        throw new RuntimeException("Failed to compile primitive node: " + symbol + ", " + value + ": " + value.getClass());
+        return value;
     }
 
     public List<GeneratorNode> nextPossibleParameters(SymbolMapper symbolMapper) {

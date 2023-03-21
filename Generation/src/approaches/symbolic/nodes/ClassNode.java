@@ -37,6 +37,10 @@ public class ClassNode extends GeneratorNode {
     public List<GeneratorNode> nextPossibleParameters(SymbolMapper symbolMapper) {
         List<Symbol> partialParameters = parameterSet.stream().map(node -> node.symbol).toList();
         List<Symbol> possibleSymbols = symbolMapper.nextPossibilities(symbol, partialParameters);
+//        if (symbol.rule() != null)
+//            System.out.println("Symbol: " + symbol.path() + " clauses: " + symbol.rule().rhs().stream().map(c -> c.symbol().path()).toList());
+//
+//        possibleSymbols.stream().forEach(s -> System.out.println("Possible: " + s.path() + " " + s.usedInGrammar()));
         return possibleSymbols.stream().map(s -> GeneratorNode.fromSymbol(s, this)).toList();
     }
 

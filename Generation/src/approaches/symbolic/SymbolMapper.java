@@ -5,6 +5,7 @@ import main.grammar.Clause;
 import main.grammar.ClauseArg;
 import main.grammar.Symbol;
 
+import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -12,18 +13,19 @@ import java.util.stream.Stream;
 public class SymbolMapper {
     public static final Symbol emptySymbol = new EmptySymbol();
     public static final Symbol endOfClauseSymbol = new EndOfClauseSymbol();
-
+    // Replace a handful of hand-picked symbols
+    private static final String[][] equivalentSymbols = {{"game.functions.ints.IntConstant", "java.lang.Integer"}};
     private final Set<Symbol> symbols = new HashSet<>();
     private final Set<String> paths = new HashSet<>();
     private final Map<String, List<Symbol>> compatibilityMap = new HashMap<>();
 
-    // Maps symbols to every possible set of base-symbols (aka parameters) that can be used to initialize them.
-    // eg game.util.graph.Graph can be initialized using [<Float>, null], [<Float>, <Integer>], [], or [<graph>]
-    private final Map<String, List<List<Symbol>>> parameterMap = new HashMap<>();
-
     // To obtain every possible set of symbols which can be used to initialize another symbol, you would need replace
     // each base-symbol with it's corresponding source symbols and take their cartesian product. Unfortunately,
     // this is too intensive to pre-compute.
+    // Maps symbols to every possible set of base-symbols (aka parameters) that can be used to initialize them.
+    // eg game.util.graph.Graph can be initialized using [<Float>, null], [<Float>, <Integer>], [], or [<graph>]
+    private final Map<String, List<List<Symbol>>> parameterMap = new HashMap<>();
+    private final HashMap<String, Symbol> equivalenceMap = new HashMap<>();
 
     public SymbolMapper(Collection<Symbol> symbols) {
         this.symbols.addAll(symbols);
@@ -36,96 +38,6 @@ public class SymbolMapper {
         //compatibilityMap.get("game.functions.region.sites.around.Around").forEach(System.out::println);
     }
 
-    private static List<BitSet> permuteFlags(BitSet optionalFlags, BitSet mandatoryFlags) {
-        List<BitSet> possibleSets = new ArrayList<>();
-
-        int optionalParams = optionalFlags.cardinality();
-        int[] optionalIndexes = IntStream.range(0, optionalFlags.length()).filter(optionalFlags::get).toArray();
-
-        int initialPermutations = (int) Math.pow(2, optionalParams);
-        for (int i = 0; i < initialPermutations; i++) {
-            BitSet set = (BitSet) mandatoryFlags.clone();
-            for (int j = 0; j < optionalIndexes.length; j++) {
-                // Decide whether to set the optional parameter based on the jth digit of i in binary form
-                set.set(optionalIndexes[j], ((i >> j) & 1) == 1);
-            }
-
-            possibleSets.add(set);
-        }
-
-        return possibleSets;
-    }
-
-    private static void completeAndGroups(List<ClauseArg> clauseArgs, List<BitSet> possibleSets) {
-        for (BitSet currentSet : possibleSets) {
-            int currentAndGroup = 0;
-            boolean active = false;
-            for (int j = 0; j < clauseArgs.size(); j++) {
-                ClauseArg arg = clauseArgs.get(j);
-
-                if (arg.andGroup() == currentAndGroup && active) {
-                    currentSet.set(j);
-                }
-
-                if (arg.andGroup() == currentAndGroup + 1) {
-                    currentAndGroup++;
-                    active = currentSet.get(j);
-                }
-            }
-        }
-    }
-
-    private static void recursivelyShiftOrGroups(BitSet currentSet, int currentOrGroup, List<ClauseArg> clauseArgs, List<BitSet> possibleSets) {
-
-        BitSet baseSet = null;
-        for (int i = 0; i < clauseArgs.size(); i++) {
-            ClauseArg arg = clauseArgs.get(i);
-            if (arg.orGroup() == currentOrGroup) {
-                if (baseSet == null && currentSet.get(i)) {
-                    recursivelyShiftOrGroups(currentSet, currentOrGroup + 1, clauseArgs, possibleSets);
-
-                    baseSet = (BitSet) currentSet.clone();
-                    baseSet.set(i, false);
-                } else if (baseSet != null) {
-                    BitSet newSet = (BitSet) baseSet.clone();
-                    newSet.set(i);
-                    possibleSets.add(newSet);
-
-                    recursivelyShiftOrGroups(newSet, currentOrGroup + 1, clauseArgs, possibleSets);
-                }
-            }
-        }
-
-    }
-
-    static Symbol cloneSymbol(Symbol symbol, int nesting) {
-        symbol = new Symbol(symbol);
-        symbol.setNesting(nesting);
-        return symbol;
-    }
-
-    public static void main(String[] args) {
-        // TODO Shouldn't DimFunction return dim constant? Shouldn't dim constant be a primitive?
-        // TODO why is game.functions.dim.DimConstant not in the grammar or the description?
-        List<Symbol> symbols = Grammar.grammar().symbols().stream().filter(s -> s.usedInGrammar() || s.usedInDescription() || !s.usedInMetadata()).toList();
-
-        SymbolMapper symbolMapper = new SymbolMapper(symbols);
-        System.out.println("Finished mapping symbols. Found " + symbolMapper.parameterMap.values().stream().mapToInt(List::size).sum() + " parameter sets.");
-
-        //System.out.println(Grammar.grammar().findSymbolByPath(""));
-
-        // TODO, is int handled correctly? I don't think so.
-//        Grammar.grammar().symbols().stream().max(Comparator.comparingInt(s -> s.rule() == null? 0:s.rule().rhs().size())).ifPresent(s -> System.out.println(s.path() + " " + s.rule().rhs()));
-//        System.out.println(symbolMapper.parameterMap.get("int"));
-//        System.out.println(symbolMapper.nextPossibilities(Grammar.grammar().findSymbolByPath("java.lang.Integer"), new ArrayList<>()));
-
-
-//        ArrayList<Symbol> partialSymbols = new ArrayList<>();
-//        partialSymbols.add(Grammar.grammar().findSymbolByPath("java.lang.String"));
-//        partialSymbols.add(endOfClauseSymbol);
-//        System.out.println(symbolMapper.nextPossibilities(Grammar.grammar().findSymbolByPath("game.Game"), partialSymbols));
-    }
-
     public List<Symbol> nextPossibilities(Symbol parent, List<Symbol> partialArguments) {
         assert !partialArguments.contains(endOfClauseSymbol);
         Stream<List<Symbol>> parameterSets = parameterMap.get(parent.path()).stream();
@@ -134,18 +46,7 @@ public class SymbolMapper {
             if (partialArguments.size() >= completeArguments.size()) return false;
 
             for (int i = 0; i < partialArguments.size(); i++) {
-
-                if (completeArguments.get(i).compatibleWith(partialArguments.get(i))) continue;
-
-//                if (partialArguments.get(i).compatibleWith(completeArguments.get(i).symbol())) {
-//                    continue;
-//                }
-//
-//                if (partialArguments.get(i).validReturnType(completeArguments.get(i))) {
-//                    continue;
-//                }
-
-                return false;
+                if (!completeArguments.get(i).compatibleWith(partialArguments.get(i))) return false;
             }
 
             return true;
@@ -156,14 +57,28 @@ public class SymbolMapper {
         parameterSets.forEach(args -> {
             Symbol argSymbol = args.get(partialArguments.size());
 
+            if (argSymbol.nesting() > 0) {
+                possibilities.put(argSymbol.path() + "|" + argSymbol.nesting(), argSymbol);
+                return;
+            }
+
             for (Symbol symbol : compatibilityMap.get(argSymbol.path())) {
-                symbol = cloneSymbol(symbol, argSymbol.nesting());
-                possibilities.put(symbol.path() + "|" + symbol.nesting(), symbol);
+                possibilities.put(symbol.path(), symbol);
             }
 
         });
 
         return possibilities.values().stream().sorted(Comparator.comparing(Symbol::path)).toList();
+    }
+
+    static Symbol cloneSymbol(Symbol symbol, int nesting) {
+        symbol = new Symbol(symbol);
+        symbol.setNesting(nesting);
+        return symbol;
+    }
+
+    public List<Symbol> getCompatibleSymbols(Symbol symbol) {
+        return Collections.unmodifiableList(compatibilityMap.get(symbol.path()));
     }
 
     private void buildCompatibilityMap() {
@@ -173,8 +88,18 @@ public class SymbolMapper {
 
         for (Symbol symbol : symbols) {
             for (Symbol other : symbols) {
-                // TODO should I exclude subludemes? They don't have rules and I can't find any examples
-                if (symbol.compatibleWith(other) && other.ludemeType() != Symbol.LudemeType.SubLudeme) {
+                boolean isCompatible = symbol.compatibleWith(other);
+                boolean isSubLudeme = other.ludemeType() == Symbol.LudemeType.SubLudeme;
+                boolean isInitializable =
+                        !Modifier.isAbstract(other.cls().getModifiers())
+                        && !Modifier.isInterface(other.cls().getModifiers())
+                        && (
+                                other.cls().getConstructors().length > 0
+                                || Arrays.stream(other.cls().getMethods()).anyMatch(m -> m.getName().equals("construct"))
+                        );
+                boolean isEnumValue = other.cls().isEnum() && !other.cls().getTypeName().equals(other.path());
+
+                if (isCompatible && !isSubLudeme && (isInitializable || isEnumValue)) {
                     compatibilityMap.get(symbol.path()).add(other);
                 }
             }
@@ -222,6 +147,9 @@ public class SymbolMapper {
             for (int i = 0; i < clause.args().size(); i++) {
                 ClauseArg arg = clause.args().get(i);
 
+                if (!arg.symbol().usedInGrammar()) System.out.println("Symbol " + arg.symbol().path() + " is not used in grammar");
+
+                // TODO is if-else correct or should it just be a bunch of ifs?
                 if (arg.orGroup() == nextOrGroup) {
                     optionalFlags.set(i, arg.optional());
                     mandatoryFlags.set(i, !arg.optional());
@@ -235,21 +163,33 @@ public class SymbolMapper {
                     mandatoryFlags.set(i, !arg.optional());
                 }
             }
+
+            //System.out.println("optional flags:\n" + IntStream.range(0, clause.args().size()).mapToObj(i -> optionalFlags.get(i)? 1:0).toList());
+            //System.out.println("mandatory flags:\n" + IntStream.range(0, clause.args().size()).mapToObj(i -> mandatoryFlags.get(i)? 1:0).toList());
+
             // Permute optional flags
             // optionalIndexes: [3, 4, 5, 10, 12, 13, 14]
             // possibleSets: [[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], ..., [1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1] ]
-            List<BitSet> possibleSets = permuteFlags(optionalFlags, mandatoryFlags);
+            List<BitSet> flagPermutations = permuteFlags(optionalFlags, mandatoryFlags);
+            //System.out.println("permuted flags: ");
+            //flagPermutations.forEach(set -> System.out.println(IntStream.range(0, clause.args().size()).mapToObj(i -> set.get(i)? 1:0).toList()));
 
             // Complete selected andGroups
-            completeAndGroups(clause.args(), possibleSets);
+            completeAndGroups(clause.args(), flagPermutations);
 
             // Shift selection in or groups
-            int possibleSetsSize = possibleSets.size();
-            for (int i = 0; i < possibleSetsSize; i++) {
-                recursivelyShiftOrGroups(possibleSets.get(i), 1, clause.args(), possibleSets);
+            // MUST BE for i as we are modifying the list
+            List<BitSet> shiftedSets = new ArrayList<>();
+            for (BitSet flagPermutation : flagPermutations) {
+                //System.out.println("Shifting: "  + IntStream.range(0, clause.args().size()).mapToObj(i -> flagPermutation.get(i)? 1:0).toList());
+                recursivelyShiftOrGroups(flagPermutation, 1, clause.args(), shiftedSets);
             }
 
-            constructorSets.addAll(possibleSets.stream().map(set -> {
+            //System.out.println("shifted: ");
+            //shiftedSets.forEach(set -> System.out.println(IntStream.range(0, clause.args().size()).mapToObj(i -> set.get(i)? 1:0).toList()));
+
+
+            constructorSets.addAll(shiftedSets.stream().map(set -> {
                 List<Symbol> clauseSymbols = new ArrayList<>(clause.args().size() + 1);
                 for (int i = 0; i < clause.args().size(); i++) {
                     if (set.get(i)) {
@@ -269,8 +209,70 @@ public class SymbolMapper {
         return parameterStream.toList();
     }
 
-    public List<Symbol> getCompatibleSymbols(Symbol symbol) {
-        return Collections.unmodifiableList(compatibilityMap.get(symbol.path()));
+    private List<BitSet> permuteFlags(BitSet optionalFlags, BitSet mandatoryFlags) {
+        List<BitSet> possibleSets = new ArrayList<>();
+
+        int optionalParams = optionalFlags.cardinality();
+        int[] optionalIndexes = IntStream.range(0, optionalFlags.length()).filter(optionalFlags::get).toArray();
+
+        int initialPermutations = (int) Math.pow(2, optionalParams);
+        for (int i = 0; i < initialPermutations; i++) {
+            BitSet set = (BitSet) mandatoryFlags.clone();
+            for (int j = 0; j < optionalIndexes.length; j++) {
+                // Decide whether to set the optional parameter based on the jth digit of i in binary form
+                set.set(optionalIndexes[j], ((i >> j) & 1) == 1);
+            }
+
+            possibleSets.add(set);
+        }
+
+        return possibleSets;
+    }
+
+    private void completeAndGroups(List<ClauseArg> clauseArgs, List<BitSet> possibleSets) {
+        for (BitSet currentSet : possibleSets) {
+            int currentAndGroup = 0;
+            boolean active = false;
+            for (int j = 0; j < clauseArgs.size(); j++) {
+                ClauseArg arg = clauseArgs.get(j);
+
+                if (arg.andGroup() == currentAndGroup && active) {
+                    currentSet.set(j);
+                }
+
+                if (arg.andGroup() == currentAndGroup + 1) {
+                    currentAndGroup++;
+                    active = currentSet.get(j);
+                }
+            }
+        }
+    }
+
+    private void recursivelyShiftOrGroups(BitSet currentSet, int currentOrGroup, List<ClauseArg> clauseArgs, List<BitSet> possibleSets) {
+        int groupIndex = IntStream.range(0, clauseArgs.size()).filter(i -> clauseArgs.get(i).orGroup() == currentOrGroup).findFirst().orElse(-1);
+
+        if (groupIndex == -1) {
+            //System.out.println(IntStream.range(0, clauseArgs.size()).mapToObj(i -> currentSet.get(i)? 1:0).toList());
+            possibleSets.add(currentSet);
+            return;
+        }
+
+        if (!currentSet.get(groupIndex)) {
+            recursivelyShiftOrGroups(currentSet, currentOrGroup + 1, clauseArgs, possibleSets);
+            return;
+        }
+
+        for (int i = groupIndex; i < clauseArgs.size(); i++) {
+            ClauseArg arg = clauseArgs.get(i);
+            if (arg.orGroup() != currentOrGroup)
+                break;
+
+            BitSet newSet = (BitSet) currentSet.clone();
+            newSet.set(groupIndex, false);
+            newSet.set(i);
+            recursivelyShiftOrGroups(newSet, currentOrGroup + 1, clauseArgs, possibleSets);
+        }
+
     }
 
     static class EmptySymbol extends Symbol {
@@ -303,5 +305,27 @@ public class SymbolMapper {
         public Symbol returnType() {
             return this;
         }
+    }
+
+    public static void main(String[] args) {
+        // TODO Shouldn't DimFunction return dim constant? Shouldn't dim constant be a primitive?
+        // TODO why is game.functions.dim.DimConstant not in the grammar or the description?
+        List<Symbol> symbols = Grammar.grammar().symbols().stream().filter(s -> s.usedInGrammar() || s.usedInDescription() || !s.usedInMetadata()).toList();
+//
+        SymbolMapper symbolMapper = new SymbolMapper(symbols);
+        System.out.println("Finished mapping symbols. Found " + symbolMapper.parameterMap.values().stream().mapToInt(List::size).sum() + " parameter sets.");
+
+//        System.out.println(symbolMapper.nextPossibilities(rem, List.of(add, emptySymbol, emptySymbol, emptySymbol)));
+
+        // TODO, is int handled correctly? I don't think so.
+//        Grammar.grammar().symbols().stream().max(Comparator.comparingInt(s -> s.rule() == null? 0:s.rule().rhs().size())).ifPresent(s -> System.out.println(s.path() + " " + s.rule().rhs()));
+//        System.out.println(symbolMapper.parameterMap.get("int"));
+//        System.out.println(symbolMapper.nextPossibilities(Grammar.grammar().findSymbolByPath("java.lang.Integer"), new ArrayList<>()));
+
+
+//        ArrayList<Symbol> partialSymbols = new ArrayList<>();
+//        partialSymbols.add(Grammar.grammar().findSymbolByPath("java.lang.String"));
+//        partialSymbols.add(endOfClauseSymbol);
+//        System.out.println(symbolMapper.nextPossibilities(Grammar.grammar().findSymbolByPath("game.Game"), partialSymbols));
     }
 }
