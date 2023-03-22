@@ -30,8 +30,8 @@ public abstract class GeneratorNode {
         switch (symbol.path()) {
             case    "java.lang.Integer", "game.functions.ints.IntConstant", "game.functions.dim.DimConstant",
                     "java.lang.Float", "game.functions.floats.FloatConstant",
-                    "java.lang.String", "game.functions.strings.StringConstant",
-                    "java.lang.Boolean", "game.functions.booleans.BooleanConstant", "game.functions.booleans.TrueConstant", "game.functions.booleans.FalseConstant"
+                    "java.lang.String",
+                    "java.lang.Boolean", "game.functions.booleans.BooleanConstant"
                     -> {
                 return new PrimitiveNode(symbol, parent);
             }
@@ -92,7 +92,7 @@ public abstract class GeneratorNode {
     }
 
     public boolean isRecursivelyComplete() {
-        return complete && parameterSet.stream().allMatch(GeneratorNode::isRecursivelyComplete);
+        return isComplete() && parameterSet.stream().allMatch(GeneratorNode::isRecursivelyComplete);
     }
 
     public Symbol symbol() {
@@ -117,9 +117,9 @@ public abstract class GeneratorNode {
     }
 
     // TODO fix this
-    public GeneratorNode clone() {
+    public GeneratorNode copy() {
         GeneratorNode clone = fromSymbol(symbol, parent);
-        clone.parameterSet.addAll(parameterSet.stream().map(GeneratorNode::clone).toList());
+        clone.parameterSet.addAll(parameterSet.stream().map(GeneratorNode::copy).toList());
         clone.complete = complete;
         clone.compilerCache = compilerCache;
         return clone;

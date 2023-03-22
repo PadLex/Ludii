@@ -53,8 +53,8 @@ public class PrimitiveNode extends GeneratorNode {
     }
 
     @Override
-    public PrimitiveNode clone() {
-        PrimitiveNode clone = (PrimitiveNode) super.clone();
+    public PrimitiveNode copy() {
+        PrimitiveNode clone = (PrimitiveNode) super.copy();
         clone.setValue(value);
         return clone;
     }

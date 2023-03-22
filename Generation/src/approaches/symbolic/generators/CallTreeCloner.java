@@ -35,8 +35,9 @@ public class CallTreeCloner {
 
                 optionLoop:
                 for (GeneratorNode option : options) {
+                    // TODO why is this printing so often? Check if it's a bug
                     if (option.symbol().nesting() != nesting && option != EmptyNode.instance) {
-                        System.out.println(option.symbol() + ": " + option.symbol().nesting() + " incompatible with " + nesting);
+                        //System.out.println(option.symbol() + ": " + option.symbol().nesting() + " incompatible with " + nesting);
                         continue;
                     }
 
@@ -112,6 +113,9 @@ public class CallTreeCloner {
         if (call.type() != Call.CallType.Array)
             return nesting;
 
+        if (call.args().size() == 0)
+            return nesting + 1;
+
         return getNesting(call.args().get(0), nesting + 1);
     }
 
@@ -139,32 +143,53 @@ public class CallTreeCloner {
             if (gameStr.contains("match"))
                 continue;
 
-            System.out.println("Loaded " + path.getFileName() + " (" + count + " games)");
+            System.out.println("Loading " + path.getFileName() + " (" + (count + 1) + " of " + paths.size() + " games)");
 
             Description description = new Description(gameStr);
 
-            final UserSelections userSelections = new UserSelections(new ArrayList<String>());
+            final UserSelections userSelections = new UserSelections(new ArrayList<>());
             final Report report = new Report();
 
             final long startPreCompilation = System.currentTimeMillis();
-            Game originalGame = (Game) Compiler.compile(description, userSelections, report, false);
+            try {
+                Compiler.compile(description, userSelections, report, false);
+            } catch (Exception e) {
+                System.out.println("Could not pre-compile " + path.getFileName());
+                continue;
+            }
             final long endPreCompilation = System.currentTimeMillis();
+            //System.out.println("Old compile: " + (endPreCompilation - startPreCompilation) + "ms");
 
-            Playground.printCallTree(originalGame.description().callTree(), 0);
+            //Playground.printCallTree(originalGame.description().callTree(), 0);
 
-            GameNode rootNode = cloneCallTree(description.callTree(), symbolMapper);
-
+            GameNode rootNode;
+            try {
+                rootNode = cloneCallTree(description.callTree(), symbolMapper);
+            } catch (Exception e) {
+                System.out.println("Could not clone " + path.getFileName());
+                continue;
+            }
             final long endClone = System.currentTimeMillis();
+            //System.out.println("Clone: " + (endClone - endPreCompilation) + "ms");
 
-            Game game1 = rootNode.compile();
-
+            try {
+                rootNode.compile();
+            } catch (Exception e) {
+                System.out.println("Could not compile " + path.getFileName());
+                continue;
+            }
             final long endCompile = System.currentTimeMillis();
+            //System.out.println("My Compile: " + (endCompile - endClone) + "ms");
 
-            rootNode.rulesNode().clearCompilerCache();
-
-            Game game = rootNode.compile();
-
+            try {
+                rootNode.rulesNode().clearCompilerCache();
+                rootNode.compile();
+            } catch (Exception e) {
+                System.out.println("Could not recompile " + path.getFileName());
+                continue;
+            }
             final long endRecompile = System.currentTimeMillis();
+            //System.out.println("My Recompile: " + (endRecompile - endCompile) + "ms");
 
             count += 1;
             preCompilation += endPreCompilation - startPreCompilation;

@@ -39,7 +39,7 @@ public class ArrayNode extends GeneratorNode {
 
         List<GeneratorNode> options = new ArrayList<>();
         if (symbol.nesting() == 1) {
-            options.addAll(symbolMapper.getCompatibleSymbols(symbol).stream().filter(s -> s.ludemeType() != Symbol.LudemeType.Structural).map(s -> fromSymbol(s, this)).toList());
+            options.addAll(symbolMapper.getCompatibleSymbols(symbol).stream().map(s -> fromSymbol(s, this)).toList());
         } else {
             Symbol childSymbol = new Symbol(symbol);
             childSymbol.setNesting(symbol.nesting() - 1);

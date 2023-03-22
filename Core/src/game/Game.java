@@ -2456,7 +2456,7 @@ public class Game extends BaseLudeme implements API, Serializable
 	{
 		if (finishedPreprocessing)
 			System.err.println("Warning! Game.create() has already previously been called on " + name());
-		System.out.println("equipment: " + equipment + ", rules: " + rules);
+		//System.out.println("equipment: " + equipment + ", rules: " + rules);
 		initializeEquipmentAndRules();
 
 		// Create the times of the equipment.

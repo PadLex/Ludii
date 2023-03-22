@@ -31,14 +31,14 @@ public class GameNode extends GeneratorNode {
 
         boolean skipEquipment = parameterSet.get(3).compilerCache != null;
 
-        System.out.println("Skipping equipment: " + skipEquipment);
+        //System.out.println("Skipping equipment: " + skipEquipment);
 
         Game game = instantiate();
 
         if (skipEquipment) game.createGame();
         else game.create();
 
-        System.out.println("totalDefaultSites: " + game.equipment().totalDefaultSites());
+        //System.out.println("totalDefaultSites: " + game.equipment().totalDefaultSites());
 
 
         compilerCache = game;
@@ -85,6 +85,15 @@ public class GameNode extends GeneratorNode {
     @Override
     public String toString() {
         return "(" + symbol.token() + ": " + String.join(", ", parameterSet.stream().map(s -> s != null ? s.toString() : "null").toList()) + ")";
+    }
+
+    @Override
+    public GameNode copy() {
+        GameNode clone = new GameNode(symbol);
+        clone.parameterSet.addAll(parameterSet.stream().map(GeneratorNode::copy).toList());
+        clone.complete = complete;
+        clone.compilerCache = compilerCache;
+        return clone;
     }
 
     public GeneratorNode nameNode() {

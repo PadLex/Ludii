@@ -13,8 +13,14 @@ import java.util.stream.Stream;
 public class SymbolMapper {
     public static final Symbol emptySymbol = new EmptySymbol();
     public static final Symbol endOfClauseSymbol = new EndOfClauseSymbol();
-    // Replace a handful of hand-picked symbols
-    private static final String[][] equivalentSymbols = {{"game.functions.ints.IntConstant", "java.lang.Integer"}};
+
+    // TODO do I need to add RegionConstant?
+    private static final String[] primitives = {
+            "java.lang.Integer", "game.functions.ints.IntConstant", "game.functions.dim.DimConstant",
+            "java.lang.Float", "game.functions.floats.FloatConstant",
+            "java.lang.String",
+            "java.lang.Boolean", "game.functions.booleans.BooleanConstant"
+    };
     private final Set<Symbol> symbols = new HashSet<>();
     private final Set<String> paths = new HashSet<>();
     private final Map<String, List<Symbol>> compatibilityMap = new HashMap<>();
@@ -98,8 +104,10 @@ public class SymbolMapper {
                                 || Arrays.stream(other.cls().getMethods()).anyMatch(m -> m.getName().equals("construct"))
                         );
                 boolean isEnumValue = other.cls().isEnum() && !other.cls().getTypeName().equals(other.path());
+                boolean isPrimitive = Arrays.stream(primitives).anyMatch(p -> p.equals(other.path()));
+                boolean inGrammar = other.usedInGrammar();
 
-                if (isCompatible && !isSubLudeme && (isInitializable || isEnumValue)) {
+                if (isCompatible && !isSubLudeme && (isInitializable || isEnumValue) && (inGrammar || isPrimitive || isEnumValue)) {
                     compatibilityMap.get(symbol.path()).add(other);
                 }
             }
@@ -308,14 +316,18 @@ public class SymbolMapper {
     }
 
     public static void main(String[] args) {
-        // TODO Shouldn't DimFunction return dim constant? Shouldn't dim constant be a primitive?
-        // TODO why is game.functions.dim.DimConstant not in the grammar or the description?
         List<Symbol> symbols = Grammar.grammar().symbols().stream().filter(s -> s.usedInGrammar() || s.usedInDescription() || !s.usedInMetadata()).toList();
 //
         SymbolMapper symbolMapper = new SymbolMapper(symbols);
         System.out.println("Finished mapping symbols. Found " + symbolMapper.parameterMap.values().stream().mapToInt(List::size).sum() + " parameter sets.");
 
-//        System.out.println(symbolMapper.nextPossibilities(rem, List.of(add, emptySymbol, emptySymbol, emptySymbol)));
+        // TODO WHY is it used in grammar??
+        Symbol trackStep = Grammar.grammar().findSymbolByPath("game.util.equipment.TrackStep");
+        //Symbol trackStep = Grammar.grammar().findSymbolByPath("game.functions.trackStep.TrackStep");
+        System.out.println(trackStep);
+        System.out.println(trackStep.rule());
+        System.out.println(trackStep.usedInGrammar());
+        System.out.println(symbolMapper.nextPossibilities(trackStep, List.of()));
 
         // TODO, is int handled correctly? I don't think so.
 //        Grammar.grammar().symbols().stream().max(Comparator.comparingInt(s -> s.rule() == null? 0:s.rule().rhs().size())).ifPresent(s -> System.out.println(s.path() + " " + s.rule().rhs()));

@@ -2,12 +2,13 @@ package approaches.symbolic.generators;
 
 import approaches.random.Generator;
 import approaches.symbolic.SymbolMapper;
-import approaches.symbolic.nodes.EnumNode;
-import approaches.symbolic.nodes.GameNode;
-import approaches.symbolic.nodes.GeneratorNode;
-import approaches.symbolic.nodes.PrimitiveNode;
+import approaches.symbolic.nodes.*;
 import compiler.Compiler;
 import game.Game;
+import game.functions.booleans.BooleanConstant;
+import game.functions.dim.DimConstant;
+import game.functions.floats.FloatConstant;
+import game.functions.ints.IntConstant;
 import grammar.Grammar;
 import main.grammar.Description;
 import main.grammar.Symbol;
@@ -34,6 +35,7 @@ public class RandomGenerator {
             return;
         }
 
+        // Propagate through tree until we find an incomplete node
         if (node.isComplete()) {
             node.parameterSet().forEach(p -> completeGame(p, maxDepth));
             return;
@@ -53,16 +55,21 @@ public class RandomGenerator {
 
         while (!node.isComplete()) {
             List<GeneratorNode> options = node.nextPossibleParameters(symbolMapper);
-            System.out.println("Options: " + options.stream().map(GeneratorNode::symbol).map(Symbol::path).toList());
-            if (options.isEmpty()) {
-                failedSymbols.add(node.symbol());
-                //System.out.println("Parameters: " + node.parameterSet());
-                return;
+            //System.out.println("Options: " + options.stream().map(GeneratorNode::symbol).map(Symbol::path).toList());
+            if (options.contains(EndOfClauseNode.instance) && random.nextBoolean()) {
+                node.addParameter(EndOfClauseNode.instance);
+                continue;
             }
+
+            if (options.contains(EmptyNode.instance) && random.nextBoolean()) {
+                node.addParameter(EmptyNode.instance);
+                continue;
+            }
+
             node.addParameter(options.get(random.nextInt(options.size())));
         }
 
-        //System.out.println("Parameters: " + node.parameterSet());
+        System.out.println("Parameters: " + node.parameterSet());
 
         node.parameterSet().forEach(p -> completeGame(p, maxDepth - 1));
     }
@@ -84,6 +91,15 @@ public class RandomGenerator {
             case "java.lang.Boolean" -> {
                 return random.nextBoolean();
             }
+            case "game.functions.ints.IntConstant" -> {
+                return new IntConstant(random.nextInt(-10, 10));
+            }
+            case "game.functions.floats.FloatConstant" -> {
+                return new FloatConstant(random.nextFloat(10));
+            }
+            case "game.functions.booleans.BooleanConstant" -> {
+                return new BooleanConstant(random.nextBoolean());
+            }
             default -> throw new RuntimeException("Unknown primitive type: " + primitiveNode.symbol().ludemeType());
         }
     }
@@ -95,12 +111,12 @@ public class RandomGenerator {
 
         for (int i = 0; i < completionCount; i++) {
             System.out.println("Completion " + i);
-            GeneratorNode clone = root.clone();
+            GameNode clone = root.copy();
             assert clone.toString().equals(gameStr);
 
             completeGame(clone, maxDepth);
             if (clone.isRecursivelyComplete())
-                completions.add((GameNode) clone);
+                completions.add(clone);
 
         }
 
@@ -142,13 +158,15 @@ public class RandomGenerator {
 
         rootNode.rulesNode().find("play").find("move").find("to").find("sites").clearParameters();
 
-        int completionCount = 1;
+        int completionCount = 1874;
         List<GameNode> completions = randomGenerator.compilableCompletions(rootNode, completionCount, 10);
 
         System.out.println("Didn't crash: " + completionCount / (double) randomGenerator.failedSymbols.size() * 100 + "%");
         System.out.println("Complete: " + completions.size() / (double) completionCount * 100 + "%");
 
         System.out.println("Failed symbols: " + randomGenerator.failedSymbols.stream().map(Symbol::path).distinct().toList());
+
+        Playground.printCallTree(description.callTree(), 0);
 
 
 //        randomGenerator.completeGame(rootNode, 2);
