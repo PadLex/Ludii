@@ -14,6 +14,7 @@ import java.util.List;
 
 public class GameNode extends GeneratorNode {
 
+    static final Symbol gameSymbol = Grammar.grammar().findSymbolByPath("game.Game");
     static Symbol nameSymbol = Grammar.grammar().findSymbolByPath("java.lang.String");
     static Symbol playersSymbol = Grammar.grammar().findSymbolByPath("game.players.Players");
     static Symbol equipmentSymbol = Grammar.grammar().findSymbolByPath("game.equipment.Equipment");
@@ -23,6 +24,10 @@ public class GameNode extends GeneratorNode {
     public GameNode(Symbol symbol) {
         super(symbol, null);
         assert symbol.path().equals("game.Game");
+    }
+
+    public GameNode() {
+        super(gameSymbol, null);
     }
 
     @Override

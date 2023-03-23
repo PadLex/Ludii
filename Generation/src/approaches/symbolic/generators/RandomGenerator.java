@@ -18,8 +18,6 @@ import java.util.*;
 public class RandomGenerator {
     final Random random;
     final SymbolMapper symbolMapper;
-
-    List<Symbol> failedSymbols = new ArrayList<>();
     public RandomGenerator(SymbolMapper symbolMapper) {
         this.symbolMapper = symbolMapper;
         random = new Random();
@@ -51,7 +49,7 @@ public class RandomGenerator {
             return;
 
 
-        System.out.println("\nCompleting: " + node.symbol() + " " + node.symbol().ludemeType());
+        //System.out.println("\nCompleting: " + node.symbol() + " " + node.symbol().ludemeType());
 
         while (!node.isComplete()) {
             List<GeneratorNode> options = node.nextPossibleParameters(symbolMapper);
@@ -69,7 +67,7 @@ public class RandomGenerator {
             node.addParameter(options.get(random.nextInt(options.size())));
         }
 
-        System.out.println("Parameters: " + node.parameterSet());
+        //System.out.println("Parameters: " + node.parameterSet());
 
         node.parameterSet().forEach(p -> completeGame(p, maxDepth - 1));
     }
@@ -156,17 +154,43 @@ public class RandomGenerator {
 
         final long endCompile = System.currentTimeMillis();
 
-        rootNode.rulesNode().find("play").find("move").find("to").find("sites").clearParameters();
+        rootNode.rulesNode().find("play").find("move").clearParameters();
 
-        int completionCount = 1874;
-        List<GameNode> completions = randomGenerator.compilableCompletions(rootNode, completionCount, 10);
+        int completionCount = 100;
+        List<GameNode> completions = randomGenerator.compilableCompletions(rootNode, completionCount, 20);
 
-        System.out.println("Didn't crash: " + completionCount / (double) randomGenerator.failedSymbols.size() * 100 + "%");
         System.out.println("Complete: " + completions.size() / (double) completionCount * 100 + "%");
 
-        System.out.println("Failed symbols: " + randomGenerator.failedSymbols.stream().map(Symbol::path).distinct().toList());
+        int i = 0;
+        int compilable = 0;
+        int functional = 0;
+        int playable = 0;
+        int onlyDecisions = 0;
+        for (GameNode completion : completions) {
+            System.out.println("Compiling: " + (i++));
+            try {
+                Game game = completion.compile();
+                compilable ++;
+                if (Generator.isFunctional(game)) {
+                    functional ++;
+                    if (Generator.isFunctionalAndWithOnlyDecision(game)) {
+                        onlyDecisions++;
+                        if (Generator.isPlayable(game))
+                            playable++;
+                    }
+                }
+            } catch (Throwable ignored) {}
 
-        Playground.printCallTree(description.callTree(), 0);
+            // Release memory
+            completion.clearCompilerCache();
+        }
+
+        System.out.println("Compilable: " + compilable / (double) completionCount * 100 + "%");
+        System.out.println("Functional: " + functional / (double) completionCount * 100 + "%");
+        System.out.println("Playable: " + playable / (double) completionCount * 100 + "%");
+        System.out.println("Only decisions: " + onlyDecisions / (double) completionCount * 100 + "%");
+
+        //Playground.printCallTree(description.callTree(), 0);
 
 
 //        randomGenerator.completeGame(rootNode, 2);

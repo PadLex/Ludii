@@ -106,8 +106,9 @@ public class SymbolMapper {
                 boolean isEnumValue = other.cls().isEnum() && !other.cls().getTypeName().equals(other.path());
                 boolean isPrimitive = Arrays.stream(primitives).anyMatch(p -> p.equals(other.path()));
                 boolean inGrammar = other.usedInGrammar();
+                boolean hasRule = other.rule() != null;
 
-                if (isCompatible && !isSubLudeme && (isInitializable || isEnumValue) && (inGrammar || isPrimitive || isEnumValue)) {
+                if (isCompatible && !isSubLudeme && (isInitializable || isEnumValue) && ((inGrammar && hasRule) || isPrimitive || isEnumValue)) {
                     compatibilityMap.get(symbol.path()).add(other);
                 }
             }
