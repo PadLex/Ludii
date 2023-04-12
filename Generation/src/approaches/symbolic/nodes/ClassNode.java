@@ -48,4 +48,9 @@ public class ClassNode extends GeneratorNode {
     public String toString() {
         return "(" + symbol.token() + ": " + String.join(", ", parameterSet.stream().map(GeneratorNode::toString).toList()) + ")";
     }
+
+    @Override
+    public String buildDescription() {
+        return "(" + symbol.token() + " " + String.join(" ", parameterSet.stream().filter(s -> !(s instanceof EmptyNode || s instanceof EndOfClauseNode)).map(GeneratorNode::buildDescription).toList()) + ")";
+    }
 }

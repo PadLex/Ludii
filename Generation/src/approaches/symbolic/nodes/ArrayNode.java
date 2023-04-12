@@ -52,6 +52,13 @@ public class ArrayNode extends GeneratorNode {
 
     @Override
     public String toString() {
-        return "{" + String.join(", ", parameterSet.stream().map(s -> s != null ? s.toString() : "null").toList()) + "}";
+        return "{" + String.join(", ", parameterSet.stream().map(GeneratorNode::toString).toList()) + "}";
     }
+
+    @Override
+    public String buildDescription() {
+        return "{" + String.join(" ", parameterSet.stream().map(GeneratorNode::buildDescription).toList()) + "}";
+    }
+
+
 }

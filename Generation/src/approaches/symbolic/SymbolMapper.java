@@ -33,6 +33,10 @@ public class SymbolMapper {
     private final Map<String, List<List<Symbol>>> parameterMap = new HashMap<>();
     private final HashMap<String, Symbol> equivalenceMap = new HashMap<>();
 
+    public SymbolMapper() {
+        this(Grammar.grammar().symbols().stream().filter(s -> s.usedInGrammar() || s.usedInDescription() || !s.usedInMetadata()).toList());
+    }
+
     public SymbolMapper(Collection<Symbol> symbols) {
         this.symbols.addAll(symbols);
         this.paths.addAll(symbols.stream().map(Symbol::path).toList());
@@ -317,9 +321,7 @@ public class SymbolMapper {
     }
 
     public static void main(String[] args) {
-        List<Symbol> symbols = Grammar.grammar().symbols().stream().filter(s -> s.usedInGrammar() || s.usedInDescription() || !s.usedInMetadata()).toList();
-//
-        SymbolMapper symbolMapper = new SymbolMapper(symbols);
+        SymbolMapper symbolMapper = new SymbolMapper();
         System.out.println("Finished mapping symbols. Found " + symbolMapper.parameterMap.values().stream().mapToInt(List::size).sum() + " parameter sets.");
 
         // TODO WHY is it used in grammar??

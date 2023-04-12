@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GameNode extends GeneratorNode {
-
     static final Symbol gameSymbol = Grammar.grammar().findSymbolByPath("game.Game");
     static Symbol nameSymbol = Grammar.grammar().findSymbolByPath("java.lang.String");
     static Symbol playersSymbol = Grammar.grammar().findSymbolByPath("game.players.Players");
@@ -89,7 +88,12 @@ public class GameNode extends GeneratorNode {
 
     @Override
     public String toString() {
-        return "(" + symbol.token() + ": " + String.join(", ", parameterSet.stream().map(s -> s != null ? s.toString() : "null").toList()) + ")";
+        return "(" + symbol.token() + ": " + String.join(", ", parameterSet.stream().map(GeneratorNode::toString).toList()) + ")";
+    }
+
+    @Override
+    public String buildDescription() {
+        return "(" + symbol.token() + " " + String.join(" ", parameterSet.stream().filter(s -> !(s instanceof EmptyNode || s instanceof EndOfClauseNode)).map(GeneratorNode::buildDescription).toList()) + ")";
     }
 
     @Override

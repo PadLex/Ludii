@@ -27,14 +27,13 @@ public abstract class GeneratorNode {
             return new ArrayNode(symbol, parent);
         }
 
+        if (PrimitiveNode.typeOf(symbol.path()) != null)
+            return new PrimitiveNode(symbol, parent);
+
+        if (symbol.cls().isEnum())
+            return new EnumNode(symbol, parent);
+
         switch (symbol.path()) {
-            case    "java.lang.Integer", "game.functions.ints.IntConstant", "game.functions.dim.DimConstant",
-                    "java.lang.Float", "game.functions.floats.FloatConstant",
-                    "java.lang.String",
-                    "java.lang.Boolean", "game.functions.booleans.BooleanConstant"
-                    -> {
-                return new PrimitiveNode(symbol, parent);
-            }
             case "mapper.unused" -> {
                 return EmptyNode.instance;
             }
@@ -42,9 +41,6 @@ public abstract class GeneratorNode {
                 return EndOfClauseNode.instance;
             }
         }
-
-        if (symbol.cls().isEnum())
-            return new EnumNode(symbol, parent);
 
         return new ClassNode(symbol, parent);
     }
@@ -60,9 +56,14 @@ public abstract class GeneratorNode {
 
     public abstract List<GeneratorNode> nextPossibleParameters(SymbolMapper symbolMapper);
 
-    // TODO do I need termination Nodes? if I select (game <string>) instead of
-    //  (game <string> <players> [<mode>] <equipment> <rules.rules>) should I pad parameterSet with null values?
-    //  Rn the add parameter wil force you to define players
+    public List<GeneratorNode> nextPossibleParameters(SymbolMapper symbolMapper, List<GeneratorNode> partialArguments) {
+        int i = parameterSet.size();
+        parameterSet.addAll(partialArguments);
+        List<GeneratorNode> next = nextPossibleParameters(symbolMapper);
+        parameterSet.subList(i, parameterSet.size()).clear();
+        return next;
+    };
+
     public void addParameter(GeneratorNode param) {
         assert param != null;
 
@@ -72,6 +73,12 @@ public abstract class GeneratorNode {
         }
 
         parameterSet.add(param);
+    }
+
+    public void popParameter() {
+        parameterSet.remove(parameterSet.size() - 1);
+        clearCompilerCache();
+        complete = false;
     }
 
     public void clearParameters() {
@@ -123,5 +130,16 @@ public abstract class GeneratorNode {
         clone.complete = complete;
         clone.compilerCache = compilerCache;
         return clone;
+    }
+
+    public String buildDescription() {
+        return toString();
+    }
+
+    public GameNode root() {
+        GeneratorNode node = this;
+        while (node.parent != null)
+            node = node.parent;
+        return (GameNode) node;
     }
 }

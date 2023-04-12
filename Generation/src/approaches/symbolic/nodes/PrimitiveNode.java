@@ -11,9 +11,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
 public class PrimitiveNode extends GeneratorNode {
+
+    public enum PrimitiveType {INT, FLOAT, DIM, STRING, BOOLEAN}
     private Object value;
-
-
 
     PrimitiveNode(Symbol symbol, GeneratorNode parent) {
         super(symbol, parent);
@@ -21,6 +21,15 @@ public class PrimitiveNode extends GeneratorNode {
 
     public void setValue(Object value) {
         this.value = value;
+    }
+
+    public void setUnparsedValue(String strValue) {
+        switch (getType()) {
+            case INT, DIM -> value = Integer.parseInt(strValue);
+            case FLOAT -> value = Float.parseFloat(strValue);
+            case STRING -> value = strValue;
+            case BOOLEAN -> value = Boolean.parseBoolean(strValue);
+        }
     }
 
     Object instantiate() {
@@ -44,7 +53,7 @@ public class PrimitiveNode extends GeneratorNode {
     @Override
     public String toString() {
         if (value == null)
-            return "?";
+            return getType() + "?";
 
         if (value instanceof String)
             return "\"" + value + "\"";
@@ -57,5 +66,37 @@ public class PrimitiveNode extends GeneratorNode {
         PrimitiveNode clone = (PrimitiveNode) super.copy();
         clone.setValue(value);
         return clone;
+    }
+
+    public PrimitiveType getType() {
+        return typeOf(symbol.path());
+    }
+
+    public static PrimitiveType typeOf(String path) {
+        switch (path) {
+            case "java.lang.Integer", "game.functions.ints.IntConstant" -> {
+                return PrimitiveType.INT;
+            }
+
+            case "game.functions.dim.DimConstant" -> {
+                return PrimitiveType.DIM;
+            }
+
+            case "java.lang.Float", "game.functions.floats.FloatConstant" -> {
+                return PrimitiveType.FLOAT;
+            }
+
+            case "java.lang.Boolean", "game.functions.booleans.BooleanConstant" -> {
+                return PrimitiveType.BOOLEAN;
+            }
+
+            case "java.lang.String" -> {
+                return PrimitiveType.STRING;
+            }
+
+            default -> {
+                return null;
+            }
+        }
     }
 }
