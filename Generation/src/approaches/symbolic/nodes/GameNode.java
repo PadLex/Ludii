@@ -65,7 +65,7 @@ public class GameNode extends GeneratorNode {
             }
             case 2 -> {
                 ArrayList<GeneratorNode> options = new ArrayList<>(2);
-                options.add(EmptyNode.instance);
+                options.add(new EmptyNode(this));
                 options.add(new ClassNode(modeSymbol, this));
                 return options;
             }
@@ -76,7 +76,7 @@ public class GameNode extends GeneratorNode {
                 return List.of(new ClassNode(rulesSymbol, this));
             }
             default -> {
-                return List.of(EndOfClauseNode.instance);
+                return List.of(new EndOfClauseNode(this));
             }
         }
     }
@@ -97,9 +97,9 @@ public class GameNode extends GeneratorNode {
     }
 
     @Override
-    public GameNode copy() {
+    public GameNode copyDown() {
         GameNode clone = new GameNode(symbol);
-        clone.parameterSet.addAll(parameterSet.stream().map(GeneratorNode::copy).toList());
+        clone.parameterSet.addAll(parameterSet.stream().map(GeneratorNode::copyDown).toList());
         clone.complete = complete;
         clone.compilerCache = compilerCache;
         return clone;

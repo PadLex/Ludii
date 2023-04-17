@@ -14,8 +14,6 @@ public abstract class GeneratorNode {
     Object compilerCache = null;
     boolean complete;
 
-
-
     GeneratorNode(Symbol symbol, GeneratorNode parent) {
         assert symbol != null;
         this.symbol = symbol;
@@ -35,10 +33,10 @@ public abstract class GeneratorNode {
 
         switch (symbol.path()) {
             case "mapper.unused" -> {
-                return EmptyNode.instance;
+                return new EmptyNode(parent);
             }
             case "mapper.endOfClause" -> {
-                return EndOfClauseNode.instance;
+                return new EndOfClauseNode(parent);
             }
         }
 
@@ -67,7 +65,7 @@ public abstract class GeneratorNode {
     public void addParameter(GeneratorNode param) {
         assert param != null;
 
-        if (param == EndOfClauseNode.instance) {
+        if (param instanceof EndOfClauseNode) {
             complete = true;
             return;
         }
@@ -123,12 +121,25 @@ public abstract class GeneratorNode {
         return null;
     }
 
-    // TODO fix this
-    public GeneratorNode copy() {
+    public GeneratorNode copyDown() {
         GeneratorNode clone = fromSymbol(symbol, parent);
-        clone.parameterSet.addAll(parameterSet.stream().map(GeneratorNode::copy).toList());
+        clone.parameterSet.addAll(parameterSet.stream().map(GeneratorNode::copyDown).toList());
         clone.complete = complete;
         clone.compilerCache = compilerCache;
+        return clone;
+    }
+
+    public GeneratorNode copyUp() {
+        GeneratorNode clone = fromSymbol(symbol, parent);
+        clone.parameterSet.addAll(parameterSet);
+        clone.complete = complete;
+        clone.compilerCache = compilerCache;
+        if (parent != null) {
+            clone.parent = parent.copyUp();
+            System.out.println(clone.parent + ": " + clone + " " + parent.parameterSet.indexOf(this));
+            clone.parent.parameterSet.set(parent.parameterSet.indexOf(this), clone);
+        }
+
         return clone;
     }
 
@@ -141,5 +152,25 @@ public abstract class GeneratorNode {
         while (node.parent != null)
             node = node.parent;
         return (GameNode) node;
+    }
+
+    public List<Integer> indexPath() {
+        List<Integer> indexes = new ArrayList<>();
+        GeneratorNode node = this;
+        while (node.parent != null) {
+            System.out.println(node.parent.parameterSet + ": " + node + " " + node.parent.parameterSet.indexOf(node));
+            indexes.add(node.parent.parameterSet.indexOf(node));
+            node = node.parent;
+        }
+        Collections.reverse(indexes);
+        return indexes;
+    }
+
+    public GeneratorNode get(List<Integer> indexes) {
+        GeneratorNode node = this;
+        for (int i : indexes) {
+            node = node.parameterSet.get(i);
+        }
+        return node;
     }
 }

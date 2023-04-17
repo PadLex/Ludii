@@ -1,13 +1,8 @@
 package approaches.symbolic.nodes;
 
 import approaches.symbolic.SymbolMapper;
-import game.functions.dim.DimConstant;
-import game.functions.floats.FloatConstant;
-import game.functions.ints.IntConstant;
 import main.grammar.Symbol;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
 public class PrimitiveNode extends GeneratorNode {
@@ -62,8 +57,8 @@ public class PrimitiveNode extends GeneratorNode {
     }
 
     @Override
-    public PrimitiveNode copy() {
-        PrimitiveNode clone = (PrimitiveNode) super.copy();
+    public PrimitiveNode copyDown() {
+        PrimitiveNode clone = (PrimitiveNode) super.copyDown();
         clone.setValue(value);
         return clone;
     }

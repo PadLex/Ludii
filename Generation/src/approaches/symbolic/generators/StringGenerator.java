@@ -15,182 +15,250 @@ import java.util.stream.IntStream;
 import static approaches.symbolic.generators.CallTreeCloner.cloneCallTree;
 
 public class StringGenerator {
-    final SymbolMapper symbolMapper;
-
     static final Pattern integerPattern = Pattern.compile("-?\\d+");
     static final Pattern dimPattern = Pattern.compile("\\d+");
     static final Pattern floatPattern = Pattern.compile("-?\\d+\\.\\d+");
     static final Pattern stringPattern = Pattern.compile("\"\\w[\\w\\s]*\\w\"");
     static final Pattern booleanPattern = Pattern.compile("true|false");
-    GeneratorNode current;
-    String partialParameter = "";
-    List<GeneratorNode> options;
-    List<Integer> nulls;
 
-    // A bit hacky, it's used to keep track of whether the last token ended with a bracket.
-    // If so, enforce the required space between parameters.
-    boolean closedByBracket = false;
+    final SymbolMapper symbolMapper;
+
+    // Sometimes multiple options match the same string. In such a case, the generation path is cloned and all options
+    // are considered. Eventually, a string that is only compatible with one of the generation paths will be appended.
+    List<GenerationPath> generationPaths = new ArrayList<>();
 
     public StringGenerator() {
         this(new SymbolMapper());
     }
     public StringGenerator(SymbolMapper symbolMapper) {
         this.symbolMapper = symbolMapper;
+        generationPaths.add(new GenerationPath());
     }
 
-    /**
-     * Generates the next possible non-null options. Keeps track of the number of nulls preceding each option using the
-     * nulls list. Note: it assumes the partialParameter string is null.
-     */
-    private void findOptions() {
-        assert partialParameter.isEmpty();
-        System.out.println("Finding options for " + current);
-        if (current == null) {
-            options = List.of(new GameNode());
-            nulls = List.of(0);
-            return;
-        }
+    class GenerationPath {
+        // Current leaf node being completed
+        GeneratorNode current;
+        // As strings are appended, the partial parameter is built up until it matches an option.
+        String partialParameter = "";
 
-        options = new ArrayList<>();
-        options.addAll(current.nextPossibleParameters(symbolMapper));
-        // add a zero to the nulls list for each initial option
-        nulls = new ArrayList<>(IntStream.range(0, options.size()).mapToObj(j -> 0).toList());
+        // The options and nulls lists are kept in sync. The nulls list keeps track of the number of nulls preceding each option.
+        List<GeneratorNode> options;
+        List<Integer> nulls;
 
-        int n = 0;
-        while (options.remove(EmptyNode.instance)) {
-            n++;
-            current.addParameter(EmptyNode.instance);
-            List<GeneratorNode> newOptions = current.nextPossibleParameters(symbolMapper);
-            options.addAll(newOptions);
-            int finalN = n;
-            nulls.addAll(IntStream.range(0, newOptions.size()).mapToObj(j -> finalN).toList());
-        }
+        // Keeps track of whether the last token ended with a bracket. If so, enforce the required space between parameters.
+        boolean closedByBracket = false;
 
-        for (int i = 0; i < n; i++) {
-            current.popParameter();
-        }
-    }
-
-    /**
-     * @param token the token to append
-     * @return true if the token was successfully appended, false otherwise
-     */
-    public boolean append(String token) {
-        if (token.length() == 0)
-            throw new RuntimeException("Empty token");
-
-        if (token.length() != 1 && (token.indexOf('(') != -1 || token.indexOf(')') != -1 || token.indexOf('{') != -1 || token.indexOf('}') != -1 || token.indexOf(' ') != -1))
-            throw new RuntimeException("Multi-character Token contains a special character: " + token);
-
-        if (options == null) {
-            findOptions();
-        }
-        System.out.println("\nAppending: " + token);
-        System.out.println("Current: " + current);
-        System.out.println("Options: " + options);
-
-        if (closedByBracket && !token.equals(")") && !token.equals("}")) {
-            closedByBracket = false;
-            return token.equals(" ");
-        }
-
-        // check if token completes a parameter
-        if (token.equals(" ")) {
-            if (partialParameter.isEmpty())
-                return false;
-
-            for (GeneratorNode option : options) {
-                if (matches(partialParameter, option)) {
-                    appendOption(option);
-                    return true;
-                }
+        /**
+         * Generates the next possible non-null options. Keeps track of the number of nulls preceding each option using the
+         * nulls list. Note: it assumes the partialParameter string is null.
+         */
+        private void findOptions() {
+            assert partialParameter.isEmpty();
+            //System.out.println("Finding options for " + current);
+            if (current == null) {
+                options = List.of(new GameNode());
+                nulls = List.of(0);
+                return;
             }
-            return false;
+
+            options = new ArrayList<>();
+            options.addAll(current.nextPossibleParameters(symbolMapper));
+            // add a zero to the nulls list for each initial option
+            nulls = new ArrayList<>(IntStream.range(0, options.size()).mapToObj(j -> 0).toList());
+
+            int n = 0;
+            while (true) {
+                GeneratorNode emptyNode = options.stream().filter(node -> node instanceof EmptyNode).findFirst().orElse(null);
+                if (emptyNode == null)
+                    break;
+
+                n++;
+                current.addParameter(emptyNode);
+                List<GeneratorNode> newOptions = current.nextPossibleParameters(symbolMapper);
+                options.addAll(newOptions);
+                int finalN = n;
+                nulls.addAll(IntStream.range(0, newOptions.size()).mapToObj(j -> finalN).toList());
+            }
+
+            for (int i = 0; i < n; i++) {
+                current.popParameter();
+            }
         }
 
-        if (token.equals(")") || token.equals("}")) {
-            if (!partialParameter.isEmpty()) {
+        /**
+         * @param token the token to append
+         * @return true if the token was successfully appended, false otherwise
+         */
+        public List<GenerationPath> append(String token) {
+            if (token.length() == 0)
+                throw new RuntimeException("Empty token");
+
+            if (token.length() != 1 && (token.indexOf('(') != -1 || token.indexOf(')') != -1 || token.indexOf('{') != -1 || token.indexOf('}') != -1 || token.indexOf(' ') != -1))
+                throw new RuntimeException("Multi-character Token contains a special character: " + token);
+
+            if (options == null) {
+                findOptions();
+            }
+            System.out.println("\nAppending: " + token);
+            //System.out.println("Current: " + current);
+            //System.out.println("Options: " + options);
+
+            if (closedByBracket && !token.equals(")") && !token.equals("}")) {
+                closedByBracket = false;
+                if (token.equals(" "))
+                    return List.of(this);
+                return List.of();
+            }
+
+            // check if token completes a parameter
+            if (token.equals(" ")) {
+                if (partialParameter.isEmpty())
+                    return List.of();
+
+                List<GenerationPath> newPaths = new ArrayList<>();
                 for (GeneratorNode option : options) {
                     if (matches(partialParameter, option)) {
-                        appendOption(option);
-                        break;
+                        GenerationPath path = this.copy();
+                        path.appendOption(option);
+                        System.out.println("New Path Space: " + path);
+                        newPaths.add(path);
                     }
                 }
-
-                if (!partialParameter.isEmpty())
-                    return false;
-
-                assert options == null;
-                findOptions();
-                closedByBracket = true;
+                return newPaths;
             }
 
-            if (!options.contains(EndOfClauseNode.instance))
-                return false;
+            if (token.equals(")") || token.equals("}")) {
+                List<GenerationPath> possiblePaths = new ArrayList<>();
 
-            for (int i = 0; i < nulls.get(options.indexOf(EndOfClauseNode.instance)); i++) {
-                current.addParameter(EmptyNode.instance);
+                // Complete the current parameter if there wasn't a space preceding the bracket
+                if (!partialParameter.isEmpty()) {
+                    for (GeneratorNode option : options) {
+                        if (matches(partialParameter, option)) {
+                            GenerationPath path = this.copy();
+                            path.appendOption(option);
+                            System.out.println("New Path Bracket: " + path);
+                            assert path.options == null;
+                            path.findOptions();
+                            possiblePaths.add(path);
+                        }
+                    }
+                } else {
+                    possiblePaths.add(this);
+                }
+
+                // Identify and complete valid paths
+                List<GenerationPath> newPaths = new ArrayList<>();
+                for (GenerationPath path : possiblePaths) {
+                    // TODO used to be an if. not sure what could trigger it
+                    assert path.partialParameter.isEmpty();
+
+                    // Verify that the current node can be closed
+                    GeneratorNode endNode = options.stream().filter(node -> node instanceof EndOfClauseNode).findFirst().orElse(null);
+                    if (endNode == null)
+                        continue;
+
+                    path.closedByBracket = true;
+
+                    // Add the end of clause parameter and it's preceding nulls
+                    for (int i = 0; i < path.nulls.get(path.options.indexOf(endNode)); i++) {
+                        path.current.addParameter(new EmptyNode(path.current));
+                    }
+                    path.current.addParameter(endNode);
+
+                    // Complete current node, moving up the tree until a node is incomplete
+                    path.completeCurrent();
+
+                    System.out.println("New Path Complete: " + path);
+
+                    // Add this path as a possible path
+                    newPaths.add(path);
+                }
+
+                return newPaths;
             }
-            current.addParameter(EndOfClauseNode.instance);
-            completeCurrent();
-            return true;
-        }
 
-        // deal with arrays
-        if (token.equals("{")) {
+            // deal with arrays
+            if (token.equals("{")) {
+                List<GenerationPath> possiblePaths = new ArrayList<>();
+                for (GeneratorNode option : options) {
+                    if (option instanceof ArrayNode) {
+                        GenerationPath path = this.copy();
+                        path.appendOption(option);
+                        possiblePaths.add(path);
+                    }
+                }
+                return possiblePaths;
+            }
+
+            // check if the new string is consistent with any of the options
+            String newPartialParameter = partialParameter + token;
+            System.out.println("New partial parameter: " + newPartialParameter);
             for (GeneratorNode option : options) {
-                if (option instanceof ArrayNode) {
-                    appendOption(option);
-                    return true;
+                if (consistent(newPartialParameter, option)) {
+                    GenerationPath path = this.copy();
+                    path.partialParameter = newPartialParameter;
+                    return List.of(path);
                 }
             }
-            return false;
+
+            return List.of();
         }
 
-        // check if the new string is consistent with any of the options
-        String newPartialParameter = partialParameter + token.strip();
-        for (GeneratorNode option : options) {
-            if (consistent(newPartialParameter, option)) {
-                partialParameter = newPartialParameter;
-                return true;
+
+        private void completeCurrent() {
+            assert current.isComplete();
+            options = null;
+            partialParameter = "";
+            current = current.parent();
+            System.out.println("Moving up to: " + current);
+            if (current.isComplete()) {
+                completeCurrent();
             }
         }
 
-        return false;
-    }
+        private void appendOption(GeneratorNode option) {
+            if (option instanceof PrimitiveNode)
+                ((PrimitiveNode) option).setUnparsedValue(partialParameter.replace("\"", ""));
 
-
-    private void completeCurrent() {
-        assert current.isComplete();
-        options = null;
-        partialParameter = "";
-        current = current.parent();
-        System.out.println("Moving up to: " + current);
-        if (current.isComplete()) {
-            completeCurrent();
-        }
-    }
-
-    private void appendOption(GeneratorNode option) {
-        if (option instanceof PrimitiveNode)
-            ((PrimitiveNode) option).setUnparsedValue(partialParameter.replace("\"", ""));
-        System.out.println("Appending option: " + option);
-        if (current == null)
-            current = option;
-        else {
-            for (int i = 0; i < nulls.get(options.indexOf(option)); i++) {
-                current.addParameter(EmptyNode.instance);
+            System.out.println("Appending option: " + option);
+            if (current == null)
+                current = option;
+            else {
+                for (int i = 0; i < nulls.get(options.indexOf(option)); i++) {
+                    current.addParameter(new EmptyNode(current));
+                }
+                current.addParameter(option);
+                assert current.parent().parameterSet().contains(current);
             }
-            current.addParameter(option);
+
+            System.out.println("Appended: " + current);
+
+            if (!option.isComplete())
+                current = option;
+
+            options = null;
+            partialParameter = "";
         }
 
-        System.out.println("Appended: " + current);
+        public GenerationPath copy() {
+            GenerationPath clone = new GenerationPath();
 
-        if (!option.isComplete())
-            current = option;
+            if (current != null) {
+                System.out.println("current: "+current);
+                clone.current = current.copyUp();
+            }
 
-        options = null;
-        partialParameter = "";
+            clone.options = new ArrayList<>(options);
+            clone.nulls = nulls != null ? new ArrayList<>(nulls) : null;
+            clone.partialParameter = partialParameter;
+            clone.closedByBracket = closedByBracket;
+            return clone;
+        }
+
+        @Override
+        public String toString() {
+            return "{partialParameter: '" + partialParameter + "', current: " + current + ", options: " + options + "}";
+        }
     }
 
     /**
@@ -200,7 +268,7 @@ public class StringGenerator {
      */
     private boolean consistent(String string, GeneratorNode node) {
         assert !(node instanceof EmptyNode);
-        System.out.println("Consistent: " + node + ", " + string);
+        //System.out.println("Consistent? " + node + ", " + string);
 
         if (node instanceof PrimitiveNode) {
             Matcher matcher = primitiveMatcher((PrimitiveNode) node, string);
@@ -222,13 +290,13 @@ public class StringGenerator {
      */
     private boolean matches(String newString, GeneratorNode node) {
         assert !(node instanceof EmptyNode);
-        System.out.println("Matching: " + node + ", " + newString);
+        //System.out.println("Matching: " + node + ", " + newString);
 
         if (node instanceof EndOfClauseNode)
             return newString.strip().equals(")");
 
         if (node instanceof PrimitiveNode) {
-            System.out.println("Matching Primitive: " + node + ", " + newString + ", " + primitiveMatcher((PrimitiveNode) node, newString).matches());
+            //System.out.println("Matching Primitive: " + node + ", " + newString + ", " + primitiveMatcher((PrimitiveNode) node, newString).matches());
             return primitiveMatcher((PrimitiveNode) node, newString).matches();
         }
 
@@ -241,7 +309,7 @@ public class StringGenerator {
     }
 
     private Matcher primitiveMatcher(PrimitiveNode primitiveNode, String newString) {
-        System.out.println("Primitive node: " + primitiveNode.getType() + ", " + newString);
+        //System.out.println("Primitive node: " + primitiveNode.getType() + ", " + newString);
         switch (primitiveNode.getType()) {
             case INT -> {
                 return integerPattern.matcher(newString);
@@ -263,7 +331,6 @@ public class StringGenerator {
             }
         }
     }
-
     public static List<String> splitGameDescription(String gameDescription) {
         gameDescription = gameDescription.replaceAll("\\s+", " ");
         gameDescription = gameDescription.replaceAll("\\( ", "(");
@@ -303,6 +370,22 @@ public class StringGenerator {
         return result;
     }
 
+    public boolean append(String token) {
+        List<GenerationPath> newGenerationPaths = new ArrayList<>();
+
+        for (GenerationPath generationPath: generationPaths) {
+            List<GenerationPath> generationPathsForPath = generationPath.append(token);
+            System.out.println("Generation paths for path: " + generationPathsForPath);
+            newGenerationPaths.addAll(generationPathsForPath);
+        }
+
+        if (newGenerationPaths.isEmpty())
+            return false;
+
+        generationPaths = newGenerationPaths;
+        return true;
+    }
+
     static void stringTest(String gameDescription) {
         List<String> tokens = splitGameDescription(gameDescription);
         System.out.println(tokens);
@@ -312,9 +395,14 @@ public class StringGenerator {
                 System.out.println("Failed to append token: " + token);
                 break;
             }
+
+            System.out.println("Appended token: " + token);
+            System.out.println("Path count: " + generator.generationPaths.size());
+            System.out.println("Current paths: " + generator.generationPaths.stream().limit(100).toList());
+
         }
-        System.out.println("Terminated on: " + generator.current);
-        System.out.println("Final result: " + generator.current.root().buildDescription());
+        //System.out.println("Terminated on: " + generator.generationPaths.stream().map(p -> p.current).toList());
+        //System.out.println("Final result: " + generator.generationPaths.stream().map(p -> p.current.root().buildDescription()).toList());
     }
 
     public static void main(String[] args) {
@@ -325,8 +413,6 @@ public class StringGenerator {
 
         stringTest(rootNode.buildDescription());
 
-        System.out.println(rootNode.buildDescription());
-
+        System.out.println("Expected: " + rootNode.buildDescription());
     }
-
 }

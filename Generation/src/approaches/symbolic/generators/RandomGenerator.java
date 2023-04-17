@@ -6,7 +6,6 @@ import approaches.symbolic.nodes.*;
 import compiler.Compiler;
 import game.Game;
 import game.functions.booleans.BooleanConstant;
-import game.functions.dim.DimConstant;
 import game.functions.floats.FloatConstant;
 import game.functions.ints.IntConstant;
 import grammar.Grammar;
@@ -54,13 +53,15 @@ public class RandomGenerator {
         while (!node.isComplete()) {
             List<GeneratorNode> options = node.nextPossibleParameters(symbolMapper);
             //System.out.println("Options: " + options.stream().map(GeneratorNode::symbol).map(Symbol::path).toList());
-            if (options.contains(EndOfClauseNode.instance) && random.nextBoolean()) {
-                node.addParameter(EndOfClauseNode.instance);
+            GeneratorNode endNode = options.stream().filter(n -> n instanceof EndOfClauseNode).findFirst().orElse(null);
+            if (endNode != null && random.nextBoolean()) {
+                node.addParameter(endNode);
                 continue;
             }
 
-            if (options.contains(EmptyNode.instance) && random.nextBoolean()) {
-                node.addParameter(EmptyNode.instance);
+            GeneratorNode emptyNode = options.stream().filter(n -> n instanceof EmptyNode).findFirst().orElse(null);
+            if (emptyNode != null && random.nextBoolean()) {
+                node.addParameter(emptyNode);
                 continue;
             }
 
@@ -109,7 +110,7 @@ public class RandomGenerator {
 
         for (int i = 0; i < completionCount; i++) {
             System.out.println("Completion " + i);
-            GameNode clone = root.copy();
+            GameNode clone = root.copyDown();
             assert clone.toString().equals(gameStr);
 
             completeGame(clone, maxDepth);

@@ -36,7 +36,7 @@ public class CallTreeCloner {
                 optionLoop:
                 for (GeneratorNode option : options) {
                     // TODO why is this printing so often? Check if it's a bug
-                    if (option.symbol().nesting() != nesting && option != EmptyNode.instance) {
+                    if (option.symbol().nesting() != nesting && !(option instanceof EmptyNode)) {
                         //System.out.println(option.symbol() + ": " + option.symbol().nesting() + " incompatible with " + nesting);
                         continue;
                     }
@@ -81,8 +81,8 @@ public class CallTreeCloner {
 
             case Null -> {
                 for (GeneratorNode option : options) {
-                    if (option == EmptyNode.instance)
-                        yield EmptyNode.instance;
+                    if (option instanceof EmptyNode)
+                        yield option;
                 }
 
                 throw new RuntimeException("null is not an option");
@@ -90,7 +90,7 @@ public class CallTreeCloner {
         };
 
         for (Call childCall : call.args()) {
-            assert node != EmptyNode.instance;
+            assert !(node instanceof EmptyNode);
             //System.out.println(node.symbol() + ": " + node.parameterSet().stream().map(GeneratorNode::symbol).toList());
             //System.out.println("options: " + node.nextPossibleParameters(symbolMapper));
             GeneratorNode child = cloneCallTree(childCall, node.nextPossibleParameters(symbolMapper), symbolMapper);
@@ -98,8 +98,8 @@ public class CallTreeCloner {
         }
 
         if (call.type() == Call.CallType.Array || call.type() == Call.CallType.Class) {
-            assert node.nextPossibleParameters(symbolMapper).contains(EndOfClauseNode.instance);
-            node.addParameter(EndOfClauseNode.instance);
+            GeneratorNode endNode = node.nextPossibleParameters(symbolMapper).stream().filter(n -> n instanceof EndOfClauseNode).findFirst().orElseThrow();
+            node.addParameter(endNode);
         }
 
         if (!node.isComplete())

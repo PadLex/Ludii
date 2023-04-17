@@ -34,7 +34,7 @@ public class ArrayNode extends GeneratorNode {
     }
 
     public List<GeneratorNode> nextPossibleParameters(SymbolMapper symbolMapper) {
-        if (!parameterSet.isEmpty() && parameterSet.get(parameterSet.size() - 1) == EndOfClauseNode.instance)
+        if (!parameterSet.isEmpty() && parameterSet.get(parameterSet.size() - 1) instanceof EndOfClauseNode)
             return List.of();
 
         List<GeneratorNode> options = new ArrayList<>();
@@ -46,13 +46,13 @@ public class ArrayNode extends GeneratorNode {
             options.add(new ArrayNode(childSymbol, this));
         }
 
-        options.add(EndOfClauseNode.instance);
+        options.add(new EndOfClauseNode(this));
         return options;
     }
 
     @Override
     public String toString() {
-        return "{" + String.join(", ", parameterSet.stream().map(GeneratorNode::toString).toList()) + "}";
+        return "{" + symbol.grammarLabel() + ": " + String.join(", ", parameterSet.stream().map(GeneratorNode::toString).toList()) + "}";
     }
 
     @Override

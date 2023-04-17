@@ -6,10 +6,10 @@ import main.grammar.Symbol;
 import java.util.List;
 
 public class EndOfClauseNode extends GeneratorNode {
-    public static final EndOfClauseNode instance = new EndOfClauseNode(SymbolMapper.endOfClauseSymbol, null);
-    private EndOfClauseNode(Symbol symbol, GeneratorNode parent) {
-        super(symbol, parent);
+    public EndOfClauseNode(GeneratorNode parent) {
+        super(SymbolMapper.endOfClauseSymbol, parent);
     }
+
     @Override
     Object instantiate() {
         throw new RuntimeException("EndOfClauseNode should never be instantiated");
