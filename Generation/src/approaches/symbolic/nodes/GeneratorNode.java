@@ -140,7 +140,6 @@ public abstract class GeneratorNode {
         clone.compilerCache = compilerCache;
         if (parent != null) {
             clone.parent = parent.copyUp();
-            System.out.println(clone.parent + ": " + clone + " " + parent.parameterSet.indexOf(this));
             clone.parent.parameterSet.set(parent.parameterSet.indexOf(this), clone);
         }
 
@@ -155,8 +154,7 @@ public abstract class GeneratorNode {
         GeneratorNode node = this;
         while (node.parent != null)
             node = node.parent;
-        if (!(node instanceof GameNode))
-            System.out.println("Root is not a GameNode: " + node);
+
         return (GameNode) node;
     }
 

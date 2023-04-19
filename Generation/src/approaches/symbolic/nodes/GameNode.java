@@ -56,7 +56,6 @@ public class GameNode extends GeneratorNode {
 
     @Override
     public List<GeneratorNode> nextPossibleParameters(SymbolMapper symbolMapper) {
-        System.out.println("GameNode.nextPossibleParameters: " + parameterSet.size());
         switch (parameterSet.size()) {
             case 0 -> {
                 return List.of(new PrimitiveNode(nameSymbol, this));
