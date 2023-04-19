@@ -108,6 +108,10 @@ public abstract class GeneratorNode {
         return parent;
     }
 
+    public void setParent(GeneratorNode parent) {
+        this.parent = parent;
+    }
+
     public List<GeneratorNode> parameterSet() {
         return Collections.unmodifiableList(parameterSet);
     }
@@ -151,6 +155,8 @@ public abstract class GeneratorNode {
         GeneratorNode node = this;
         while (node.parent != null)
             node = node.parent;
+        if (!(node instanceof GameNode))
+            System.out.println("Root is not a GameNode: " + node);
         return (GameNode) node;
     }
 

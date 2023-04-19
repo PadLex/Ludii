@@ -11,6 +11,7 @@ import java.util.List;
 public class ClassNode extends GeneratorNode {
     ClassNode(Symbol symbol, GeneratorNode parent) {
         super(symbol, parent);
+        assert !symbol.path().equals("game.Game");
     }
 
     Object instantiate() {

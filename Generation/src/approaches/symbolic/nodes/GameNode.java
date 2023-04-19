@@ -56,6 +56,7 @@ public class GameNode extends GeneratorNode {
 
     @Override
     public List<GeneratorNode> nextPossibleParameters(SymbolMapper symbolMapper) {
+        System.out.println("GameNode.nextPossibleParameters: " + parameterSet.size());
         switch (parameterSet.size()) {
             case 0 -> {
                 return List.of(new PrimitiveNode(nameSymbol, this));
@@ -105,6 +106,15 @@ public class GameNode extends GeneratorNode {
         return clone;
     }
 
+    @Override
+    public GameNode copyUp() {
+        GameNode clone = new GameNode(symbol);
+        clone.parameterSet.addAll(parameterSet);
+        clone.complete = complete;
+        clone.compilerCache = compilerCache;
+        return clone;
+    }
+
     public GeneratorNode nameNode() {
         return parameterSet.get(0);
     }
@@ -123,5 +133,10 @@ public class GameNode extends GeneratorNode {
 
     public GeneratorNode rulesNode() {
         return parameterSet.get(4);
+    }
+
+    @Override
+    public void setParent(GeneratorNode parent) {
+        throw new RuntimeException("Cannot set parent of GameNode");
     }
 }
