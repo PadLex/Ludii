@@ -11,10 +11,10 @@ import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
 public class GenerationPath {
-    static final Pattern integerPattern = Pattern.compile("-?\\d+");
-    static final Pattern dimPattern = Pattern.compile("\\d+");
-    static final Pattern floatPattern = Pattern.compile("-?\\d+\\.\\d+");
-    static final Pattern stringPattern = Pattern.compile("\"\\w[\\w\\s]*\\w\"");
+    static final Pattern integerPattern = Pattern.compile("-?\\d{1,10}");
+    static final Pattern dimPattern = Pattern.compile("\\d{1,10}");
+    static final Pattern floatPattern = Pattern.compile("-?\\d{1,10}\\.\\d{1,10}");
+    static final Pattern stringPattern = Pattern.compile("\"\\w[\\w\\s]{0,50}\\w\"");
     static final Pattern booleanPattern = Pattern.compile("true|false");
 
     final SymbolMapper symbolMapper;
@@ -139,6 +139,13 @@ public class GenerationPath {
             if (endNode == null)
                 continue;
 
+            //Verify the bracket corresponds to the correct node type
+            if (token.equals(")") && !(path.current instanceof ClassNode))
+                continue;
+
+            if (token.equals("}") && !(path.current instanceof ArrayNode))
+                continue;
+
             path.closedByBracket = true;
 
             // Add the end of clause parameter and it's preceding nulls
@@ -161,6 +168,10 @@ public class GenerationPath {
 
     // Creates a new list of GenerationPath instances for ArrayNode options
     private List<GenerationPath> newList(String token) {
+        // We can't start a new list if we already started building a parameter
+        if (!partialParameter.isEmpty())
+            return List.of();
+
         List<GenerationPath> possiblePaths = new ArrayList<>();
         for (GeneratorNode option : options) {
             if (option instanceof ArrayNode) {
@@ -178,7 +189,7 @@ public class GenerationPath {
         String newPartialParameter = partialParameter + token;
         //System.out.println("New partial parameter: " + newPartialParameter);
         for (GeneratorNode option : options) {
-            if (consistent(newPartialParameter, option)) {
+            if (!(option instanceof EndOfClauseNode) && consistent(newPartialParameter, option)) {
                 GenerationPath path = this.copy();
                 path.partialParameter = newPartialParameter;
                 return List.of(path);
@@ -255,7 +266,7 @@ public class GenerationPath {
      * @return true if the string matches the node or could match it if more characters where appended, false otherwise
      */
     private boolean consistent(String string, GeneratorNode node) {
-        assert !(node instanceof EmptyNode);
+        assert !(node instanceof EmptyNode) && !(node instanceof EndOfClauseNode);
         //System.out.println("Consistent? " + node + ", " + string);
 
         if (node instanceof PrimitiveNode) {

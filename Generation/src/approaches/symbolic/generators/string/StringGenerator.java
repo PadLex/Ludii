@@ -183,10 +183,25 @@ public class StringGenerator {
     }
 
     static void randomTest() {
-        List<String> validTokens = List.of(" ", "(", ")", "[", "]", "{", "}", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", ":", "\"");
+        List<String> tokens = List.of(" ", "(", ")", "[", "]", "{", "}", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", ":", "\"");
+        Random random = new Random(0);
+        StringGenerator generator = new StringGenerator();
+        while (true) {
+            Map<String, GenerationState> validTokens = generator.filter(tokens);
+            if (validTokens.isEmpty()) {
+                System.out.println("\nNo valid tokens left");
+                break;
+            }
+
+            String token = validTokens.keySet().stream().skip(random.nextInt(validTokens.size())).findFirst().get();
+            System.out.print(token);
+            generator.append(validTokens.get(token));
+        }
+        System.out.println(generator.generationState.generationPaths.stream().map(p -> p.current.root().buildDescription()).toList());
+
     }
 
     public static void main(String[] args) {
-        // TODO fix for :
+        randomTest();
     }
 }
