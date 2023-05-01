@@ -35,6 +35,6 @@ public class EnumNode extends GeneratorNode {
 
     @Override
     public String toString() {
-        return symbol.toString();
+        return symbol.grammarLabel();
     }
 }

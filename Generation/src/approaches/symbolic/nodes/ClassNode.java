@@ -47,7 +47,7 @@ public class ClassNode extends GeneratorNode {
 
     @Override
     public String toString() {
-        return "(" + symbol.token() + ": " + String.join(", ", parameterSet.stream().map(GeneratorNode::toString).toList()) + ")";
+        return "(" + symbol.grammarLabel() + ": " + String.join(", ", parameterSet.stream().map(GeneratorNode::toString).toList()) + ")";
     }
 
     @Override

@@ -3,19 +3,25 @@ package approaches.symbolic.generators.string;
 import approaches.symbolic.SymbolMapper;
 import approaches.symbolic.nodes.*;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class GenerationPath {
-    static final Pattern integerPattern = Pattern.compile("-?\\d{1,10}");
-    static final Pattern dimPattern = Pattern.compile("\\d{1,10}");
-    static final Pattern floatPattern = Pattern.compile("-?\\d{1,10}\\.\\d{1,10}");
+    static final String naturalNumber = "0|([1-9]\\d{0,9})";
+    static final Pattern integerPattern = Pattern.compile("-?" + naturalNumber);
+    static final Pattern dimPattern = Pattern.compile(naturalNumber);
+    static final Pattern floatPattern = Pattern.compile("-?" + naturalNumber + "\\." + naturalNumber);
     static final Pattern stringPattern = Pattern.compile("\"\\w[\\w\\s]{0,50}\\w\"");
     static final Pattern booleanPattern = Pattern.compile("true|false");
+
+    static final Map<String, Set<String>> equivalenceFilters = Map.of(
+            "game.functions.ints.IntConstant", Set.of("java.lang.Integer", "game.functions.dim.DimConstant"),
+            "java.lang.Integer", Set.of("game.functions.dim.DimConstant"),
+            "game.functions.floats.FloatConstant", Set.of("java.lang.Float"),
+            "game.functions.booleans.BooleanConstant", Set.of("java.lang.Boolean")
+    );
 
     final SymbolMapper symbolMapper;
 
@@ -50,7 +56,7 @@ public class GenerationPath {
         }
 
         options = new ArrayList<>();
-        options.addAll(current.nextPossibleParameters(symbolMapper));
+        options.addAll(filterParameters(current.nextPossibleParameters(symbolMapper)));
         // add a zero to the nulls list for each initial option
         nulls = new ArrayList<>(Collections.nCopies(options.size(), 0));
 
@@ -67,13 +73,26 @@ public class GenerationPath {
             options.remove(index);
             emptyNodes.add(emptyNode);
 
-            List<GeneratorNode> newOptions = current.nextPossibleParameters(symbolMapper, emptyNodes);
+            List<GeneratorNode> newOptions = filterParameters(current.nextPossibleParameters(symbolMapper, emptyNodes));
             options.addAll(newOptions);
             nulls.addAll(Collections.nCopies(newOptions.size(), emptyNodes.size()));
         }
 
         //System.out.println("Options: " + options);
         //System.out.println("Nulls: " + nulls);
+    }
+
+    public List<GeneratorNode> filterParameters(List<GeneratorNode> parameters) {
+        Stream<GeneratorNode> filteredParameters = parameters.stream();
+
+        for (GeneratorNode parameter : parameters) {
+            Set<String> unnecessaryPaths = equivalenceFilters.get(parameter.symbol().path());
+
+            if (unnecessaryPaths != null)
+                filteredParameters = filteredParameters.filter(p -> !unnecessaryPaths.contains(p.symbol().path()));
+        }
+
+        return filteredParameters.toList();
     }
 
     /**
@@ -145,6 +164,10 @@ public class GenerationPath {
 
             if (token.equals("}") && !(path.current instanceof ArrayNode))
                 continue;
+
+            if (token.equals("}")) {
+                System.out.print("");
+            }
 
             path.closedByBracket = true;
 
@@ -257,7 +280,7 @@ public class GenerationPath {
 
     @Override
     public String toString() {
-        return "{partialParameter: '" + partialParameter + "', current: " + current + ", options: " + options + "}";
+        return "{partialParameter: \"" + partialParameter + "\", current: " + current + ", options: " + options + "}";
     }
 
     /**
@@ -276,8 +299,11 @@ public class GenerationPath {
 
         String token = node.symbol().token();
 
-        if (!(node instanceof EnumNode))
+        if (node instanceof ClassNode || node instanceof GameNode)
             token = '(' + token;
+
+        if (node instanceof ArrayNode)
+            token = '{' + token;
 
         return token.startsWith(string);
     }

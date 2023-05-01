@@ -46,7 +46,9 @@ public class ArrayNode extends GeneratorNode {
             options.add(new ArrayNode(childSymbol, this));
         }
 
-        options.add(new EndOfClauseNode(this));
+        if (!parameterSet.isEmpty())
+            options.add(new EndOfClauseNode(this));
+
         return options;
     }
 

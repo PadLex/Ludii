@@ -95,6 +95,7 @@ public class StringGenerator {
 
             for (GenerationPath generationPath : generationPaths) {
                 List<GenerationPath> generationPathsForPath = generationPath.append(token);
+                assert generationPathsForPath.stream().map(GenerationPath::toString).distinct().count() == generationPathsForPath.size();
                 newGenerationPaths.addAll(generationPathsForPath);
             }
 
@@ -184,7 +185,7 @@ public class StringGenerator {
 
     static void randomTest() {
         List<String> tokens = List.of(" ", "(", ")", "[", "]", "{", "}", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", ":", "\"");
-        Random random = new Random(0);
+        Random random = new Random(1);
         StringGenerator generator = new StringGenerator();
         while (true) {
             Map<String, GenerationState> validTokens = generator.filter(tokens);
@@ -197,11 +198,12 @@ public class StringGenerator {
             System.out.print(token);
             generator.append(validTokens.get(token));
         }
-        System.out.println(generator.generationState.generationPaths.stream().map(p -> p.current.root().buildDescription()).toList());
-
+        generator.generationState.generationPaths.forEach(p -> System.out.println(p.current.root()));
+        System.out.println("isRecursivelyComplete? " + generator.generationState.generationPaths.get(0).current.root().isRecursivelyComplete());
     }
 
     public static void main(String[] args) {
         randomTest();
+        //descriptionTest();
     }
 }

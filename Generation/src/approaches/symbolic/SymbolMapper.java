@@ -34,7 +34,12 @@ public class SymbolMapper {
     private final HashMap<String, Symbol> equivalenceMap = new HashMap<>();
 
     public SymbolMapper() {
-        this(Grammar.grammar().symbols().stream().filter(s -> s.usedInGrammar() || s.usedInDescription() || !s.usedInMetadata()).toList());
+        this(Grammar.grammar().symbols().stream().filter(s ->
+                (s.usedInGrammar()  // Includes most symbols, including types
+                || !s.usedInMetadata())  // Includes even more types and many constants
+                && !s.path().equals("game.rules.start.set.SetStartSitesType.Phase")  // Excluded because its grammar label collides with game.rules.phase.Phase
+                && !s.path().equals("game.rules.meta")  // Excluded because I don't think it's necessary
+        ).toList());
     }
 
     public SymbolMapper(Collection<Symbol> symbols) {
@@ -43,6 +48,9 @@ public class SymbolMapper {
 
         buildSymbolMap();
         buildCompatibilityMap();
+
+        System.out.println(symbols.stream().map(Symbol::path).toList().contains("game.rules.start.set.SetStartSitesType.Phase"));
+        System.out.println(compatibilityMap.values().stream().anyMatch(l -> l.stream().map(Symbol::path).toList().contains("game.rules.start.set.SetStartSitesType.Phase")));
 
         //parameterMap.get("game.functions.region.sites.Sites").stream().map(s -> s.path()).forEach(System.out::println);
         //compatibilityMap.get("game.functions.region.sites.around.Around").forEach(System.out::println);
@@ -69,14 +77,14 @@ public class SymbolMapper {
 
             if (argSymbol.nesting() > 0) {
                 possibilities.put(argSymbol.path() + "|" + argSymbol.nesting(), argSymbol);
-                return;
+            } else {
+                for (Symbol symbol : compatibilityMap.get(argSymbol.path())) {
+                    possibilities.put(symbol.path(), symbol);
+                }
             }
-
-            for (Symbol symbol : compatibilityMap.get(argSymbol.path())) {
-                possibilities.put(symbol.path(), symbol);
-            }
-
         });
+
+        assert possibilities.values().stream().map(Symbol::grammarLabel).distinct().count() == possibilities.size();
 
         return possibilities.values().stream().sorted(Comparator.comparing(Symbol::path)).toList();
     }
@@ -321,16 +329,21 @@ public class SymbolMapper {
     }
 
     public static void main(String[] args) {
-        SymbolMapper symbolMapper = new SymbolMapper();
-        System.out.println("Finished mapping symbols. Found " + symbolMapper.parameterMap.values().stream().mapToInt(List::size).sum() + " parameter sets.");
 
-        // TODO WHY is it used in grammar??
-        Symbol trackStep = Grammar.grammar().findSymbolByPath("game.util.equipment.TrackStep");
-        //Symbol trackStep = Grammar.grammar().findSymbolByPath("game.functions.trackStep.TrackStep");
-        System.out.println(trackStep);
-        System.out.println(trackStep.rule());
-        System.out.println(trackStep.usedInGrammar());
-        System.out.println(symbolMapper.nextPossibilities(trackStep, List.of()));
+        System.out.println(Grammar.grammar().symbols().stream().filter(s -> !s.usedInGrammar() && s.usedInDescription()).toList());
+        System.out.println(Grammar.grammar().symbols().stream().filter(s -> s.usedInGrammar() && !s.usedInDescription()).toList());
+        System.out.println(Grammar.grammar().symbols().stream().filter(s -> !s.usedInGrammar() && !s.usedInMetadata()).toList());
+
+//        SymbolMapper symbolMapper = new SymbolMapper();
+//        System.out.println("Finished mapping symbols. Found " + symbolMapper.parameterMap.values().stream().mapToInt(List::size).sum() + " parameter sets.");
+//
+//        // TODO WHY is it used in grammar??
+//        Symbol trackStep = Grammar.grammar().findSymbolByPath("game.util.equipment.TrackStep");
+//        //Symbol trackStep = Grammar.grammar().findSymbolByPath("game.functions.trackStep.TrackStep");
+//        System.out.println(trackStep);
+//        System.out.println(trackStep.rule());
+//        System.out.println(trackStep.usedInGrammar());
+//        System.out.println(symbolMapper.nextPossibilities(trackStep, List.of()));
 
         // TODO, is int handled correctly? I don't think so.
 //        Grammar.grammar().symbols().stream().max(Comparator.comparingInt(s -> s.rule() == null? 0:s.rule().rhs().size())).ifPresent(s -> System.out.println(s.path() + " " + s.rule().rhs()));

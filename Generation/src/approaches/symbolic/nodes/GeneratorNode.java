@@ -6,6 +6,7 @@ import main.grammar.Symbol;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 public abstract class GeneratorNode {
     final Symbol symbol;
@@ -100,6 +101,11 @@ public abstract class GeneratorNode {
         return isComplete() && parameterSet.stream().allMatch(GeneratorNode::isRecursivelyComplete);
     }
 
+    public void assertRecursivelyComplete() {
+        assert isComplete();
+        parameterSet.forEach(GeneratorNode::assertRecursivelyComplete);
+    }
+
     public Symbol symbol() {
         return symbol;
     }
@@ -176,5 +182,20 @@ public abstract class GeneratorNode {
             node = node.parameterSet.get(i);
         }
         return node;
+    }
+
+    public boolean equivalent(GeneratorNode other) {
+        if (!Objects.equals(symbol.path(), other.symbol.path()) && symbol.nesting() != other.symbol.nesting())
+            return false;
+
+        if (parameterSet.size() != other.parameterSet.size())
+            return false;
+
+        for (int i = 0; i < parameterSet.size(); i++) {
+            if (!parameterSet.get(i).equivalent(other.parameterSet.get(i)))
+                return false;
+        }
+
+        return true;
     }
 }
