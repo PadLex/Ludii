@@ -75,8 +75,11 @@ public class GameNode extends GeneratorNode {
             case 4 -> {
                 return List.of(new ClassNode(rulesSymbol, this));
             }
-            default -> {
+            case 5 -> {
                 return List.of(new EndOfClauseNode(this));
+            }
+            default -> {
+                return List.of();
             }
         }
     }

@@ -199,6 +199,7 @@ public class StringGenerator {
             generator.append(validTokens.get(token));
         }
         generator.generationState.generationPaths.forEach(p -> System.out.println(p.current.root()));
+        generator.generationState.generationPaths.get(0).current.root().assertRecursivelyComplete();
         System.out.println("isRecursivelyComplete? " + generator.generationState.generationPaths.get(0).current.root().isRecursivelyComplete());
     }
 

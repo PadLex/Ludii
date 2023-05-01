@@ -102,7 +102,11 @@ public abstract class GeneratorNode {
     }
 
     public void assertRecursivelyComplete() {
-        assert isComplete();
+        if(!isComplete()) {
+            System.out.println("Params " + this.parameterSet.stream().map(GeneratorNode::symbol).map(Symbol::grammarLabel).toList());
+            throw new RuntimeException("Node is not complete: " + this);
+        }
+
         parameterSet.forEach(GeneratorNode::assertRecursivelyComplete);
     }
 

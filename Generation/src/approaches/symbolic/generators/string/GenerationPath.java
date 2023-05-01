@@ -2,6 +2,7 @@ package approaches.symbolic.generators.string;
 
 import approaches.symbolic.SymbolMapper;
 import approaches.symbolic.nodes.*;
+import game.util.graph.Face;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -36,6 +37,8 @@ public class GenerationPath {
 
     // Keeps track of whether the last token ended with a bracket. If so, enforce the required space between parameters.
     boolean closedByBracket = false;
+
+    boolean gameComplete = false;
 
     public GenerationPath(SymbolMapper symbolMapper) {
         this.symbolMapper = symbolMapper;
@@ -106,6 +109,9 @@ public class GenerationPath {
         if (token.length() != 1 && (token.indexOf('(') != -1 || token.indexOf(')') != -1 || token.indexOf('{') != -1 || token.indexOf('}') != -1 || token.indexOf(' ') != -1))
             throw new RuntimeException("Multi-character Token contains a special character: " + token);
 
+        if (gameComplete)
+            return List.of();
+
         assert options != null;
         assert nulls != null;
 
@@ -159,15 +165,11 @@ public class GenerationPath {
                 continue;
 
             //Verify the bracket corresponds to the correct node type
-            if (token.equals(")") && !(path.current instanceof ClassNode))
+            if (token.equals(")") && !(path.current instanceof ClassNode || path.current instanceof GameNode))
                 continue;
 
             if (token.equals("}") && !(path.current instanceof ArrayNode))
                 continue;
-
-            if (token.equals("}")) {
-                System.out.print("");
-            }
 
             path.closedByBracket = true;
 
@@ -225,8 +227,11 @@ public class GenerationPath {
     private void completeCurrent() {
         assert current.isComplete();
         partialParameter = "";
-        if (current.parent() == null)
+        if (current.parent() == null) {
+            gameComplete = true;
             return;
+        }
+
         current = current.parent();
         //System.out.println("Moving up to: " + current);
         if (current.isComplete()) {
