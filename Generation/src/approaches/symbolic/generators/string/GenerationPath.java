@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public class GenerationPath {
-    static final String naturalNumber = "0|([1-9]\\d{0,9})";
+    static final String naturalNumber = "(0|([1-9]\\d{0,9}))";
     static final Pattern integerPattern = Pattern.compile("-?" + naturalNumber);
     static final Pattern dimPattern = Pattern.compile(naturalNumber);
     static final Pattern floatPattern = Pattern.compile("-?" + naturalNumber + "\\." + naturalNumber);

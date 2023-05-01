@@ -2,6 +2,7 @@ package approaches.symbolic.generators.string;
 
 import approaches.symbolic.SymbolMapper;
 import approaches.symbolic.nodes.GameNode;
+import approaches.symbolic.nodes.GeneratorNode;
 import game.Game;
 import other.GameLoader;
 
@@ -185,8 +186,9 @@ public class StringGenerator {
 
     static void randomTest() {
         List<String> tokens = List.of(" ", "(", ")", "[", "]", "{", "}", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", ":", "\"");
-        Random random = new Random(1);
+        Random random = new Random(0);
         StringGenerator generator = new StringGenerator();
+        StringBuilder tokenSequence = new StringBuilder();
         while (true) {
             Map<String, GenerationState> validTokens = generator.filter(tokens);
             if (validTokens.isEmpty()) {
@@ -195,12 +197,27 @@ public class StringGenerator {
             }
 
             String token = validTokens.keySet().stream().skip(random.nextInt(validTokens.size())).findFirst().get();
-            System.out.print(token);
+            tokenSequence.append(token);
             generator.append(validTokens.get(token));
         }
-        generator.generationState.generationPaths.forEach(p -> System.out.println(p.current.root()));
-        generator.generationState.generationPaths.get(0).current.root().assertRecursivelyComplete();
-        System.out.println("isRecursivelyComplete? " + generator.generationState.generationPaths.get(0).current.root().isRecursivelyComplete());
+        System.out.println("Token sequence:\n" + tokenSequence);
+
+        if (generator.generationState.generationPaths.isEmpty()) {
+            System.out.println("No generation paths");
+            return;
+        }
+
+        if (generator.generationState.generationPaths.size() > 1) {
+            System.out.println("WARNING: Multiple generation paths");
+            generator.generationState.generationPaths.forEach(p -> System.out.println(p.current.root()));
+        }
+
+        GeneratorNode root = generator.generationState.generationPaths.get(0).current.root();
+        System.out.println("Root:\n" + root);
+        root.assertRecursivelyComplete();
+        System.out.println("isRecursivelyComplete? " + root.isRecursivelyComplete());
+        System.out.println("compiles? " + root.compile());
+
     }
 
     public static void main(String[] args) {

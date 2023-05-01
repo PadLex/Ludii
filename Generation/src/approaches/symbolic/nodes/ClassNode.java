@@ -6,6 +6,7 @@ import main.grammar.Symbol;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.List;
 
 public class ClassNode extends GeneratorNode {
