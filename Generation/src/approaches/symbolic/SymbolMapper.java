@@ -48,9 +48,9 @@ public class SymbolMapper {
 
         buildSymbolMap();
         buildCompatibilityMap();
-
-        System.out.println(symbols.stream().map(Symbol::path).toList().contains("game.rules.start.set.SetStartSitesType.Phase"));
-        System.out.println(compatibilityMap.values().stream().anyMatch(l -> l.stream().map(Symbol::path).toList().contains("game.rules.start.set.SetStartSitesType.Phase")));
+//
+//        System.out.println(symbols.stream().map(Symbol::path).toList().contains("game.rules.start.set.SetStartSitesType.Phase"));
+//        System.out.println(compatibilityMap.values().stream().anyMatch(l -> l.stream().map(Symbol::path).toList().contains("game.rules.start.set.SetStartSitesType.Phase")));
 
         //parameterMap.get("game.functions.region.sites.Sites").stream().map(s -> s.path()).forEach(System.out::println);
         //compatibilityMap.get("game.functions.region.sites.around.Around").forEach(System.out::println);
@@ -106,7 +106,8 @@ public class SymbolMapper {
 
         for (Symbol symbol : symbols) {
             for (Symbol other : symbols) {
-                boolean isCompatible = symbol.compatibleWith(other);
+                //boolean isCompatible = symbol.compatibleWith(other);
+                boolean isCompatible = symbol.cls().isAssignableFrom(other.cls()) || symbol.cls().isAssignableFrom(other.returnType().cls());
                 boolean isSubLudeme = other.ludemeType() == Symbol.LudemeType.SubLudeme;
                 boolean isInitializable =
                         !Modifier.isAbstract(other.cls().getModifiers())
@@ -330,11 +331,11 @@ public class SymbolMapper {
 
     public static void main(String[] args) {
 
-        System.out.println(Grammar.grammar().symbols().stream().filter(s -> !s.usedInGrammar() && s.usedInDescription()).toList());
-        System.out.println(Grammar.grammar().symbols().stream().filter(s -> s.usedInGrammar() && !s.usedInDescription()).toList());
-        System.out.println(Grammar.grammar().symbols().stream().filter(s -> !s.usedInGrammar() && !s.usedInMetadata()).toList());
+//        System.out.println(Grammar.grammar().symbols().stream().filter(s -> !s.usedInGrammar() && s.usedInDescription()).toList());
+//        System.out.println(Grammar.grammar().symbols().stream().filter(s -> s.usedInGrammar() && !s.usedInDescription()).toList());
+//        System.out.println(Grammar.grammar().symbols().stream().filter(s -> !s.usedInGrammar() && !s.usedInMetadata()).toList());
 
-//        SymbolMapper symbolMapper = new SymbolMapper();
+        SymbolMapper symbolMapper = new SymbolMapper();
 //        System.out.println("Finished mapping symbols. Found " + symbolMapper.parameterMap.values().stream().mapToInt(List::size).sum() + " parameter sets.");
 //
 //        // TODO WHY is it used in grammar??
@@ -355,5 +356,19 @@ public class SymbolMapper {
 //        partialSymbols.add(Grammar.grammar().findSymbolByPath("java.lang.String"));
 //        partialSymbols.add(endOfClauseSymbol);
 //        System.out.println(symbolMapper.nextPossibilities(Grammar.grammar().findSymbolByPath("game.Game"), partialSymbols));
+
+        Symbol items = Grammar.grammar().findSymbolByPath("game.equipment.Item");
+        Symbol regions = Grammar.grammar().findSymbolByPath("game.types.board.RegionTypeStatic.Regions");
+        System.out.println(items.compatibleWith(regions));
+        System.out.println(regions.returnType());
+
+        System.out.println(items.cls().isAssignableFrom(regions.cls()));
+        System.out.println(items.cls().isAssignableFrom(regions.returnType().cls()));
+        System.out.println(items.name());
+
+        items.setNesting(1);
+
+
+        System.out.println(symbolMapper.getCompatibleSymbols(items).stream().map(Symbol::path).toList());
     }
 }

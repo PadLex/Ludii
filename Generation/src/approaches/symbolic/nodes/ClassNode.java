@@ -23,14 +23,18 @@ public class ClassNode extends GeneratorNode {
             if (method.getName().equals("construct")) {
                 try {
                     return method.invoke(null, arguments.toArray());
-                } catch (IllegalArgumentException | IllegalAccessException | InvocationTargetException ignored) {}
+                } catch (InvocationTargetException e) {
+                    throw new RuntimeException(e);
+                } catch (IllegalArgumentException | IllegalAccessException ignored) {}
             }
         }
 
         for (Constructor<?> constructor: symbol.cls().getConstructors()) {
             try {
                 return constructor.newInstance(arguments.toArray());
-            } catch (IllegalArgumentException | IllegalAccessException | InvocationTargetException | InstantiationException ignored) {}
+            } catch (InvocationTargetException e) {
+                throw new RuntimeException(e);
+            } catch (IllegalArgumentException | IllegalAccessException | InstantiationException ignored) {}
         }
 
         throw new RuntimeException("Failed to compile: " + symbol);

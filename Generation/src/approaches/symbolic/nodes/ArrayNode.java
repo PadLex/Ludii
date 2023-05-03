@@ -26,7 +26,7 @@ public class ArrayNode extends GeneratorNode {
         }
 
         for (int i = 0; i < arguments.size(); i++) {
-            //System.out.println("Compiling: " + symbol + "-" + symbol.nesting() + " adding: " + arguments.get(i).getClass() + " vs " + array.getClass());
+            System.out.println("Compiling: " + symbol + "-" + symbol.nesting() + " adding: " + arguments.get(i).getClass() + " vs " + array.getClass());
             Array.set(array, i, arguments.get(i));
         }
 

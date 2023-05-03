@@ -2,20 +2,13 @@ package approaches.symbolic.generators.string;
 
 import approaches.symbolic.SymbolMapper;
 import approaches.symbolic.nodes.*;
-import game.util.graph.Face;
 
 import java.util.*;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public class GenerationPath {
-    static final String naturalNumber = "(0|([1-9]\\d{0,9}))";
-    static final Pattern integerPattern = Pattern.compile("-?" + naturalNumber);
-    static final Pattern dimPattern = Pattern.compile(naturalNumber);
-    static final Pattern floatPattern = Pattern.compile("-?" + naturalNumber + "\\." + naturalNumber);
-    static final Pattern stringPattern = Pattern.compile("\"\\w[\\w\\s]{0,50}\\w\"");
-    static final Pattern booleanPattern = Pattern.compile("true|false");
+
 
     static final Map<String, Set<String>> equivalenceFilters = Map.of(
             "game.functions.ints.IntConstant", Set.of("java.lang.Integer", "game.functions.dim.DimConstant"),
@@ -25,6 +18,7 @@ public class GenerationPath {
     );
 
     final SymbolMapper symbolMapper;
+    final PrimitiveMatcher primitiveMatcher;
 
     // Current leaf node being completed
     GeneratorNode current;
@@ -42,6 +36,7 @@ public class GenerationPath {
 
     public GenerationPath(SymbolMapper symbolMapper) {
         this.symbolMapper = symbolMapper;
+        this.primitiveMatcher = new PrimitiveMatcher(symbolMapper);
         findOptions();
     }
 
@@ -180,7 +175,12 @@ public class GenerationPath {
             path.current.addParameter(endNode);
 
             // Complete current node, moving up the tree until a node is incomplete
-            path.completeCurrent();
+            try {
+                path.compileUp();
+            } catch (RuntimeException e) {
+                System.out.println("Error compiling: " + current);
+                throw e;
+            }
 
             //System.out.println("New Path Complete: " + path);
 
@@ -189,6 +189,25 @@ public class GenerationPath {
         }
 
         return newPaths;
+    }
+
+    // Compile the current node and each of its predecessors until a node is incomplete
+    private void compileUp() {
+        assert current.isComplete();
+        current.compile();
+        partialParameter = "";
+        if (current.parent() == null) {
+            gameComplete = true;
+            return;
+        }
+
+        current = current.parent();
+        //System.out.println("Moving up to: " + current);
+        if (current.isComplete()) {
+            compileUp();
+        } else {
+            findOptions();
+        }
     }
 
     // Creates a new list of GenerationPath instances for ArrayNode options
@@ -222,23 +241,6 @@ public class GenerationPath {
         }
 
         return List.of();
-    }
-
-    private void completeCurrent() {
-        assert current.isComplete();
-        partialParameter = "";
-        if (current.parent() == null) {
-            gameComplete = true;
-            return;
-        }
-
-        current = current.parent();
-        //System.out.println("Moving up to: " + current);
-        if (current.isComplete()) {
-            completeCurrent();
-        } else {
-            findOptions();
-        }
     }
 
     private void appendOption(GeneratorNode option) {
@@ -298,7 +300,7 @@ public class GenerationPath {
         //System.out.println("Consistent? " + node + ", " + string);
 
         if (node instanceof PrimitiveNode) {
-            Matcher matcher = primitiveMatcher((PrimitiveNode) node, string);
+            Matcher matcher = primitiveMatcher.matcher((PrimitiveNode) node, string);
             return matcher.matches() || matcher.hitEnd();
         }
 
@@ -327,7 +329,7 @@ public class GenerationPath {
 
         if (node instanceof PrimitiveNode) {
             //System.out.println("Matching Primitive: " + node + ", " + newString + ", " + primitiveMatcher((PrimitiveNode) node, newString).matches());
-            return primitiveMatcher((PrimitiveNode) node, newString).matches();
+            return primitiveMatcher.matcher((PrimitiveNode) node, newString).matches();
         }
 
         String token = node.symbol().token();
@@ -338,27 +340,5 @@ public class GenerationPath {
         return token.equals(newString);
     }
 
-    private Matcher primitiveMatcher(PrimitiveNode primitiveNode, String newString) {
-        //System.out.println("Primitive node: " + primitiveNode.getType() + ", " + newString);
-        switch (primitiveNode.getType()) {
-            case INT -> {
-                return integerPattern.matcher(newString);
-            }
-            case DIM -> {
-                return dimPattern.matcher(newString);
-            }
-            case FLOAT -> {
-                return floatPattern.matcher(newString);
-            }
-            case BOOLEAN -> {
-                return booleanPattern.matcher(newString);
-            }
-            case STRING -> {
-                return stringPattern.matcher(newString);
-            }
-            default -> {
-                throw new RuntimeException("Unexpected primitive type: " + primitiveNode.symbol().path());
-            }
-        }
-    }
+
 }
