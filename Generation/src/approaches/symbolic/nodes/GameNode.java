@@ -56,6 +56,8 @@ public class GameNode extends GeneratorNode {
 
     @Override
     public List<GeneratorNode> nextPossibleParameters(SymbolMapper symbolMapper) {
+        if (complete) return List.of();
+
         switch (parameterSet.size()) {
             case 0 -> {
                 return List.of(new PrimitiveNode(nameSymbol, this));
@@ -79,7 +81,7 @@ public class GameNode extends GeneratorNode {
                 return List.of(new EndOfClauseNode(this));
             }
             default -> {
-                return List.of();
+                throw new IllegalStateException("Unexpected state: " + parameterSet.size());
             }
         }
     }

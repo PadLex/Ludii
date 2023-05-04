@@ -39,6 +39,9 @@ public abstract class GeneratorNode {
             case "mapper.endOfClause" -> {
                 return new EndOfClauseNode(parent);
             }
+            case "game.Game" -> {
+                return new GameNode();
+            }
         }
 
         return new ClassNode(symbol, parent);

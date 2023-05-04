@@ -9,7 +9,6 @@ import java.util.stream.Stream;
 
 public class GenerationPath {
 
-
     static final Map<String, Set<String>> equivalenceFilters = Map.of(
             "game.functions.ints.IntConstant", Set.of("java.lang.Integer", "game.functions.dim.DimConstant"),
             "java.lang.Integer", Set.of("game.functions.dim.DimConstant"),
@@ -31,13 +30,11 @@ public class GenerationPath {
 
     // Keeps track of whether the last token ended with a bracket. If so, enforce the required space between parameters.
     boolean closedByBracket = false;
-
-    boolean gameComplete = false;
+    boolean gameDefined = false;
 
     public GenerationPath(SymbolMapper symbolMapper) {
         this.symbolMapper = symbolMapper;
         this.primitiveMatcher = new PrimitiveMatcher(symbolMapper);
-        findOptions();
     }
 
     /**
@@ -46,8 +43,9 @@ public class GenerationPath {
      */
     private void findOptions() {
         assert partialParameter.isEmpty();
-        //System.out.println("Finding options for " + current);
-        if (current == null) {
+        System.out.println("Finding options for " + current);
+
+        if (!gameDefined) {
             options = List.of(new GameNode());
             nulls = List.of(0);
             return;
@@ -76,8 +74,8 @@ public class GenerationPath {
             nulls.addAll(Collections.nCopies(newOptions.size(), emptyNodes.size()));
         }
 
-        //System.out.println("Options: " + options);
-        //System.out.println("Nulls: " + nulls);
+        System.out.println("Options: " + options);
+        System.out.println("Nulls: " + nulls);
     }
 
     public List<GeneratorNode> filterParameters(List<GeneratorNode> parameters) {
@@ -104,11 +102,12 @@ public class GenerationPath {
         if (token.length() != 1 && (token.indexOf('(') != -1 || token.indexOf(')') != -1 || token.indexOf('{') != -1 || token.indexOf('}') != -1 || token.indexOf(' ') != -1))
             throw new RuntimeException("Multi-character Token contains a special character: " + token);
 
-        if (gameComplete)
-            return List.of();
 
-        assert options != null;
-        assert nulls != null;
+        //assert options != null;
+        //assert nulls != null;
+
+        if (options == null)
+            findOptions();
 
         if (closedByBracket && !token.equals(")") && !token.equals("}")) {
             closedByBracket = false;
@@ -131,10 +130,10 @@ public class GenerationPath {
             return List.of();
 
         List<GenerationPath> newPaths = new ArrayList<>();
-        for (GeneratorNode option : options) {
-            if (matches(partialParameter, option)) {
+        for (int i=0; i < options.size(); i++) {
+            if (matches(partialParameter, options.get(i))) {
                 GenerationPath path = this.copy();
-                path.appendOption(option);
+                path.appendOption(i);
                 //System.out.println("New Path Space: " + path);
                 newPaths.add(path);
             }
@@ -153,6 +152,7 @@ public class GenerationPath {
         for (GenerationPath path : possiblePaths) {
             // TODO used to be an if. not sure what could trigger it
             assert path.partialParameter.isEmpty();
+            path.findOptions();
 
             // Verify that the current node can be closed
             GeneratorNode endNode = path.options.stream().filter(node -> node instanceof EndOfClauseNode).findFirst().orElse(null);
@@ -174,15 +174,24 @@ public class GenerationPath {
             }
             path.current.addParameter(endNode);
 
-            // Complete current node, moving up the tree until a node is incomplete
-            try {
-                path.compileUp();
-            } catch (RuntimeException e) {
-                System.out.println("Error compiling: " + current);
-                throw e;
-            }
+            // Compile the current node and move up to its parent
+            path.compileUp();
+//            assert path.current.isComplete();
+////            try {
+////                path.current.compile();
+////            } catch (RuntimeException e) {
+////                System.out.println("Error compiling: " + current);
+////                throw e;
+////            }
+//            path.partialParameter = ""; // TODO why
+//
+//            if (path.current.parent() != null) {
+//                path.current = path.current.parent();
+//                path.findOptions();
+//            } else {
+//                path.gameComplete = true;
+//            }
 
-            //System.out.println("New Path Complete: " + path);
 
             // Add this path as a possible path
             newPaths.add(path);
@@ -194,20 +203,23 @@ public class GenerationPath {
     // Compile the current node and each of its predecessors until a node is incomplete
     private void compileUp() {
         assert current.isComplete();
-        current.compile();
-        partialParameter = "";
-        if (current.parent() == null) {
-            gameComplete = true;
-            return;
-        }
+        //System.out.println("Compiling: " + current);
 
-        current = current.parent();
-        //System.out.println("Moving up to: " + current);
-        if (current.isComplete()) {
-            compileUp();
-        } else {
-            findOptions();
+        //current.compile();
+
+        clearOptions();
+
+        if (current.parent() != null) {
+            current = current.parent();
+            System.out.println("Moving up to: " + current);
         }
+    }
+
+    private void clearOptions() {
+        partialParameter = "";
+        options = null;
+        nulls = null;
+        gameDefined = true;
     }
 
     // Creates a new list of GenerationPath instances for ArrayNode options
@@ -217,10 +229,10 @@ public class GenerationPath {
             return List.of();
 
         List<GenerationPath> possiblePaths = new ArrayList<>();
-        for (GeneratorNode option : options) {
-            if (option instanceof ArrayNode) {
+        for (int i=0; i < options.size(); i++) {
+            if (options.get(i) instanceof ArrayNode) {
                 GenerationPath path = this.copy();
-                path.appendOption(option);
+                path.appendOption(i);
                 possiblePaths.add(path);
             }
         }
@@ -243,19 +255,21 @@ public class GenerationPath {
         return List.of();
     }
 
-    private void appendOption(GeneratorNode option) {
+    private void appendOption(int index) {
+        GeneratorNode option = options.get(index);
+        int nullCount = nulls.get(index);
         if (option instanceof PrimitiveNode)
             ((PrimitiveNode) option).setUnparsedValue(partialParameter.replace("\"", ""));
 
-        //System.out.println("Appending option: " + option);
+        System.out.println("Appending option: " + option);
         if (current == null)
             current = option;
         else {
-            for (int i = 0; i < nulls.get(options.indexOf(option)); i++) {
+            for (int i = 0; i < nullCount; i++) {
                 current.addParameter(new EmptyNode(current));
             }
             // Necessary in case the parent was cloned after the option was found
-            option.setParent(current);
+            //option.setParent(current);
             current.addParameter(option);
             assert current.parameterSet().contains(option);
             assert current.parent() == null || current.parent().parameterSet().contains(current);
@@ -266,8 +280,7 @@ public class GenerationPath {
         if (!option.isComplete())
             current = option;
 
-        partialParameter = "";
-        findOptions();
+        clearOptions();
     }
 
     public GenerationPath copy() {
@@ -278,8 +291,8 @@ public class GenerationPath {
             clone.current = current.copyUp();
         }
 
-        clone.options = new ArrayList<>(options);
-        clone.nulls = nulls != null ? new ArrayList<>(nulls) : null;
+        clone.options = options.stream().map(o -> GeneratorNode.fromSymbol(o.symbol(), clone.current)).toList();
+        clone.nulls = new ArrayList<>(nulls);
         clone.partialParameter = partialParameter;
         clone.closedByBracket = closedByBracket;
         return clone;

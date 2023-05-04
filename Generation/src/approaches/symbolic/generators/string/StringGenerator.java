@@ -35,6 +35,8 @@ public class StringGenerator {
             if (newState == null)
                 continue;
 
+            System.out.println("Could append " + token + " to " + generationState.generationPaths);
+
             result.put(token, newState);
         }
 
@@ -197,6 +199,7 @@ public class StringGenerator {
             }
 
             String token = validTokens.keySet().stream().skip(random.nextInt(validTokens.size())).findFirst().get();
+            System.out.println("\nAppended token: " + token);
             tokenSequence.append(token);
             generator.append(validTokens.get(token));
         }
@@ -213,6 +216,8 @@ public class StringGenerator {
         }
 
         GeneratorNode root = generator.generationState.generationPaths.get(0).current.root();
+        System.out.println(root.buildDescription());
+
         System.out.println("Root:\n" + root);
         root.assertRecursivelyComplete();
         System.out.println("isRecursivelyComplete? " + root.isRecursivelyComplete());
