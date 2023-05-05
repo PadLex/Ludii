@@ -27,6 +27,18 @@ public class StringGenerator {
         generationState = new GenerationState();
     }
 
+    public String appendFirst(List<String> tokens) {
+        for (String token : tokens) {
+            GenerationState newState = generationState.append(token);
+            if (newState != null) {
+                generationState = newState;
+                return token;
+            }
+        }
+
+        return null;
+    }
+
     public Map<String, GenerationState> filter(List<String> tokens) {
         Map<String, GenerationState> result = new HashMap<>();
 
@@ -35,7 +47,7 @@ public class StringGenerator {
             if (newState == null)
                 continue;
 
-            System.out.println("Could append " + token + " to " + generationState.generationPaths);
+            //System.out.println("Could append " + token + " to " + generationState.generationPaths);
 
             result.put(token, newState);
         }
@@ -99,6 +111,7 @@ public class StringGenerator {
             for (GenerationPath generationPath : generationPaths) {
                 List<GenerationPath> generationPathsForPath = generationPath.append(token);
                 assert generationPathsForPath.stream().map(GenerationPath::toString).distinct().count() == generationPathsForPath.size();
+
                 newGenerationPaths.addAll(generationPathsForPath);
             }
 
@@ -117,7 +130,7 @@ public class StringGenerator {
      * @param gameDescription The game description string to be split.
      * @return A list of tokens generated from the game description.
      */
-    public static List<String> splitGameDescription(String gameDescription) {
+    static List<String> splitGameDescription(String gameDescription) {
         // Preprocess the input string
         gameDescription = gameDescription.replaceAll("\\s+", " ");
         gameDescription = gameDescription.replaceAll("\\( ", "(");
@@ -187,22 +200,32 @@ public class StringGenerator {
     }
 
     static void randomTest() {
-        List<String> tokens = List.of(" ", "(", ")", "[", "]", "{", "}", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", ":", "\"");
-        Random random = new Random(0);
+        List<String> tokens = new ArrayList<>(List.of(" ", "(", ")", "[", "]", "{", "}", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", ":", "\""));
+
+        Random random = new Random(2);
         StringGenerator generator = new StringGenerator();
         StringBuilder tokenSequence = new StringBuilder();
+
+        long filterTime = 0;
         while (true) {
-            Map<String, GenerationState> validTokens = generator.filter(tokens);
-            if (validTokens.isEmpty()) {
+            Collections.shuffle(tokens, random);
+
+            long startTime = System.nanoTime();
+            String token = generator.appendFirst(tokens);
+            long endTime = System.nanoTime();
+            filterTime += endTime - startTime;
+
+            if (token == null) {
                 System.out.println("\nNo valid tokens left");
                 break;
             }
 
-            String token = validTokens.keySet().stream().skip(random.nextInt(validTokens.size())).findFirst().get();
-            System.out.println("\nAppended token: " + token);
             tokenSequence.append(token);
-            generator.append(validTokens.get(token));
         }
+
+
+        System.out.println("Mean filter time: " + filterTime / tokenSequence.length() / 1000000.0 + "ms");
+
         System.out.println("Token sequence:\n" + tokenSequence);
 
         if (generator.generationState.generationPaths.isEmpty()) {
@@ -226,7 +249,9 @@ public class StringGenerator {
     }
 
     public static void main(String[] args) {
+
         randomTest();
+
         //descriptionTest();
     }
 }

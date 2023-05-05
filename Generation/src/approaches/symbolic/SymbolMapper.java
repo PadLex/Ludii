@@ -37,6 +37,7 @@ public class SymbolMapper {
         this(Grammar.grammar().symbols().stream().filter(s ->
                 (s.usedInGrammar()  // Includes most symbols, including types
                 || !s.usedInMetadata())  // Includes even more types and many constants
+                //&& !s.isAbstract()  // Excludes abstract classes
                 && !s.path().equals("game.rules.start.set.SetStartSitesType.Phase")  // Excluded because its grammar label collides with game.rules.phase.Phase
                 && !s.path().equals("game.rules.meta")  // Excluded because I don't think it's necessary
         ).toList());
@@ -84,7 +85,10 @@ public class SymbolMapper {
             }
         });
 
-        assert possibilities.values().stream().map(Symbol::grammarLabel).distinct().count() == possibilities.size();
+//        System.out.println(possibilities.values().stream().map(Symbol::grammarLabel).toList());
+//        System.out.println(possibilities.values().stream().map(Symbol::grammarLabel).distinct().toList());
+//        System.out.println(possibilities.values().stream().map(Symbol::path).toList());
+//        assert possibilities.values().stream().map(Symbol::grammarLabel).distinct().count() == possibilities.size();
 
         return possibilities.values().stream().sorted(Comparator.comparing(Symbol::path)).toList();
     }

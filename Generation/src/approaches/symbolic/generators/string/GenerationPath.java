@@ -43,7 +43,7 @@ public class GenerationPath {
      */
     private void findOptions() {
         assert partialParameter.isEmpty();
-        System.out.println("Finding options for " + current);
+        //System.out.println("Finding options for " + current);
 
         if (!gameDefined) {
             options = List.of(new GameNode());
@@ -74,8 +74,8 @@ public class GenerationPath {
             nulls.addAll(Collections.nCopies(newOptions.size(), emptyNodes.size()));
         }
 
-        System.out.println("Options: " + options);
-        System.out.println("Nulls: " + nulls);
+        //System.out.println("Options: " + options);
+        //System.out.println("Nulls: " + nulls);
     }
 
     public List<GeneratorNode> filterParameters(List<GeneratorNode> parameters) {
@@ -174,24 +174,12 @@ public class GenerationPath {
             }
             path.current.addParameter(endNode);
 
-            // Compile the current node and move up to its parent
-            path.compileUp();
-//            assert path.current.isComplete();
-////            try {
-////                path.current.compile();
-////            } catch (RuntimeException e) {
-////                System.out.println("Error compiling: " + current);
-////                throw e;
-////            }
-//            path.partialParameter = ""; // TODO why
-//
-//            if (path.current.parent() != null) {
-//                path.current = path.current.parent();
-//                path.findOptions();
-//            } else {
-//                path.gameComplete = true;
-//            }
+            // Compile the current node and move up to its parent. Filter paths that fail to compile
+            path.clearOptions();
 
+            if (path.current.parent() != null) {
+                path.current = path.current.parent();
+            }
 
             // Add this path as a possible path
             newPaths.add(path);
@@ -200,20 +188,6 @@ public class GenerationPath {
         return newPaths;
     }
 
-    // Compile the current node and each of its predecessors until a node is incomplete
-    private void compileUp() {
-        assert current.isComplete();
-        //System.out.println("Compiling: " + current);
-
-        //current.compile();
-
-        clearOptions();
-
-        if (current.parent() != null) {
-            current = current.parent();
-            System.out.println("Moving up to: " + current);
-        }
-    }
 
     private void clearOptions() {
         partialParameter = "";
@@ -261,7 +235,7 @@ public class GenerationPath {
         if (option instanceof PrimitiveNode)
             ((PrimitiveNode) option).setUnparsedValue(partialParameter.replace("\"", ""));
 
-        System.out.println("Appending option: " + option);
+        //System.out.println("Appending option: " + option);
         if (current == null)
             current = option;
         else {

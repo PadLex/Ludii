@@ -8,11 +8,11 @@ import java.util.regex.Pattern;
 
 public class PrimitiveMatcher {
 
-    static final String naturalNumber = "(0|([1-9]\\d{0,9}))";
+    static final String naturalNumber = "(0|([1-9]\\d{0,4}))";
     static final Pattern integerPattern = Pattern.compile("-?" + naturalNumber);
     static final Pattern dimPattern = Pattern.compile(naturalNumber);
     static final Pattern floatPattern = Pattern.compile("-?" + naturalNumber + "\\." + naturalNumber);
-    static final Pattern stringPattern = Pattern.compile("\"\\w[\\w\\s]{0,50}\\w\"");
+    static final Pattern stringPattern = Pattern.compile("\"\\w[\\w\\s]{0,30}\\w\"");
     static final Pattern booleanPattern = Pattern.compile("true|false");
 
     static final Pattern playerPattern = Pattern.compile("(1\\d)|([1-9])");
