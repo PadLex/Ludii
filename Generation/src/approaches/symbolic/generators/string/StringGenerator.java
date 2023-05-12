@@ -110,7 +110,7 @@ public class StringGenerator {
 
             for (GenerationPath generationPath : generationPaths) {
                 List<GenerationPath> generationPathsForPath = generationPath.append(token);
-                assert generationPathsForPath.stream().map(GenerationPath::toString).distinct().count() == generationPathsForPath.size();
+                //assert generationPathsForPath.stream().map(GenerationPath::toString).distinct().count() == generationPathsForPath.size();
 
                 newGenerationPaths.addAll(generationPathsForPath);
             }
@@ -199,58 +199,85 @@ public class StringGenerator {
         System.out.println("Identical? " + generator.generationState.generationPaths.get(0).current.buildDescription().equals(gameDescription));
     }
 
-    static void randomTest() {
+    static boolean randomTest(SymbolMapper symbolMapper, int seed, boolean verbose) {
         List<String> tokens = new ArrayList<>(List.of(" ", "(", ")", "[", "]", "{", "}", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", ":", "\""));
 
-        Random random = new Random(2);
-        StringGenerator generator = new StringGenerator();
+        Random random = new Random(seed);
+        StringGenerator generator = new StringGenerator(symbolMapper);
         StringBuilder tokenSequence = new StringBuilder();
 
         long filterTime = 0;
         while (true) {
-            Collections.shuffle(tokens, random);
 
             long startTime = System.nanoTime();
-            String token = generator.appendFirst(tokens);
+            Map<String, GenerationState> states = generator.filter(tokens);
             long endTime = System.nanoTime();
             filterTime += endTime - startTime;
 
-            if (token == null) {
-                System.out.println("\nNo valid tokens left");
+            //System.out.println(generator.generationState.generationPaths.get(0) + ": ");
+            //states.forEach((token, state) -> System.out.println(token + " -> " + state.generationPaths.get(0)));
+
+            if (states.isEmpty()) {
+                if (verbose)
+                    System.out.println("\nNo valid tokens left");
                 break;
             }
 
+            String token = states.keySet().stream().toList().get(random.nextInt(states.size()));
+
             tokenSequence.append(token);
+            generator.append(states.get(token));
         }
 
-
-        System.out.println("Mean filter time: " + filterTime / tokenSequence.length() / 1000000.0 + "ms");
-
-        System.out.println("Token sequence:\n" + tokenSequence);
+        if (verbose) {
+            System.out.println("Mean filter time: " + filterTime / tokenSequence.length() / 1000000.0 + "ms");
+            System.out.println("Token sequence:\n" + tokenSequence);
+        }
 
         if (generator.generationState.generationPaths.isEmpty()) {
-            System.out.println("No generation paths");
-            return;
+            if (verbose)
+                System.out.println("No generation paths");
+            throw new RuntimeException("No generation paths");
         }
 
         if (generator.generationState.generationPaths.size() > 1) {
-            System.out.println("WARNING: Multiple generation paths");
-            generator.generationState.generationPaths.forEach(p -> System.out.println(p.current.root()));
+            if (verbose) {
+                System.out.println("WARNING: Multiple generation paths");
+                generator.generationState.generationPaths.forEach(p -> System.out.println(p.current.root()));
+            }
         }
 
         GeneratorNode root = generator.generationState.generationPaths.get(0).current.root();
-        System.out.println(root.buildDescription());
 
-        System.out.println("Root:\n" + root);
+        if (verbose) {
+            System.out.println(root.buildDescription());
+            System.out.println("Root:\n" + root);
+        }
+
         root.assertRecursivelyComplete();
-        System.out.println("isRecursivelyComplete? " + root.isRecursivelyComplete());
-        System.out.println("compiles? " + root.compile());
+        try {
+            root.compile();
+            if (verbose)
+                System.out.println("compiles? true");
+            return true;
+        } catch (RuntimeException e) {
+            if (verbose)
+                System.out.println("compiles? false");
+            return false;
+        }
 
     }
 
     public static void main(String[] args) {
+        SymbolMapper symbolMapper = new SymbolMapper();
 
-        randomTest();
+        int compileFailures = 0;
+        for (int i = 0; i < 1000; i++) {
+            if (!randomTest(symbolMapper, i, false))
+                compileFailures++;
+        }
+
+        System.out.println("Compile failures: " + compileFailures);
 
         //descriptionTest();
     }

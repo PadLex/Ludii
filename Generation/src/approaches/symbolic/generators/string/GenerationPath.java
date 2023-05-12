@@ -109,12 +109,16 @@ public class GenerationPath {
         if (options == null)
             findOptions();
 
+        // Enforce obligatory space between parameters. Don't add a space between consecutive closing brackets.
         if (closedByBracket && !token.equals(")") && !token.equals("}")) {
-            closedByBracket = false;
-            if (token.equals(" "))
-                return List.of(this);
+            if (token.equals(" ")) {
+                GenerationPath path = this.copy();
+                path.closedByBracket = false;
+                return List.of(path);
+            }
             return List.of();
         }
+
 
         return switch (token) {
             case " " -> completeParameter();
@@ -145,13 +149,14 @@ public class GenerationPath {
     // Completes the current node and returns the new GenerationPath list
     private List<GenerationPath> completeCurrent(String token) {
         // Complete the current parameter if there wasn't a space preceding the bracket
-        List<GenerationPath> possiblePaths = partialParameter.isEmpty()? List.of(this) : completeParameter();
+        List<GenerationPath> possiblePaths = partialParameter.isEmpty()? List.of(this.copy()) : completeParameter();
 
         // Identify and complete valid generation paths
         List<GenerationPath> newPaths = new ArrayList<>();
         for (GenerationPath path : possiblePaths) {
             // TODO used to be an if. not sure what could trigger it
             assert path.partialParameter.isEmpty();
+
             path.findOptions();
 
             // Verify that the current node can be closed
@@ -269,6 +274,7 @@ public class GenerationPath {
         clone.nulls = new ArrayList<>(nulls);
         clone.partialParameter = partialParameter;
         clone.closedByBracket = closedByBracket;
+        clone.gameDefined = gameDefined;
         return clone;
     }
 

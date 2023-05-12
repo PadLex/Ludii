@@ -15,7 +15,7 @@ public class PrimitiveMatcher {
     static final Pattern stringPattern = Pattern.compile("\"\\w[\\w\\s]{0,30}\\w\"");
     static final Pattern booleanPattern = Pattern.compile("true|false");
 
-    static final Pattern playerPattern = Pattern.compile("(1\\d)|([1-9])");
+    static final Pattern playerPattern = Pattern.compile("1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16");
 
     final SymbolMapper symbolMapper;
 
