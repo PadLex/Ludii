@@ -3,12 +3,22 @@ package approaches.symbolic.generators.string;
 import approaches.symbolic.SymbolMapper;
 import approaches.symbolic.nodes.GameNode;
 import approaches.symbolic.nodes.GeneratorNode;
+import compiler.Compiler;
 import game.Game;
+import main.grammar.Description;
+import main.grammar.Report;
+import main.options.UserSelections;
 import other.GameLoader;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
 
 import static approaches.symbolic.generators.CallTreeCloner.cloneCallTree;
+import static approaches.symbolic.generators.Playground.printCallTree;
 
 /**
  * StringGenerator is a class that processes a game description in string format,
@@ -268,17 +278,19 @@ public class StringGenerator {
 
     }
 
+
+
     public static void main(String[] args) {
         SymbolMapper symbolMapper = new SymbolMapper();
 
         int compileFailures = 0;
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 100; i++) {
             if (!randomTest(symbolMapper, i, false))
                 compileFailures++;
         }
 
         System.out.println("Compile failures: " + compileFailures);
 
-        //descriptionTest();
+        descriptionTest();
     }
 }

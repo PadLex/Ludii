@@ -127,8 +127,7 @@ public class CallTreeCloner {
     }
 
     static void testLudiiLibrary() throws IOException {
-        List<Symbol> symbols = Grammar.grammar().symbols().stream().filter(s -> s.usedInGrammar() || s.usedInDescription() || !s.usedInMetadata()).toList();
-        SymbolMapper symbolMapper = new SymbolMapper(symbols);
+        SymbolMapper symbolMapper = new SymbolMapper();
 
         String gamesRoot = "../Common/res/lud/board";
         List<Path> paths = Files.walk(Paths.get(gamesRoot)).filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".lud")).limit(2000).toList();

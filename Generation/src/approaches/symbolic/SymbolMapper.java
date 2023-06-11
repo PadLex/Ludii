@@ -39,7 +39,6 @@ public class SymbolMapper {
                 || !s.usedInMetadata())  // Includes even more types and many constants
                 //&& !s.isAbstract()  // Excludes abstract classes
                 && !s.path().equals("game.rules.start.set.SetStartSitesType.Phase")  // Excluded because its grammar label collides with game.rules.phase.Phase
-                && !s.path().equals("game.rules.meta")  // Excluded because I don't think it's necessary
         ).toList());
     }
 

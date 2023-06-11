@@ -44,7 +44,6 @@ public class GameNode extends GeneratorNode {
 
         //System.out.println("totalDefaultSites: " + game.equipment().totalDefaultSites());
 
-
         compilerCache = game;
         return (Game) compilerCache;
     }

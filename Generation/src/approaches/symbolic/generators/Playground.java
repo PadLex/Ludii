@@ -162,7 +162,7 @@ public class Playground {
         }
     }
 
-    static void printCallTree(Call call, int depth) {
+    public static void printCallTree(Call call, int depth) {
         for (int i = 0; i < depth; i++) {
             System.out.print("    ");
         }
