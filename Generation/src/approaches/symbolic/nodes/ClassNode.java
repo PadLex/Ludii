@@ -24,6 +24,11 @@ public class ClassNode extends GeneratorNode {
                 try {
                     return method.invoke(null, arguments.toArray());
                 } catch (InvocationTargetException e) {
+                    System.out.println(symbol.path());
+                    System.out.println(Arrays.toString(method.getParameterTypes()));
+                    System.out.println(Arrays.toString(method.getParameterAnnotations()[0]));
+
+                    System.out.println(Arrays.toString(arguments.toArray()));
                     throw new RuntimeException(e);
                 } catch (IllegalArgumentException | IllegalAccessException ignored) {}
             }
@@ -59,4 +64,20 @@ public class ClassNode extends GeneratorNode {
     public String buildDescription() {
         return "(" + symbol.token() + " " + String.join(" ", parameterSet.stream().filter(s -> !(s instanceof EmptyNode || s instanceof EndOfClauseNode)).map(GeneratorNode::buildDescription).toList()) + ")";
     }
+
+//    @Override
+//    public String buildDescription() {
+//        StringBuilder parameterString = new StringBuilder();
+//        for (GeneratorNode parameter: parameterSet) {
+//            if (parameter instanceof EmptyNode || parameter instanceof EndOfClauseNode) continue;
+//            parameterString.append(" ");
+//            if (parameter.symbol.label != null) {
+//                parameterString.append(parameter.symbol.label);
+//                parameterString.append(":");
+//            }
+//            parameterString.append(parameter.buildDescription());
+//        }
+//
+//        return "(" + symbol.token() + parameterString + ")";
+//    }
 }

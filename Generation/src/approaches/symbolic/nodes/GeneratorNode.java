@@ -161,7 +161,10 @@ public abstract class GeneratorNode {
     }
 
     public String buildDescription() {
-        return toString();
+        if (symbol.label != null)
+            return symbol.label + ":" + this.toString();
+
+        return this.toString();
     }
 
     public GameNode root() {

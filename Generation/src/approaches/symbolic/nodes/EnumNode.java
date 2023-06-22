@@ -37,4 +37,12 @@ public class EnumNode extends GeneratorNode {
     public String toString() {
         return symbol.grammarLabel();
     }
+
+//    @Override
+//    public String buildDescription() {
+//        if (symbol.label != null)
+//            return symbol.label + ":" + symbol.grammarLabel();
+//
+//        return symbol.grammarLabel();
+//    }
 }

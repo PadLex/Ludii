@@ -129,13 +129,14 @@ public class CallTreeCloner {
     static void testLudiiLibrary() throws IOException {
         SymbolMapper symbolMapper = new SymbolMapper();
 
-        String gamesRoot = "../Common/res/lud/board";
+        String gamesRoot = "./Common/res/lud/board";
         List<Path> paths = Files.walk(Paths.get(gamesRoot)).filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".lud")).limit(2000).toList();
         int count = 0;
         int preCompilation = 0;
         int clone = 0;
         int compile = 0;
         int recompile = 0;
+        int fromString = 0;
         for (Path path : paths) {
             String gameStr = Files.readString(path);
 
@@ -190,11 +191,20 @@ public class CallTreeCloner {
             final long endRecompile = System.currentTimeMillis();
             //System.out.println("My Recompile: " + (endRecompile - endCompile) + "ms");
 
+            try {
+                Compiler.compile(new Description(rootNode.buildDescription()), new UserSelections(new ArrayList<>()), new Report(), false);
+            } catch (Exception e) {
+                System.out.println("Could not compile from description " + path.getFileName());
+                continue;
+            }
+            final long endDescription = System.currentTimeMillis();
+
             count += 1;
             preCompilation += endPreCompilation - startPreCompilation;
             clone += endClone - endPreCompilation;
             compile += endCompile - endClone;
             recompile += endRecompile - endCompile;
+            fromString += endDescription - endRecompile;
         }
 
         System.out.println("Games: " + count);
@@ -202,6 +212,8 @@ public class CallTreeCloner {
         System.out.println("Clone: " + clone + "ms");
         System.out.println("Compile: " + compile + "ms");
         System.out.println("Recompile: " + recompile + "ms");
+        System.out.println("From string: " + fromString + "ms");
+
     }
 
     static void testHex() {
@@ -260,6 +272,7 @@ public class CallTreeCloner {
     }
 
     public static void main(String[] args) throws IOException {
-        testLudiiLibrary();
+        //testLudiiLibrary();
+        testHex();
     }
 }

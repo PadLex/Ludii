@@ -359,7 +359,7 @@ public class SymbolMapper {
     }
 
     public static class MappedSymbol extends Symbol {
-        final String label;
+        public final String label;
 
         public MappedSymbol(LudemeType type, String path, String alias, Class<?> cls, String label) {
             super(type, path, alias, cls);
