@@ -23,7 +23,7 @@ import java.util.stream.Stream;
 public class CallTreeCloner {
     public static GameNode cloneCallTree(Call root, SymbolMapper symbolMapper) {
         assert root.type() == Call.CallType.Class;
-        return (GameNode) cloneCallTree(root, List.of(new GameNode(root.symbol())), symbolMapper);
+        return (GameNode) cloneCallTree(root, List.of(new GameNode(new SymbolMapper.MappedSymbol(root.symbol(), null))), symbolMapper);
     }
 
     public static GeneratorNode cloneCallTree(Call call, List<GeneratorNode> options, SymbolMapper symbolMapper) {

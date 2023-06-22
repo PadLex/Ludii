@@ -1,7 +1,7 @@
 package approaches.symbolic.nodes;
 
 import approaches.symbolic.SymbolMapper;
-import main.grammar.Symbol;
+import approaches.symbolic.SymbolMapper.MappedSymbol;
 
 import java.util.List;
 
@@ -10,7 +10,7 @@ public class PrimitiveNode extends GeneratorNode {
     public enum PrimitiveType {INT, FLOAT, DIM, STRING, BOOLEAN}
     private Object value;
 
-    PrimitiveNode(Symbol symbol, GeneratorNode parent) {
+    PrimitiveNode(MappedSymbol symbol, GeneratorNode parent) {
         super(symbol, parent);
     }
 

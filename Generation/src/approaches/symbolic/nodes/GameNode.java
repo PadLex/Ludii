@@ -1,26 +1,27 @@
 package approaches.symbolic.nodes;
 
 import approaches.symbolic.SymbolMapper;
+import approaches.symbolic.SymbolMapper.MappedSymbol;
+
 import game.Game;
 import game.equipment.Equipment;
 import game.mode.Mode;
 import game.players.Players;
 import game.rules.Rules;
 import grammar.Grammar;
-import main.grammar.Symbol;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class GameNode extends GeneratorNode {
-    static final Symbol gameSymbol = Grammar.grammar().findSymbolByPath("game.Game");
-    static Symbol nameSymbol = Grammar.grammar().findSymbolByPath("java.lang.String");
-    static Symbol playersSymbol = Grammar.grammar().findSymbolByPath("game.players.Players");
-    static Symbol equipmentSymbol = Grammar.grammar().findSymbolByPath("game.equipment.Equipment");
-    static Symbol modeSymbol = Grammar.grammar().findSymbolByPath("game.mode.Mode");
-    static Symbol rulesSymbol = Grammar.grammar().findSymbolByPath("game.rules.Rules");
+    static final MappedSymbol gameSymbol = new MappedSymbol(Grammar.grammar().findSymbolByPath("game.Game"), null);
+    static MappedSymbol nameSymbol = new MappedSymbol(Grammar.grammar().findSymbolByPath("java.lang.String"), null);
+    static MappedSymbol playersSymbol = new MappedSymbol(Grammar.grammar().findSymbolByPath("game.players.Players"), null);
+    static MappedSymbol equipmentSymbol = new MappedSymbol(Grammar.grammar().findSymbolByPath("game.equipment.Equipment"), null);
+    static MappedSymbol modeSymbol = new MappedSymbol(Grammar.grammar().findSymbolByPath("game.mode.Mode"), null);
+    static MappedSymbol rulesSymbol = new MappedSymbol(Grammar.grammar().findSymbolByPath("game.rules.Rules"), null);
 
-    public GameNode(Symbol symbol) {
+    public GameNode(MappedSymbol symbol) {
         super(symbol, null);
         assert symbol.path().equals("game.Game");
     }

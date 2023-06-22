@@ -1,13 +1,13 @@
 package approaches.symbolic.nodes;
 
 import approaches.symbolic.SymbolMapper;
-import main.grammar.Symbol;
+import approaches.symbolic.SymbolMapper.MappedSymbol;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
 public class EnumNode extends GeneratorNode {
-    EnumNode(Symbol symbol, GeneratorNode parent) {
+    EnumNode(MappedSymbol symbol, GeneratorNode parent) {
         super(symbol, parent);
     }
 

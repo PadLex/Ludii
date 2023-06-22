@@ -1,7 +1,7 @@
 package approaches.symbolic.nodes;
 
 import approaches.symbolic.SymbolMapper;
-import main.grammar.Symbol;
+import approaches.symbolic.SymbolMapper.MappedSymbol;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Objects;
 
 public class ArrayNode extends GeneratorNode {
-    ArrayNode(Symbol symbol, GeneratorNode parent) {
+    ArrayNode(MappedSymbol symbol, GeneratorNode parent) {
         super(symbol, parent);
 
         assert symbol.nesting() > 0;
@@ -39,9 +39,9 @@ public class ArrayNode extends GeneratorNode {
 
         List<GeneratorNode> options = new ArrayList<>();
         if (symbol.nesting() == 1) {
-            options.addAll(symbolMapper.getCompatibleSymbols(symbol).stream().map(s -> fromSymbol(s, this)).toList());
+            options.addAll(symbolMapper.getCompatibleSymbols(symbol).stream().map(s -> fromSymbol(new MappedSymbol(s, null), this)).toList());
         } else {
-            Symbol childSymbol = new Symbol(symbol);
+            MappedSymbol childSymbol = new MappedSymbol(symbol, null);
             childSymbol.setNesting(symbol.nesting() - 1);
             options.add(new ArrayNode(childSymbol, this));
         }

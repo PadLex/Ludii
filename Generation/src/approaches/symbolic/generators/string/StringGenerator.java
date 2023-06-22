@@ -198,8 +198,8 @@ public class StringGenerator {
                 break;
             }
 
-            System.out.println("\nAppended token: " + token);
-            System.out.println("Path count: " + generator.generationState.generationPaths.size());
+            //System.out.println("\nAppended token: " + token);
+            //System.out.println("Path count: " + generator.generationState.generationPaths.size());
             //System.out.println("Current paths: " + generator.state.generationPaths.stream().limit(100).toList());
 
         }

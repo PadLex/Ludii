@@ -11,8 +11,8 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class SymbolMapper {
-    public static final Symbol emptySymbol = new EmptySymbol();
-    public static final Symbol endOfClauseSymbol = new EndOfClauseSymbol();
+    public static final MappedSymbol emptySymbol = new EmptySymbol();
+    public static final MappedSymbol endOfClauseSymbol = new EndOfClauseSymbol();
 
     // TODO do I need to add RegionConstant?
     private static final String[] primitives = {
@@ -30,8 +30,7 @@ public class SymbolMapper {
     // this is too intensive to pre-compute.
     // Maps symbols to every possible set of base-symbols (aka parameters) that can be used to initialize them.
     // eg game.util.graph.Graph can be initialized using [<Float>, null], [<Float>, <Integer>], [], or [<graph>]
-    private final Map<String, List<List<Symbol>>> parameterMap = new HashMap<>();
-    private final HashMap<String, Symbol> equivalenceMap = new HashMap<>();
+    private final Map<String, List<List<MappedSymbol>>> parameterMap = new HashMap<>();
 
     public SymbolMapper() {
         this(Grammar.grammar().symbols().stream().filter(s ->
@@ -56,9 +55,9 @@ public class SymbolMapper {
         //compatibilityMap.get("game.functions.region.sites.around.Around").forEach(System.out::println);
     }
 
-    public List<Symbol> nextPossibilities(Symbol parent, List<Symbol> partialArguments) {
+    public List<MappedSymbol> nextPossibilities(Symbol parent, List<? extends Symbol> partialArguments) {
         assert !partialArguments.contains(endOfClauseSymbol);
-        Stream<List<Symbol>> parameterSets = parameterMap.get(parent.path()).stream();
+        Stream<List<MappedSymbol>> parameterSets = parameterMap.get(parent.path()).stream();
 
         parameterSets = parameterSets.filter(completeArguments -> {
             if (partialArguments.size() >= completeArguments.size()) return false;
@@ -71,15 +70,16 @@ public class SymbolMapper {
         });
 
 
-        Map<String, Symbol> possibilities = new HashMap<>();
+        Map<String, MappedSymbol> possibilities = new HashMap<>();
         parameterSets.forEach(args -> {
-            Symbol argSymbol = args.get(partialArguments.size());
+            MappedSymbol argSymbol = args.get(partialArguments.size());
 
             if (argSymbol.nesting() > 0) {
                 possibilities.put(argSymbol.path() + "|" + argSymbol.nesting(), argSymbol);
             } else {
                 for (Symbol symbol : compatibilityMap.get(argSymbol.path())) {
-                    possibilities.put(symbol.path(), symbol);
+                    // TODO do I need argSymbol.nesting()
+                    possibilities.put(symbol.path(), new MappedSymbol(symbol, argSymbol.label));
                 }
             }
         });
@@ -90,12 +90,6 @@ public class SymbolMapper {
 //        assert possibilities.values().stream().map(Symbol::grammarLabel).distinct().count() == possibilities.size();
 
         return possibilities.values().stream().sorted(Comparator.comparing(Symbol::path)).toList();
-    }
-
-    static Symbol cloneSymbol(Symbol symbol, int nesting) {
-        symbol = new Symbol(symbol);
-        symbol.setNesting(nesting);
-        return symbol;
     }
 
     public List<Symbol> getCompatibleSymbols(Symbol symbol) {
@@ -136,14 +130,14 @@ public class SymbolMapper {
 
     private void buildSymbolMap() {
         for (Symbol symbol : symbols) {
-            List<List<Symbol>> parameterSets = new ArrayList<>(findParameterSets(symbol));
+            List<List<MappedSymbol>> parameterSets = new ArrayList<>(findParameterSets(symbol));
             parameterSets.sort(Comparator.comparing(List::toString));
             parameterMap.put(symbol.path(), parameterSets);
         }
     }
 
-    private List<List<Symbol>> findParameterSets(Symbol symbol) {
-        List<List<Symbol>> constructorSets = new ArrayList<>();
+    private List<List<MappedSymbol>> findParameterSets(Symbol symbol) {
+        List<List<MappedSymbol>> constructorSets = new ArrayList<>();
 
         if (symbol.isTerminal()) {
             //System.out.println("Symbol " + symbol.name() + " is terminal " + symbol.ludemeType());
@@ -215,10 +209,11 @@ public class SymbolMapper {
 
 
             constructorSets.addAll(shiftedSets.stream().map(set -> {
-                List<Symbol> clauseSymbols = new ArrayList<>(clause.args().size() + 1);
+                List<MappedSymbol> clauseSymbols = new ArrayList<>(clause.args().size() + 1);
                 for (int i = 0; i < clause.args().size(); i++) {
                     if (set.get(i)) {
-                        clauseSymbols.add(cloneSymbol(clause.args().get(i).symbol(), clause.args().get(i).nesting()));
+                        ClauseArg arg = clause.args().get(i);
+                        clauseSymbols.add(new MappedSymbol(arg.symbol(), arg.nesting(), arg.label()));
                     } else clauseSymbols.add(emptySymbol);
                 }
 
@@ -228,7 +223,7 @@ public class SymbolMapper {
         }
 
         // filter for out-of-vocabulary symbols and duplicates
-        Stream<List<Symbol>> parameterStream = constructorSets.stream().distinct();
+        Stream<List<MappedSymbol>> parameterStream = constructorSets.stream().distinct();
         parameterStream = parameterStream.filter(l -> paths.containsAll(l.stream().filter(s -> s != emptySymbol && s != endOfClauseSymbol).map(Symbol::path).toList()));
 
         return parameterStream.toList();
@@ -300,9 +295,9 @@ public class SymbolMapper {
 
     }
 
-    static class EmptySymbol extends Symbol {
+    static class EmptySymbol extends MappedSymbol {
         private EmptySymbol() {
-            super(null, "mapper.unused", null, SymbolMapper.class);
+            super(null, "mapper.unused", null, SymbolMapper.class, null);
         }
 
         @Override
@@ -316,9 +311,9 @@ public class SymbolMapper {
         }
     }
 
-    static class EndOfClauseSymbol extends Symbol {
+    static class EndOfClauseSymbol extends MappedSymbol {
         private EndOfClauseSymbol() {
-            super(null, "mapper.endOfClause", null, SymbolMapper.class);
+            super(null, "mapper.endOfClause", null, SymbolMapper.class, null);
         }
 
         @Override
@@ -354,24 +349,37 @@ public class SymbolMapper {
 //        System.out.println(symbolMapper.parameterMap.get("int"));
 //        System.out.println(symbolMapper.nextPossibilities(Grammar.grammar().findSymbolByPath("java.lang.Integer"), new ArrayList<>()));
 
+        System.out.println(Grammar.grammar().findSymbolByPath("game.rules.end.ForEach").rule().rhs());
 
 //        ArrayList<Symbol> partialSymbols = new ArrayList<>();
-//        partialSymbols.add(Grammar.grammar().findSymbolByPath("java.lang.String"));
+//        partialSymbols.add(Grammar.grammar().findSymbolByPath("game.rules.end.ForEach"));
 //        partialSymbols.add(endOfClauseSymbol);
 //        System.out.println(symbolMapper.nextPossibilities(Grammar.grammar().findSymbolByPath("game.Game"), partialSymbols));
 
-        Symbol items = Grammar.grammar().findSymbolByPath("game.equipment.Item");
-        Symbol regions = Grammar.grammar().findSymbolByPath("game.types.board.RegionTypeStatic.Regions");
-        System.out.println(items.compatibleWith(regions));
-        System.out.println(regions.returnType());
+    }
 
-        System.out.println(items.cls().isAssignableFrom(regions.cls()));
-        System.out.println(items.cls().isAssignableFrom(regions.returnType().cls()));
-        System.out.println(items.name());
+    public static class MappedSymbol extends Symbol {
+        final String label;
 
-        items.setNesting(1);
+        public MappedSymbol(LudemeType type, String path, String alias, Class<?> cls, String label) {
+            super(type, path, alias, cls);
+            this.label = label;
+        }
 
+        public MappedSymbol(MappedSymbol other) {
+            super(other);
+            this.label = other.label;
+        }
 
-        System.out.println(symbolMapper.getCompatibleSymbols(items).stream().map(Symbol::path).toList());
+        public MappedSymbol(Symbol other, String label) {
+            super(other);
+            this.label = label;
+        }
+
+        public MappedSymbol(Symbol other, int nesting, String label) {
+            super(other);
+            this.label = label;
+            this.setNesting(nesting);
+        }
     }
 }

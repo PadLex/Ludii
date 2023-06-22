@@ -1,7 +1,7 @@
 package approaches.symbolic.nodes;
 
 import approaches.symbolic.SymbolMapper;
-import main.grammar.Symbol;
+import approaches.symbolic.SymbolMapper.MappedSymbol;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -10,7 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class ClassNode extends GeneratorNode {
-    ClassNode(Symbol symbol, GeneratorNode parent) {
+    ClassNode(MappedSymbol symbol, GeneratorNode parent) {
         super(symbol, parent);
         assert !symbol.path().equals("game.Game");
     }
@@ -41,8 +41,8 @@ public class ClassNode extends GeneratorNode {
     }
 
     public List<GeneratorNode> nextPossibleParameters(SymbolMapper symbolMapper) {
-        List<Symbol> partialParameters = parameterSet.stream().map(node -> node.symbol).toList();
-        List<Symbol> possibleSymbols = symbolMapper.nextPossibilities(symbol, partialParameters);
+        List<MappedSymbol> partialParameters = parameterSet.stream().map(node -> node.symbol).toList();
+        List<MappedSymbol> possibleSymbols = symbolMapper.nextPossibilities(symbol, partialParameters);
 //        if (symbol.rule() != null)
 //            System.out.println("Symbol: " + symbol.path() + " clauses: " + symbol.rule().rhs().stream().map(c -> c.symbol().path()).toList());
 //

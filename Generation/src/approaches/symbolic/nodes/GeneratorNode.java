@@ -1,7 +1,8 @@
 package approaches.symbolic.nodes;
 
 import approaches.symbolic.SymbolMapper;
-import main.grammar.Symbol;
+import approaches.symbolic.SymbolMapper.MappedSymbol;
+
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -9,19 +10,19 @@ import java.util.List;
 import java.util.Objects;
 
 public abstract class GeneratorNode {
-    final Symbol symbol;
+    final MappedSymbol symbol;
     final List<GeneratorNode> parameterSet = new ArrayList<>();
     GeneratorNode parent;
     Object compilerCache = null;
     boolean complete;
 
-    GeneratorNode(Symbol symbol, GeneratorNode parent) {
+    GeneratorNode(MappedSymbol symbol, GeneratorNode parent) {
         assert symbol != null;
         this.symbol = symbol;
         this.parent = parent;
     }
 
-    public static GeneratorNode fromSymbol(Symbol symbol, GeneratorNode parent) {
+    public static GeneratorNode fromSymbol(MappedSymbol symbol, GeneratorNode parent) {
         if (symbol.nesting() > 0) {
             return new ArrayNode(symbol, parent);
         }
@@ -106,14 +107,14 @@ public abstract class GeneratorNode {
 
     public void assertRecursivelyComplete() {
         if(!isComplete()) {
-            System.out.println("Params " + this.parameterSet.stream().map(GeneratorNode::symbol).map(Symbol::grammarLabel).toList());
+            System.out.println("Params " + this.parameterSet.stream().map(GeneratorNode::symbol).map(MappedSymbol::grammarLabel).toList());
             throw new RuntimeException("Node is not complete: " + this);
         }
 
         parameterSet.forEach(GeneratorNode::assertRecursivelyComplete);
     }
 
-    public Symbol symbol() {
+    public MappedSymbol symbol() {
         return symbol;
     }
 
