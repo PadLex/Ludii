@@ -2,8 +2,15 @@ package approaches.symbolic.nodes;
 
 import approaches.symbolic.SymbolMapper;
 import approaches.symbolic.SymbolMapper.MappedSymbol;
+import game.functions.booleans.BooleanConstant;
+import game.functions.dim.DimConstant;
+import game.functions.floats.FloatConstant;
+import game.functions.floats.FloatFunction;
+import game.functions.ints.IntConstant;
+import game.functions.ints.IntFunction;
 
 import java.util.List;
+import java.util.Objects;
 
 public class PrimitiveNode extends GeneratorNode {
 
@@ -20,11 +27,22 @@ public class PrimitiveNode extends GeneratorNode {
 
     public void setUnparsedValue(String strValue) {
         switch (getType()) {
-            case INT, DIM -> value = Integer.parseInt(strValue);
+            case INT -> value = Integer.parseInt(strValue);
+            case DIM -> value = new DimConstant(Integer.parseInt(strValue));
             case FLOAT -> value = Float.parseFloat(strValue);
             case STRING -> value = strValue;
             case BOOLEAN -> value = Boolean.parseBoolean(strValue);
         }
+
+        if (IntFunction.class.isAssignableFrom(symbol.cls()))
+            value = new IntConstant((Integer) value);
+
+        if (FloatFunction.class.isAssignableFrom(symbol.cls()))
+            value = new FloatConstant((Float) value);
+
+        if (BooleanConstant.class.isAssignableFrom(symbol.cls()))
+            value = new BooleanConstant((Boolean) value);
+
     }
 
     Object instantiate() {
@@ -53,7 +71,16 @@ public class PrimitiveNode extends GeneratorNode {
         if (value instanceof String)
             return "\"" + value + "\"";
 
-        return value.toString();
+        String strValue = value.toString();
+        if (Objects.equals(strValue, "true"))
+            return "True";
+        if (Objects.equals(strValue, "false"))
+            return "False";
+
+        if (strValue.endsWith(".0"))
+            return strValue.substring(0, strValue.length() - 2);
+
+        return strValue;
     }
 
     @Override

@@ -40,8 +40,10 @@ public class GameNode extends GeneratorNode {
 
         Game game = instantiate();
 
-        if (skipEquipment) game.createGame();
-        else game.create();
+        //TODO skipEquipment
+//        if (skipEquipment) game.createGame();
+//        else game.create();
+        game.create();
 
         //System.out.println("totalDefaultSites: " + game.equipment().totalDefaultSites());
 
@@ -98,7 +100,15 @@ public class GameNode extends GeneratorNode {
 
     @Override
     public String buildDescription() {
-        return "(" + symbol.token() + " " + String.join(" ", parameterSet.stream().filter(s -> !(s instanceof EmptyNode || s instanceof EndOfClauseNode)).map(GeneratorNode::buildDescription).toList()) + ")";
+        String parameterString = String.join(" ", parameterSet.stream().filter(s -> !(s instanceof EmptyNode || s instanceof EndOfClauseNode)).map(GeneratorNode::buildDescription).toList());
+        if (parameterString.length() > 0)
+            parameterString = " " + parameterString;
+
+        String close = "";
+        if (complete)
+            close = ")";
+
+        return "(" + symbol.token() + parameterString + close;
     }
 
     @Override
@@ -110,14 +120,14 @@ public class GameNode extends GeneratorNode {
         return clone;
     }
 
-    @Override
-    public GameNode copyUp() {
-        GameNode clone = new GameNode(symbol);
-        clone.parameterSet.addAll(parameterSet);
-        clone.complete = complete;
-        clone.compilerCache = compilerCache;
-        return clone;
-    }
+//    @Override
+//    public GameNode copyUp() {
+//        GameNode clone = new GameNode(symbol);
+//        clone.parameterSet.addAll(parameterSet);
+//        clone.complete = complete;
+//        clone.compilerCache = compilerCache;
+//        return clone;
+//    }
 
     public GeneratorNode nameNode() {
         return parameterSet.get(0);

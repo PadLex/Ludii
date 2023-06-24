@@ -69,6 +69,7 @@ public abstract class GeneratorNode {
 
     public void addParameter(GeneratorNode param) {
         assert param != null;
+        assert param.parent == this;
 
         if (param instanceof EndOfClauseNode) {
             complete = true;
