@@ -64,6 +64,10 @@ public class SymbolMapper {
 
             for (int i = 0; i < partialArguments.size(); i++) {
                 if (!completeArguments.get(i).compatibleWith(partialArguments.get(i))) return false;
+                if (completeArguments.get(i).nesting() != partialArguments.get(i).nesting()) {
+                    //System.out.println(parent.grammarLabel() + " Nesting mismatch: " + completeArguments.get(i).nesting() + " " + partialArguments.get(i).nesting());
+                    return false;
+                }
             }
 
             return true;
@@ -213,7 +217,8 @@ public class SymbolMapper {
                 for (int i = 0; i < clause.args().size(); i++) {
                     if (set.get(i)) {
                         ClauseArg arg = clause.args().get(i);
-                        clauseSymbols.add(new MappedSymbol(arg.symbol(), arg.nesting(), arg.label()));
+                        String label = arg.label() != null? arg.label().toLowerCase() : null;
+                        clauseSymbols.add(new MappedSymbol(arg.symbol(), arg.nesting(), label)); //TODO: check if label should be lower case
                     } else clauseSymbols.add(emptySymbol);
                 }
 
@@ -333,7 +338,7 @@ public class SymbolMapper {
 //        System.out.println(Grammar.grammar().symbols().stream().filter(s -> s.usedInGrammar() && !s.usedInDescription()).toList());
 //        System.out.println(Grammar.grammar().symbols().stream().filter(s -> !s.usedInGrammar() && !s.usedInMetadata()).toList());
 
-        SymbolMapper symbolMapper = new SymbolMapper();
+        //SymbolMapper symbolMapper = new SymbolMapper();
 //        System.out.println("Finished mapping symbols. Found " + symbolMapper.parameterMap.values().stream().mapToInt(List::size).sum() + " parameter sets.");
 //
 //        // TODO WHY is it used in grammar??
@@ -349,7 +354,19 @@ public class SymbolMapper {
 //        System.out.println(symbolMapper.parameterMap.get("int"));
 //        System.out.println(symbolMapper.nextPossibilities(Grammar.grammar().findSymbolByPath("java.lang.Integer"), new ArrayList<>()));
 
-        System.out.println(Grammar.grammar().findSymbolByPath("game.rules.end.ForEach").rule().rhs());
+        // TODO I don't understand and groups
+//        List<Clause> clauses = Grammar.grammar().findSymbolByPath("game.rules.play.moves.decision.Move").rule().rhs();
+//        for (int i = 0; i < clauses.size(); i++) {
+//            System.out.println("Clause " + i + ": " + clauses.get(i));
+//            System.out.println("          " + clauses.get(i).args().stream().map(ClauseArg::andGroup).toList());
+//        }
+
+
+        List<Clause> clauses = Grammar.grammar().findSymbolByPath("game.functions.graph.generators.basis.square.Square").rule().rhs();
+        for (int i = 0; i < clauses.size(); i++) {
+            System.out.println("Clause " + i + ": " + clauses.get(i));
+            //System.out.println("          " + clauses.get(i).args().stream().map(ClauseArg::andGroup).toList());
+        }
 
 //        ArrayList<Symbol> partialSymbols = new ArrayList<>();
 //        partialSymbols.add(Grammar.grammar().findSymbolByPath("game.rules.end.ForEach"));
