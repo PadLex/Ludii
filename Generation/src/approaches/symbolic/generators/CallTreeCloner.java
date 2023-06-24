@@ -130,7 +130,7 @@ public class CallTreeCloner {
         SymbolMapper symbolMapper = new SymbolMapper();
 
         String gamesRoot = "./Common/res/lud/board";
-        List<Path> paths = Files.walk(Paths.get(gamesRoot)).filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".lud")).limit(2000).toList();
+        List<Path> paths = Files.walk(Paths.get(gamesRoot)).filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".lud")).sorted().limit(2000).toList();
         int count = 0;
         int preCompilation = 0;
         int clone = 0;
@@ -195,7 +195,10 @@ public class CallTreeCloner {
                 Compiler.compile(new Description(rootNode.buildDescription()), new UserSelections(new ArrayList<>()), new Report(), false);
             } catch (Exception e) {
                 System.out.println("Could not compile from description " + path.getFileName());
-                continue;
+                System.out.println(squish(rootNode.buildDescription()));
+                System.out.println(squish(description.expanded()));
+                throw e;
+                //continue;
             }
             final long endDescription = System.currentTimeMillis();
 
@@ -214,6 +217,15 @@ public class CallTreeCloner {
         System.out.println("Recompile: " + recompile + "ms");
         System.out.println("From string: " + fromString + "ms");
 
+    }
+
+    static String squish(String str) {
+        str = str.replaceAll("\\s+", " ");
+        str = str.replaceAll("\\( ", "(");
+        str = str.replaceAll(" \\)", ")");
+        str = str.replaceAll("\\{ ", "{");
+        str = str.replaceAll(" \\}", "}");
+        return str;
     }
 
     static void testHex() {
@@ -272,7 +284,7 @@ public class CallTreeCloner {
     }
 
     public static void main(String[] args) throws IOException {
-        //testLudiiLibrary();
-        testHex();
+        testLudiiLibrary();
+        //testHex();
     }
 }
