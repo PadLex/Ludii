@@ -56,7 +56,6 @@ public class DescriptionCloner {
                                 primitiveOption.setValue(trailingDescription.substring(1, end));
                             }
                             case INT, DIM, FLOAT -> {
-                                //int end = Math.min(Math.min(trailingDescription.indexOf(' '), trailingDescription.indexOf(')')), trailingDescription.indexOf('}'));
                                 Matcher match = endOfParameter.matcher(trailingDescription);
 
                                 if (!match.find())
@@ -85,12 +84,13 @@ public class DescriptionCloner {
                         newNode.addParameter(option);
                         newConsistentGames.add(newNode);
 
-//                        System.out.println("With option:" + newNode.root().buildDescription());
 //                        System.out.println("Expanded:" + expanded);
 //                        System.out.println("New node:" + newNode.root().buildDescription());
                         assert expanded.startsWith(newNode.root().buildDescription());
 
                     } else {
+                        // Non-primitive option
+
                         GeneratorNode newNode = node.copyUp();
                         option.setParent(newNode);
                         newNode.addParameter(option);
@@ -126,8 +126,12 @@ public class DescriptionCloner {
                         }
 
 //                        System.out.println(expanded.startsWith(newNode.root().buildDescription()) + ":" + newNode.root().buildDescription());
+                        String newDescription = newNode.root().buildDescription();
+                        char nextChar = expanded.charAt(newDescription.length());
+                        char currentChar = expanded.charAt(newDescription.length() - 1);
+                        boolean isEnd = nextChar == ' ' || nextChar == ')' || nextChar == '}' || nextChar == '(' || nextChar == '{' || currentChar == '(' || currentChar == '{';
 
-                        if (expanded.startsWith(newNode.root().buildDescription())) {
+                        if (isEnd && expanded.startsWith(newDescription)) {
 //                            System.out.println("path:" + newNode.symbol().path());
                             newConsistentGames.add(newNode);
                         }
@@ -138,6 +142,8 @@ public class DescriptionCloner {
             if (newConsistentGames.isEmpty()) {
                 System.out.println("Expanded:" + expanded);
                 consistentGames.forEach(node -> System.out.println("Previous:" + node.root().buildDescription()));
+                System.out.println("last type: " + consistentGames.get(0).symbol().path());
+                consistentGames.get(0).nextPossibleParameters(symbolMapper).forEach(node -> System.out.println("last option:" + node.symbol().path()));
                 throw new RuntimeException("No consistent games found ");
             }
 
@@ -175,7 +181,7 @@ public class DescriptionCloner {
                 continue;
             }
 
-            System.out.println("Loading " + path.getFileName() + " (" + (count + 1) + " of " + paths.size() + " games)");
+            System.out.println("\nLoading " + path.getFileName() + " (" + (count + 1) + " of " + paths.size() + " games)");
 
             Description description = new Description(gameStr);
 
@@ -265,6 +271,14 @@ public class DescriptionCloner {
         str = str.replaceAll("(\\d)+\\.([^0-9])", "$1$2"); // 0. -> 0
         str = str.replaceAll("\\s:\\s", ":"); // (forEach of : (... -> (forEach of:(...
 
+        // TODO deal with aliases
+
+        // Constants
+        str = str.replaceAll("([ ({])Off([ )}])", "$1-1$2");
+        str = str.replaceAll("([ ({])End([ )}])", "$1-2$2");
+        str = str.replaceAll("([ ({])Undefined([ )}])", "$1-1$2");
+
+
         return str;
     }
 
@@ -287,7 +301,7 @@ public class DescriptionCloner {
 //        DescriptionCloner.cloneExpandedDescription(squish(str), new SymbolMapper());
 
 //        testLudiiLibrary();
-        Description description = new Description(Files.readString(Path.of("./Common/res/lud/board/space/line/Pentalath.lud")));
+        Description description = new Description(Files.readString(Path.of("./Common/res/lud/board/race/escape/Pagade Kayi Ata (Sixteen-handed).lud")));
         Compiler.compile(description, new UserSelections(new ArrayList<>()), new Report(), false);
         System.out.println(description.expanded());
         GameNode gameNode = cloneExpandedDescription(standardize(description.expanded()), new SymbolMapper());

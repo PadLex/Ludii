@@ -45,6 +45,7 @@ public class ArrayNode extends GeneratorNode {
         return array;
     }
 
+    // TODO do I really need to find all the permutations of IntFunctions and int? Probably not.
     public List<GeneratorNode> nextPossibleParameters(SymbolMapper symbolMapper) {
         if (!parameterSet.isEmpty() && parameterSet.get(parameterSet.size() - 1) instanceof EndOfClauseNode)
             return List.of();

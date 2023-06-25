@@ -1,5 +1,6 @@
 package approaches.symbolic;
 
+import game.functions.ints.IntConstant;
 import grammar.Grammar;
 import main.grammar.Clause;
 import main.grammar.ClauseArg;
@@ -363,11 +364,14 @@ public class SymbolMapper {
 //        }
 
 
-        List<Clause> clauses = Grammar.grammar().findSymbolByPath("game.functions.graph.generators.basis.square.Square").rule().rhs();
+        List<Clause> clauses = Grammar.grammar().findSymbolByPath("game.functions.booleans.math.NotEqual").rule().rhs();
         for (int i = 0; i < clauses.size(); i++) {
             System.out.println("Clause " + i + ": " + clauses.get(i));
             //System.out.println("          " + clauses.get(i).args().stream().map(ClauseArg::andGroup).toList());
         }
+
+        SymbolMapper symbolMapper = new SymbolMapper();
+        System.out.println(symbolMapper.nextPossibilities(Grammar.grammar().findSymbolByPath("game.functions.booleans.math.NotEqual"), List.of(Grammar.grammar().findSymbolByPath("java.lang.Integer"))));
 
 //        ArrayList<Symbol> partialSymbols = new ArrayList<>();
 //        partialSymbols.add(Grammar.grammar().findSymbolByPath("game.rules.end.ForEach"));
