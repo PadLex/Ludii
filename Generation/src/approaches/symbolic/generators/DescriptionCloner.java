@@ -15,8 +15,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class DescriptionCloner {
+    static final Pattern endOfParameter = Pattern.compile("[ )}]");
+
     public static GameNode cloneExpandedDescription(String expanded, SymbolMapper symbolMapper) {
 //        System.out.println("Expanded:" + expanded);
         List<GeneratorNode> consistentGames = List.of(new GameNode());
@@ -26,10 +30,11 @@ public class DescriptionCloner {
             for (GeneratorNode node : consistentGames) {
                 //System.out.println("Node: " + node.buildDescription());
                 for (GeneratorNode option : node.nextPossibleParameters(symbolMapper)) {
-                    //System.out.println("Option: " + option.buildDescription());
+                    //System.out.println("Option: " + option.symbol().path());
 
                     if (option instanceof PrimitiveNode primitiveOption) {
-                        //System.out.println(node.root().buildDescription());
+//                        System.out.println("Primitive option: " + primitiveOption);
+//                        System.out.println(node.root().buildDescription());
                         String trailingDescription = expanded.substring(node.root().buildDescription().length()).strip();
                         if (option.symbol().label != null) {
                             String prefix = option.symbol().label + ":";
@@ -37,7 +42,7 @@ public class DescriptionCloner {
                                 continue;
                             trailingDescription = trailingDescription.substring(prefix.length()).strip();
                         }
-                        //System.out.println("Trailing description:" + trailingDescription);
+//                        System.out.println("Trailing description:" + trailingDescription);
 
                         switch (primitiveOption.getType()) {
                             case STRING -> {
@@ -51,14 +56,14 @@ public class DescriptionCloner {
                                 primitiveOption.setValue(trailingDescription.substring(1, end));
                             }
                             case INT, DIM, FLOAT -> {
-                                int end = Math.min(Math.min(trailingDescription.indexOf(' '), trailingDescription.indexOf(')')), trailingDescription.indexOf('}'));
-                                if (end == -1)
+                                //int end = Math.min(Math.min(trailingDescription.indexOf(' '), trailingDescription.indexOf(')')), trailingDescription.indexOf('}'));
+                                Matcher match = endOfParameter.matcher(trailingDescription);
+
+                                if (!match.find())
                                     continue;
 
-                                //System.out.println(trailingDescription.substring(0, end));
-
                                 try {
-                                    primitiveOption.setUnparsedValue(trailingDescription.substring(0, end));
+                                    primitiveOption.setUnparsedValue(trailingDescription.substring(0, match.start()));
                                 } catch (NumberFormatException e) {
                                     continue;
                                 }
@@ -74,15 +79,15 @@ public class DescriptionCloner {
                             }
                         }
 
-                        //System.out.println("Primitive option: " + primitiveOption);
+//                        System.out.println("Primitive option: " + primitiveOption);
                         GeneratorNode newNode = node.copyUp();
                         option.setParent(newNode);
                         newNode.addParameter(option);
                         newConsistentGames.add(newNode);
 
-                        System.out.println("With option:" + newNode.root().buildDescription());
-                        System.out.println("Expanded:" + expanded);
-                        System.out.println("New node:" + newNode.root().buildDescription());
+//                        System.out.println("With option:" + newNode.root().buildDescription());
+//                        System.out.println("Expanded:" + expanded);
+//                        System.out.println("New node:" + newNode.root().buildDescription());
                         assert expanded.startsWith(newNode.root().buildDescription());
 
                     } else {
@@ -120,10 +125,10 @@ public class DescriptionCloner {
                             newNode = newNode.parent();
                         }
 
-                        //System.out.println(expanded.startsWith(newNode.root().buildDescription()) + ":" + newNode.root().buildDescription());
+//                        System.out.println(expanded.startsWith(newNode.root().buildDescription()) + ":" + newNode.root().buildDescription());
 
                         if (expanded.startsWith(newNode.root().buildDescription())) {
-                            //System.out.println("path:" + newNode.symbol().path());
+//                            System.out.println("path:" + newNode.symbol().path());
                             newConsistentGames.add(newNode);
                         }
                     }
@@ -131,8 +136,8 @@ public class DescriptionCloner {
             }
 
             if (newConsistentGames.isEmpty()) {
-                //System.out.println("Expanded:" + expanded);
-                //consistentGames.forEach(node -> System.out.println("Previous:" + node.root().buildDescription()));
+                System.out.println("Expanded:" + expanded);
+                consistentGames.forEach(node -> System.out.println("Previous:" + node.root().buildDescription()));
                 throw new RuntimeException("No consistent games found ");
             }
 
@@ -258,9 +263,8 @@ public class DescriptionCloner {
         str = str.replaceAll("(?<![\\d])\\.(\\d)", "0.$1"); // .5 -> 0.5
         str = str.replaceAll("(\\d+\\.\\d*?)0+\\b", "$1"); // 0.50 -> 0.5
         str = str.replaceAll("(\\d)+\\.([^0-9])", "$1$2"); // 0. -> 0
-        str = str.replaceAll("\\s:\\s", ":"); // (forEach of : ( -> (forEach of:(
+        str = str.replaceAll("\\s:\\s", ":"); // (forEach of : (... -> (forEach of:(...
 
-        // TODO standardize :
         return str;
     }
 
@@ -283,11 +287,12 @@ public class DescriptionCloner {
 //        DescriptionCloner.cloneExpandedDescription(squish(str), new SymbolMapper());
 
 //        testLudiiLibrary();
-//        Description description = new Description(Files.readString(Path.of("./Common/res/lud/board/space/line/Pentalath.lud")));
-//        Compiler.compile(description, new UserSelections(new ArrayList<>()), new Report(), false);
-//        GameNode gameNode = cloneExpandedDescription(standardize(description.expanded()), new SymbolMapper());
+        Description description = new Description(Files.readString(Path.of("./Common/res/lud/board/space/line/Pentalath.lud")));
+        Compiler.compile(description, new UserSelections(new ArrayList<>()), new Report(), false);
+        System.out.println(description.expanded());
+        GameNode gameNode = cloneExpandedDescription(standardize(description.expanded()), new SymbolMapper());
 
-        System.out.println(standardize("0.0 hjbhjbjhj 9.70 9.09 (9.0) 8888.000  3.36000 3. (5.0} 9.2 or: 9 (game a  :     (g)"));
+//        System.out.println(standardize("0.0 hjbhjbjhj 9.70 9.09 (9.0) 8888.000  3.36000 3. (5.0} 9.2 or: 9 (game a  :     (g)"));
 
     }
 }

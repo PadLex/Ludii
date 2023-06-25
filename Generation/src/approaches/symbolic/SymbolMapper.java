@@ -218,7 +218,7 @@ public class SymbolMapper {
                 for (int i = 0; i < clause.args().size(); i++) {
                     if (set.get(i)) {
                         ClauseArg arg = clause.args().get(i);
-                        String label = arg.label() != null? arg.label().toLowerCase() : null;
+                        String label = arg.label() != null? arg.label().substring(0, 1).toLowerCase() + arg.label().substring(1) : null;
                         clauseSymbols.add(new MappedSymbol(arg.symbol(), arg.nesting(), label)); //TODO: check if label should be lower case
                     } else clauseSymbols.add(emptySymbol);
                 }
