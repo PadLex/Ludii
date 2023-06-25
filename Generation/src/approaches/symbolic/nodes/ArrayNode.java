@@ -2,6 +2,7 @@ package approaches.symbolic.nodes;
 
 import approaches.symbolic.SymbolMapper;
 import approaches.symbolic.SymbolMapper.MappedSymbol;
+import game.functions.ints.IntFunction;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -18,17 +19,28 @@ public class ArrayNode extends GeneratorNode {
     Object instantiate() {
         List<Object> arguments = parameterSet.stream().filter(Objects::nonNull).map(GeneratorNode::compile).toList();
 
+        //System.out.println("Compiling: " + symbol.cls() + "-" + symbol.nesting() + " with " + arguments.stream().map(o -> o==null? null:o.getClass()).toList());
+
         Object array;
         if (symbol.nesting() == 1)
             array = Array.newInstance(symbol.cls(), arguments.size());
         else {
-            array = Array.newInstance(arguments.get(0).getClass(), arguments.size());
+            array = Array.newInstance(arguments.get(0).getClass(), arguments.size());  // TODO Is this correct?
+
+//            if (int.class.isAssignableFrom(symbol.cls()) || Integer.class.isAssignableFrom(symbol.cls())) {
+//                arguments = arguments.stream().map(o -> {
+//                    if (o instanceof IntFunction intFunction)
+//                        return intFunction;
+//                }).toList();
+//            }
         }
 
         for (int i = 0; i < arguments.size(); i++) {
             //System.out.println("Compiling: " + symbol + "-" + symbol.nesting() + " adding: " + arguments.get(i).getClass() + " vs " + array.getClass());
             Array.set(array, i, arguments.get(i));
         }
+
+
 
         return array;
     }
@@ -54,7 +66,7 @@ public class ArrayNode extends GeneratorNode {
 
     @Override
     public String toString() {
-        return "{" + symbol.grammarLabel() + ": " + String.join(", ", parameterSet.stream().map(GeneratorNode::toString).toList()) + "}";
+        return "{" + symbol.grammarLabel() + "; " + String.join(" ", parameterSet.stream().map(GeneratorNode::toString).toList()) + "}";
     }
 
     @Override

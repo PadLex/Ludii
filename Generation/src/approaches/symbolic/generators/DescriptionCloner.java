@@ -15,11 +15,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 public class DescriptionCloner {
     public static GameNode cloneExpandedDescription(String expanded, SymbolMapper symbolMapper) {
-        //System.out.println("Expanded:" + expanded);
+//        System.out.println("Expanded:" + expanded);
         List<GeneratorNode> consistentGames = List.of(new GameNode());
         while (true) {
             //System.out.println("\nConsistent games: " + consistentGames.size());
@@ -66,9 +65,9 @@ public class DescriptionCloner {
                             }
                             case BOOLEAN -> {
                                 if (trailingDescription.startsWith("True")) {
-                                    primitiveOption.setValue(true);
+                                    primitiveOption.setUnparsedValue("True");
                                 } else if (trailingDescription.startsWith("False")) {
-                                    primitiveOption.setValue(false);
+                                    primitiveOption.setUnparsedValue("False");
                                 } else {
                                     continue;
                                 }
@@ -81,9 +80,9 @@ public class DescriptionCloner {
                         newNode.addParameter(option);
                         newConsistentGames.add(newNode);
 
-                        //System.out.println("With option:" + newNode.root().buildDescription());
-                        //System.out.println("Expanded:" + expanded);
-                        //System.out.println("New node:" + newNode.root().buildDescription());
+//                        System.out.println("With option:" + newNode.root().buildDescription());
+//                        System.out.println("Expanded:" + expanded);
+//                        System.out.println("New node:" + newNode.root().buildDescription());
                         assert expanded.startsWith(newNode.root().buildDescription());
 
                     } else {
@@ -100,15 +99,20 @@ public class DescriptionCloner {
                             try {
                                 newNode.compile();
                             } catch (Exception e) {
-                                System.out.println("Could not compile " + newNode);
+//                                System.out.println("Could not compile " + newNode);
+//                                System.out.println(e.getMessage());
                                 //throw e;
                                 continue;
                             }
 
                             if (newNode instanceof GameNode gameNode) {
-                                for (GeneratorNode previous: consistentGames) {
-                                    System.out.println("Previous:" + previous.root());
+                                if (consistentGames.size() > 1) {
+                                    System.out.println("WARNING multiple possibilities:");
+                                    for (GeneratorNode previous: consistentGames) {
+                                        System.out.println("Previous:" + previous.root());
+                                    }
                                 }
+
                                 //assert consistentGames.size() == 1;
                                 return gameNode;
                             }
@@ -119,6 +123,7 @@ public class DescriptionCloner {
                         //System.out.println(expanded.startsWith(newNode.root().buildDescription()) + ":" + newNode.root().buildDescription());
 
                         if (expanded.startsWith(newNode.root().buildDescription())) {
+                            //System.out.println("path:" + newNode.symbol().path());
                             newConsistentGames.add(newNode);
                         }
                     }
@@ -126,8 +131,8 @@ public class DescriptionCloner {
             }
 
             if (newConsistentGames.isEmpty()) {
-                System.out.println(expanded);
-                System.out.println(consistentGames.get(0).root().buildDescription());
+                //System.out.println("Expanded:" + expanded);
+                //consistentGames.forEach(node -> System.out.println("Previous:" + node.root().buildDescription()));
                 throw new RuntimeException("No consistent games found ");
             }
 
@@ -137,6 +142,8 @@ public class DescriptionCloner {
 
     static void testLudiiLibrary() throws IOException {
         SymbolMapper symbolMapper = new SymbolMapper();
+
+        List<String> skip = List.of("To Kinegi tou Lagou.lud");
 
         String gamesRoot = "./Common/res/lud/board";
         List<Path> paths = Files.walk(Paths.get(gamesRoot)).filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".lud")).sorted().limit(2000).toList();
@@ -149,8 +156,15 @@ public class DescriptionCloner {
         for (Path path : paths) {
             String gameStr = Files.readString(path);
 
-            if (gameStr.contains("match"))
+            if (gameStr.contains("match")) {
+                System.out.println("Skipping match " + path.getFileName());
                 continue;
+            }
+
+            if (skip.contains(path.getFileName().toString())) {
+                System.out.println("Skipping " + path.getFileName());
+                continue;
+            }
 
             System.out.println("Loading " + path.getFileName() + " (" + (count + 1) + " of " + paths.size() + " games)");
 
@@ -173,7 +187,7 @@ public class DescriptionCloner {
 
             GameNode rootNode;
             try {
-                rootNode = cloneExpandedDescription(squish(description.expanded()), symbolMapper);
+                rootNode = cloneExpandedDescription(standardize(description.expanded()), symbolMapper);
             } catch (Exception e) {
                 System.out.println("Could not clone " + path.getFileName());
                 throw e;
@@ -204,8 +218,8 @@ public class DescriptionCloner {
                 Compiler.compile(new Description(rootNode.buildDescription()), new UserSelections(new ArrayList<>()), new Report(), false);
             } catch (Exception e) {
                 System.out.println("Could not compile from description " + path.getFileName());
-                System.out.println(squish(rootNode.buildDescription()));
-                System.out.println(squish(description.expanded()));
+                System.out.println(standardize(rootNode.buildDescription()));
+                System.out.println(standardize(description.expanded()));
                 throw e;
                 //continue;
             }
@@ -228,12 +242,15 @@ public class DescriptionCloner {
 
     }
 
-    static String squish(String str) {
+    static String standardize(String str) {
         str = str.replaceAll("\\s+", " ");
         str = str.replaceAll("\\( ", "(");
         str = str.replaceAll(" \\)", ")");
         str = str.replaceAll("\\{ ", "{");
         str = str.replaceAll(" \\}", "}");
+        str = str.replaceAll("(?<![\\d])\\.(\\d)", "0.$1");
+        str = str.replaceAll("(\\d+)\\.0\\b", "$1");
+        // TODO standardize :
         return str;
     }
 
@@ -256,6 +273,9 @@ public class DescriptionCloner {
 //        DescriptionCloner.cloneExpandedDescription(squish(str), new SymbolMapper());
 
         testLudiiLibrary();
+//        Description description = new Description(Files.readString(Path.of("./Common/res/lud/board/hunt/Koti Keliya.lud")));
+//        Compiler.compile(description, new UserSelections(new ArrayList<>()), new Report(), false);
+//        GameNode gameNode = cloneExpandedDescription(standardize(description.expanded()), new SymbolMapper());
 
     }
 }

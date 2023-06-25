@@ -35,7 +35,12 @@ public class ClassNode extends GeneratorNode {
                 try {
                     return method.invoke(null, arguments.toArray());
                 } catch (IllegalArgumentException | IllegalAccessException | InvocationTargetException ignored) {
+//                  if (Objects.equals(symbol.toString(), "<operators.foreach.forEach>") && method.getParameterTypes().length == 11) {
+//                    System.out.println("Failed to instantiate " + symbol + " with " + arguments);
+//                    System.out.println(arguments.stream().map(o -> o==null? null:o.getClass()).toList());
+//                    System.out.println(Arrays.toString(method.getParameterTypes()));
 
+//                }
                 }
             }
         }
@@ -44,13 +49,13 @@ public class ClassNode extends GeneratorNode {
             try {
                 return constructor.newInstance(arguments.toArray());
             }catch (IllegalArgumentException | IllegalAccessException | InstantiationException | InvocationTargetException ignored) {
-                if (Objects.equals(symbol.toString(), "<shift>") && constructor.getParameterTypes().length == 4) {
-                    System.out.println("Failed to instantiate " + symbol + " with " + arguments);
-                    System.out.println(arguments.stream().map(o -> o==null? null:o.getClass()).toList());
-                    System.out.println(Arrays.toString(constructor.getParameterTypes()));
-
-                    throw new RuntimeException(ignored);
-                }
+//                if (Objects.equals(symbol.toString(), "<operators.foreach.forEach>") && constructor.getParameterTypes().length == 11) {
+//                    System.out.println("Failed to instantiate " + symbol + " with " + arguments);
+//                    System.out.println(arguments.stream().map(o -> o==null? null:o.getClass()).toList());
+//                    System.out.println(Arrays.toString(constructor.getParameterTypes()));
+//
+//                    throw new RuntimeException(ignored);
+//                }
             }
 
 //            catch (InvocationTargetException e) {
@@ -183,7 +188,7 @@ public class ClassNode extends GeneratorNode {
     @Override
     public String toString() {
         //.grammarLabel() TODO
-        return "(" + symbol.path() + ": " + String.join(", ", parameterSet.stream().map(GeneratorNode::toString).toList()) + ")";
+        return "(" + symbol.path() + "; " + String.join(" ", parameterSet.stream().map(GeneratorNode::toString).toList()) + ")";
     }
 
     @Override

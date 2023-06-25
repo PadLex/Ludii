@@ -77,13 +77,14 @@ public class SymbolMapper {
         Map<String, MappedSymbol> possibilities = new HashMap<>();
         parameterSets.forEach(args -> {
             MappedSymbol argSymbol = args.get(partialArguments.size());
+            String argKey = "|" + argSymbol.nesting() + "|" + argSymbol.label;
 
             if (argSymbol.nesting() > 0) {
-                possibilities.put(argSymbol.path() + "|" + argSymbol.nesting(), argSymbol);
+                possibilities.put(argSymbol.path() + argKey, argSymbol);
             } else {
                 for (Symbol symbol : compatibilityMap.get(argSymbol.path())) {
                     // TODO do I need argSymbol.nesting()
-                    possibilities.put(symbol.path(), new MappedSymbol(symbol, argSymbol.label));
+                    possibilities.put(symbol.path() + argKey, new MappedSymbol(symbol, argSymbol.label));
                 }
             }
         });
