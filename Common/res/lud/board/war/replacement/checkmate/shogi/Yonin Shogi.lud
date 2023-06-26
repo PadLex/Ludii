@@ -9,42 +9,23 @@
     )
 )
 
-(define "NextCannotMove"
-    (not 
-        (can Move 
-            (do 
-                (or {
-                    (move 
-                        (from (sites Occupied by:Next container:"Hand" components:{"Kakugyo" "Ginsho" "Hisha" "Kinsho"})) 
-                        (to (sites Empty))
-                    ) 
-                    (do 
-                        (move 
-                            (from (sites Occupied by:Next container:"Hand" component:"Fuhyo")) 
-                            (to (difference (sites Empty) (sites Next "LastRank")) 
-                                if:("OnePawnPerColumn" Next)
-                            )
-                        ) 
-                        ifAfterwards:("IsInCheck" "Osho" Mover)
-                    )
-                    ("PlaceLance" Next)
-                    ("PlaceKnight" Next) 
-                    (forEach Piece Next) 
-                })
-                ifAfterwards:(not ("IsInCheck" "Osho" Next))
-            ) 
-        )
-    )
-)
-
+// Fixed CanNotMove by RubixOne
 (define "CanNotMove"
-    (not (can Move (do (and (forEach Piece #1) (set NextPlayer (player #2))) ifAfterwards:(not ("IsInCheck" "Osho" #1)))))
+    (not (can Move (do (and (forEach Piece #1) (set NextPlayer (player (id #1)))) ifAfterwards:(not ("IsInCheck" "Osho" #1)))))
 )
 
-(define "OnePawnPerColumn" 
-    (= 
-        (count Sites in:(sites Occupied by:#1 container:"Board" component:"Fuhyo")) 
-        (count Sites in:(difference (sites Occupied by:#1 container:"Board" component:"Fuhyo") (sites Column (column of:(to)))))
+// Fixed OnePawnPerColumn by dale walton and RubixOne
+(define "OnePawnPerColumn"
+    (if
+        (= 0 (% (id #1) 2))  // #1 is even   
+        (=
+            (count Sites in:(sites Occupied by:#1 container:"Board" component:"Fuhyo"))
+            (count Sites in:(difference (sites Occupied by:#1 container:"Board" component:"Fuhyo") (sites Row (row of:(to)))))
+        )
+        (=
+            (count Sites in:(sites Occupied by:#1 container:"Board" component:"Fuhyo"))
+            (count Sites in:(difference (sites Occupied by:#1 container:"Board" component:"Fuhyo") (sites Column (column of:(to)))))
+        )
     )
 )
 
@@ -62,6 +43,7 @@
     )
 )
 
+// Fixed PlacePawn by RubixOne
 (define "PlacePawn" 
     (do 
         (move 
@@ -70,7 +52,12 @@
                 if:("OnePawnPerColumn" #1)
             )
         ) 
-        ifAfterwards:(not (and ("IsInCheck" "Osho" #2) ("NextCannotMove")))
+        ifAfterwards:(not (or {
+                (and ("IsInCheck" "Osho" P1) ("CanNotMove" P1))
+                (and ("IsInCheck" "Osho" P2) ("CanNotMove" P2))
+                (and ("IsInCheck" "Osho" P3) ("CanNotMove" P3))
+                (and ("IsInCheck" "Osho" P4) ("CanNotMove" P4))
+        }))
     )
 ) 
 
@@ -284,16 +271,28 @@
     )
 )
 
+// Fixed RemoveKingIfCheckmate by RubixOne
 (define "RemoveKingIfCheckmate"
     (if (and (is Active #1) (not (is Mover #1)))
         (if 
             (and 
                 ("IsInCheck" "Osho" #1)
-                ("CanNotMove" #1 #2)
+                ("CanNotMove" #1)
             )
             (remove (where (id "Osho" #1)))
         )
     )		
+)
+
+// RemoveKingIfStalemate by RubixOne
+(define "RemoveKingIfStalemate"
+    (if 
+        (and 
+            (no Moves Next) 
+            (not ("IsOffBoard" (where "Osho" Next)))
+        ) 
+        (remove (where (id "Osho" Next)))
+    )
 )
 
 //------------------------------------------------------------------------------
@@ -307,7 +306,7 @@
         // King
         (piece "Osho" Each ("StepMove"))
         
-        //Pawn 
+        // Pawn 
         (piece "Fuhyo" Each 
             ("StepMove" 
                 Forward 
@@ -461,7 +460,7 @@
                             (from (sites Occupied by:Mover container:"Hand" components:{"Kakugyo" "Ginsho" "Hisha" "Kinsho"})) 
                             (to (sites Empty))
                         ) 
-                        ("PlacePawn" Mover Next)
+                        ("PlacePawn" Mover)
                         ("PlaceLance" Mover)
                         ("PlaceKnight" Mover) 
                         (forEach Piece) 
@@ -470,10 +469,11 @@
                 )
                 (then
                     (and {
-                        ("RemoveKingIfCheckmate" P1 1)
-                        ("RemoveKingIfCheckmate" P2 2)
-                        ("RemoveKingIfCheckmate" P3 3)
-                        ("RemoveKingIfCheckmate" P4 4)
+                        ("RemoveKingIfCheckmate" P1)
+                        ("RemoveKingIfCheckmate" P2)
+                        ("RemoveKingIfCheckmate" P3)
+                        ("RemoveKingIfCheckmate" P4)
+                        ("RemoveKingIfStalemate")
                     })
                 )
             )
@@ -484,7 +484,6 @@
                 if:("IsOffBoard" (where "Osho" Player)) 
                 (result Player Loss)
             ) 
-            ("NoMoves" Loss)
         })
     )
 )
@@ -505,7 +504,7 @@
         (place "Osho1" coord:"E1") (place "Kinsho1" {"D1" "F1"}) (place "Ginsho1" {"C1" "G1"}) (place "Keima1" {"B1" "H1"}) (place "Kyosha1" coord:"A1") (place "Fuhyo1" {"D3" "F3" "E3" "G3" "H3"}) (place "Hisha1" coord:"G2") (place "Kakugyo1" coord:"B2")
         (place "Osho2" coord:"I5") (place "Kinsho2" {"I4" "I6"}) (place "Ginsho2" {"I3" "I7"}) (place "Keima2" {"I2" "I8"}) (place "Kyosha2" coord:"I1") (place "Fuhyo2" {"G4" "G5" "G6" "G7" "G8"}) (place "Hisha2" coord:"H7") (place "Kakugyo2" coord:"H2")
         (place "Osho3" coord:"E9") (place "Kinsho3" {"D9" "F9"}) (place "Ginsho3" {"C9" "G9"}) (place "Keima3" {"B9" "H9"}) (place "Kyosha3" coord:"I9") (place "Fuhyo3" {"B7" "C7" "D7" "E7" "F7"}) (place "Hisha3" coord:"C8") (place "Kakugyo3" coord:"H8")
-        (place "Osho4" coord:"A5") (place "Kinsho4" {"A4" "A6"}) (place "Ginsho4" {"A3" "A7"}) (place "Keima4" {"A2" "A8"}) (place "Kyosha4" coord:"A9") (place "Fuhyo4" {"C2" "C3" "C4" "C5" "C6"}) (place "Hisha4" coord:"B8") (place "Kakugyo4" coord:"B3")
+        (place "Osho4" coord:"A5") (place "Kinsho4" {"A4" "A6"}) (place "Ginsho4" {"A3" "A7"}) (place "Keima4" {"A2" "A8"}) (place "Kyosha4" coord:"A9") (place "Fuhyo4" {"C2" "C3" "C4" "C5" "C6"}) (place "Hisha4" coord:"B3") (place "Kakugyo4" coord:"B8")
         >
     "Setup in weekly children’s magazine in February 1991")
 })
@@ -520,10 +519,10 @@
         (rules "Pieces move the same as in normal Shogi. Once a player is checkmated their Osho is removed, but all their other pieces remain on the board as neutral obstacles. Neutral pieces cannot help checkmate other players.")
         (id "1586")
         (source "<a href=\\"http://wikipedia.org/wiki/Yonin_shogi/\\" target=\\"_blank\\" class=\\"style1\\" style=\\"color: #0000EE\\" />Yonin shogi</a>")
-        (version "1.3.10")
+        (version "1.3.11")
         (classification "board/war/replacement/checkmate/shogi")
         (author "Ota Mitsuyasu")
-        (credit "Matthew Stephenson")
+        (credit "Matthew Stephenson (and fixed by RubixOne)")
         (date "1995")
         }
     )
@@ -545,9 +544,5 @@
         (piece Colour "Narikei" strokeColour:(colour Red))
         (piece Colour "Narikyo" strokeColour:(colour Red))
     })
-    
-    (ai 
-        "Yonin Shogi_ai"
-    )
     
 )
