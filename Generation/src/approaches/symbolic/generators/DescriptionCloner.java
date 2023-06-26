@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static approaches.symbolic.generators.Playground.printCallTree;
+
 public class DescriptionCloner {
     static final Pattern endOfParameter = Pattern.compile("[ )}]");
 
@@ -113,9 +115,9 @@ public class DescriptionCloner {
                             if (newNode instanceof GameNode gameNode) {
                                 if (consistentGames.size() > 1) {
                                     System.out.println("WARNING multiple possibilities:");
-                                    for (GeneratorNode previous: consistentGames) {
-                                        System.out.println("Previous:" + previous.root());
-                                    }
+//                                    for (GeneratorNode previous: consistentGames) {
+//                                        System.out.println("Previous:" + previous.root());
+//                                    }
                                 }
 
                                 //assert consistentGames.size() == 1;
@@ -127,6 +129,8 @@ public class DescriptionCloner {
 
 //                        System.out.println(expanded.startsWith(newNode.root().buildDescription()) + ":" + newNode.root().buildDescription());
                         String newDescription = newNode.root().buildDescription();
+                        if (newDescription.length() >= expanded.length())
+                            continue;
                         char nextChar = expanded.charAt(newDescription.length());
                         char currentChar = expanded.charAt(newDescription.length() - 1);
                         boolean isEnd = nextChar == ' ' || nextChar == ')' || nextChar == '}' || nextChar == '(' || nextChar == '{' || currentChar == '(' || currentChar == '{';
@@ -143,7 +147,7 @@ public class DescriptionCloner {
                 System.out.println("Expanded:" + expanded);
                 consistentGames.forEach(node -> System.out.println("Previous:" + node.root().buildDescription()));
                 System.out.println("last type: " + consistentGames.get(0).symbol().path());
-                consistentGames.get(0).nextPossibleParameters(symbolMapper).forEach(node -> System.out.println("last option:" + node.symbol().path()));
+                consistentGames.get(0).nextPossibleParameters(symbolMapper).forEach(node -> System.out.println("last option:" + node.symbol().path() + " " + node.symbol().label));
                 throw new RuntimeException("No consistent games found ");
             }
 
@@ -266,7 +270,7 @@ public class DescriptionCloner {
         str = str.replaceAll(" \\)", ")");
         str = str.replaceAll("\\{ ", "{");
         str = str.replaceAll(" \\}", "}");
-        str = str.replaceAll("(?<![\\d])\\.(\\d)", "0.$1"); // .5 -> 0.5
+        str = str.replaceAll("(?<![\\d])\\.(\\d)", "0.$1"); // .5 -> 0.5    //TODO this is not correct 1 is not 1.0
         str = str.replaceAll("(\\d+\\.\\d*?)0+\\b", "$1"); // 0.50 -> 0.5
         str = str.replaceAll("(\\d)+\\.([^0-9])", "$1$2"); // 0. -> 0
         str = str.replaceAll("\\s:\\s", ":"); // (forEach of : (... -> (forEach of:(...
@@ -301,9 +305,11 @@ public class DescriptionCloner {
 //        DescriptionCloner.cloneExpandedDescription(squish(str), new SymbolMapper());
 
 //        testLudiiLibrary();
-        Description description = new Description(Files.readString(Path.of("./Common/res/lud/board/race/escape/Pagade Kayi Ata (Sixteen-handed).lud")));
+//        System.out.println(Integer.parseInt("Infinity"));
+        Description description = new Description(Files.readString(Path.of("./Common/res/lud/board/race/reach/Quoridor.lud")));
         Compiler.compile(description, new UserSelections(new ArrayList<>()), new Report(), false);
         System.out.println(description.expanded());
+        printCallTree(description.callTree(), 0);
         GameNode gameNode = cloneExpandedDescription(standardize(description.expanded()), new SymbolMapper());
 
 //        System.out.println(standardize("0.0 hjbhjbjhj 9.70 9.09 (9.0) 8888.000  3.36000 3. (5.0} 9.2 or: 9 (game a  :     (g)"));

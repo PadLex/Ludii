@@ -26,23 +26,33 @@ public class PrimitiveNode extends GeneratorNode {
     }
 
     public void setUnparsedValue(String strValue) {
-        switch (getType()) {
-            case INT -> value = Integer.parseInt(strValue);
-            case DIM -> value = new DimConstant(Integer.parseInt(strValue));
-            case FLOAT -> value = Float.parseFloat(strValue);
-            case STRING -> value = strValue;
-            case BOOLEAN -> value = Boolean.parseBoolean(strValue);
-        }
+        value = switch (getType()) {
+            case INT, DIM -> parseInt(strValue);
+            case FLOAT -> Float.parseFloat(strValue);
+            case STRING -> strValue;
+            case BOOLEAN -> Boolean.parseBoolean(strValue);
+        };
 
-        if (IntFunction.class.isAssignableFrom(symbol.cls()))
+        if (IntConstant.class.isAssignableFrom(symbol.cls()))
             value = new IntConstant((Integer) value);
 
-        if (FloatFunction.class.isAssignableFrom(symbol.cls()))
+        if (DimConstant.class.isAssignableFrom(symbol.cls()))
+            value = new DimConstant((Integer) value);
+
+        if (FloatConstant.class.isAssignableFrom(symbol.cls()))
             value = new FloatConstant((Float) value);
 
         if (BooleanConstant.class.isAssignableFrom(symbol.cls()))
             value = new BooleanConstant((Boolean) value);
 
+    }
+
+    static int parseInt(String strValue) {
+        return switch (strValue) {
+            case "Infinity" -> 1000000000;
+            case "-Infinity" -> -1000000000;
+            default -> Integer.parseInt(strValue);
+        };
     }
 
     Object instantiate() {
@@ -72,13 +82,18 @@ public class PrimitiveNode extends GeneratorNode {
             return "\"" + value + "\"";
 
         String strValue = value.toString();
+        if (Objects.equals(strValue, "1000000000"))
+            return "Infinity";
+        if (Objects.equals(strValue, "-1000000000"))
+            return "-Infinity";
+
         if (Objects.equals(strValue, "true"))
             return "True";
         if (Objects.equals(strValue, "false"))
             return "False";
 
         if (strValue.endsWith(".0"))
-            return strValue.substring(0, strValue.length() - 2);
+            return strValue.substring(0, strValue.length() - 2); // TODO remove this
 
         return strValue;
     }
