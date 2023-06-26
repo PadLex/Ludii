@@ -306,7 +306,7 @@ public class DescriptionCloner {
 
 //        testLudiiLibrary();
 //        System.out.println(Integer.parseInt("Infinity"));
-        Description description = new Description(Files.readString(Path.of("./Common/res/lud/board/race/reach/Quoridor.lud")));
+        Description description = new Description(Files.readString(Path.of("./Common/res/lud/board/race/reach/Quoridor.lud"))); //Omega.lud (alias), Bide.lud (probably infinity)
         Compiler.compile(description, new UserSelections(new ArrayList<>()), new Report(), false);
         System.out.println(description.expanded());
         printCallTree(description.callTree(), 0);
