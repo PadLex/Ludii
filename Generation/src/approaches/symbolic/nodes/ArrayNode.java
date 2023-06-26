@@ -40,8 +40,6 @@ public class ArrayNode extends GeneratorNode {
             Array.set(array, i, arguments.get(i));
         }
 
-
-
         return array;
     }
 

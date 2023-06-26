@@ -2,6 +2,7 @@ package approaches.symbolic;
 
 import game.functions.ints.IntConstant;
 import grammar.Grammar;
+import main.StringRoutines;
 import main.grammar.Clause;
 import main.grammar.ClauseArg;
 import main.grammar.Symbol;
@@ -219,7 +220,7 @@ public class SymbolMapper {
                 for (int i = 0; i < clause.args().size(); i++) {
                     if (set.get(i)) {
                         ClauseArg arg = clause.args().get(i);
-                        String label = arg.label() != null? arg.label().substring(0, 1).toLowerCase() + arg.label().substring(1) : null;
+                        String label = arg.label() != null? StringRoutines.toDromedaryCase(arg.label()) : null;
                         clauseSymbols.add(new MappedSymbol(arg.symbol(), arg.nesting(), label)); //TODO: check if label should be lower case
                     } else clauseSymbols.add(emptySymbol);
                 }
@@ -363,15 +364,17 @@ public class SymbolMapper {
 //            System.out.println("          " + clauses.get(i).args().stream().map(ClauseArg::andGroup).toList());
 //        }
 
+        //System.out.println(Grammar.grammar().findSymbolByPath("game.functions.graph.operators.Add").hasAlias());
 
-        List<Clause> clauses = Grammar.grammar().findSymbolByPath("game.functions.booleans.math.NotEqual").rule().rhs();
-        for (int i = 0; i < clauses.size(); i++) {
-            System.out.println("Clause " + i + ": " + clauses.get(i));
-            //System.out.println("          " + clauses.get(i).args().stream().map(ClauseArg::andGroup).toList());
-        }
 
-        SymbolMapper symbolMapper = new SymbolMapper();
-        System.out.println(symbolMapper.nextPossibilities(Grammar.grammar().findSymbolByPath("game.functions.booleans.math.NotEqual"), List.of(Grammar.grammar().findSymbolByPath("java.lang.Integer"))));
+//        List<Clause> clauses = Grammar.grammar().findSymbolByPath("game.functions.booleans.math.NotEqual").rule().rhs();
+//        for (int i = 0; i < clauses.size(); i++) {
+//            System.out.println("Clause " + i + ": " + clauses.get(i));
+//            //System.out.println("          " + clauses.get(i).args().stream().map(ClauseArg::andGroup).toList());
+//        }
+//
+//        SymbolMapper symbolMapper = new SymbolMapper();
+//        System.out.println(symbolMapper.nextPossibilities(Grammar.grammar().findSymbolByPath("game.functions.booleans.math.NotEqual"), List.of(Grammar.grammar().findSymbolByPath("java.lang.Integer"))));
 
 //        ArrayList<Symbol> partialSymbols = new ArrayList<>();
 //        partialSymbols.add(Grammar.grammar().findSymbolByPath("game.rules.end.ForEach"));

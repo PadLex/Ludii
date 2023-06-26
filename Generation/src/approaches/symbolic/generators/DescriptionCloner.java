@@ -1,12 +1,16 @@
 package approaches.symbolic.generators;
 
 import approaches.symbolic.SymbolMapper;
+import approaches.symbolic.SymbolMapper.MappedSymbol;
 import approaches.symbolic.nodes.GameNode;
 import approaches.symbolic.nodes.GeneratorNode;
 import approaches.symbolic.nodes.PrimitiveNode;
 import compiler.Compiler;
+import grammar.Grammar;
+import main.StringRoutines;
 import main.grammar.Description;
 import main.grammar.Report;
+import main.grammar.Symbol;
 import main.options.UserSelections;
 
 import java.io.IOException;
@@ -15,13 +19,17 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static approaches.symbolic.generators.Playground.printCallTree;
 
 public class DescriptionCloner {
     static final Pattern endOfParameter = Pattern.compile("[ )}]");
+
+    //static final List<Symbol> aliases = Grammar.grammar().symbols().stream().filter(Symbol::hasAlias).toList();
 
     public static GameNode cloneExpandedDescription(String expanded, SymbolMapper symbolMapper) {
 //        System.out.println("Expanded:" + expanded);
@@ -31,7 +39,17 @@ public class DescriptionCloner {
             List<GeneratorNode> newConsistentGames = new ArrayList<>();
             for (GeneratorNode node : consistentGames) {
                 //System.out.println("Node: " + node.buildDescription());
-                for (GeneratorNode option : node.nextPossibleParameters(symbolMapper)) {
+                List<GeneratorNode> options = new ArrayList<>(node.nextPossibleParameters(symbolMapper));
+
+                // Include aliases, (^ ... should also include (pow ...
+                options.addAll(options.stream().filter(n -> n.symbol().hasAlias()).map(n -> {
+                    MappedSymbol noAlias = new MappedSymbol(n.symbol());
+                    noAlias.setToken(StringRoutines.toDromedaryCase(noAlias.name()));
+//                    System.out.println("Alias: " + noAlias);
+                    return GeneratorNode.fromSymbol(noAlias, n.parent());
+                }).toList());
+
+                for (GeneratorNode option : options) {
                     //System.out.println("Option: " + option.symbol().path());
 
                     if (option instanceof PrimitiveNode primitiveOption) {
@@ -148,7 +166,7 @@ public class DescriptionCloner {
                 consistentGames.forEach(node -> System.out.println("Previous:" + node.root().buildDescription()));
                 System.out.println("last type: " + consistentGames.get(0).symbol().path());
                 consistentGames.get(0).nextPossibleParameters(symbolMapper).forEach(node -> System.out.println("last option:" + node.symbol().path() + " " + node.symbol().label));
-                throw new RuntimeException("No consistent games found ");
+                throw new RuntimeException("No consistent games found");
             }
 
             if (newConsistentGames.size() > 1000) {
@@ -275,8 +293,6 @@ public class DescriptionCloner {
         str = str.replaceAll("(\\d)+\\.([^0-9])", "$1$2"); // 0. -> 0
         str = str.replaceAll("\\s:\\s", ":"); // (forEach of : (... -> (forEach of:(...
 
-        // TODO deal with aliases
-
         // Constants
         str = str.replaceAll("([ ({])Off([ )}])", "$1-1$2");
         str = str.replaceAll("([ ({])End([ )}])", "$1-2$2");
@@ -285,6 +301,7 @@ public class DescriptionCloner {
 
         return str;
     }
+
 
     public static void main(String[] args) throws IOException {
 //        String str =
@@ -304,13 +321,12 @@ public class DescriptionCloner {
 //
 //        DescriptionCloner.cloneExpandedDescription(squish(str), new SymbolMapper());
 
-//        testLudiiLibrary();
-//        System.out.println(Integer.parseInt("Infinity"));
-        Description description = new Description(Files.readString(Path.of("./Common/res/lud/board/race/reach/Quoridor.lud"))); //Omega.lud (alias), Bide.lud (probably infinity)
-        Compiler.compile(description, new UserSelections(new ArrayList<>()), new Report(), false);
-        System.out.println(description.expanded());
-        printCallTree(description.callTree(), 0);
-        GameNode gameNode = cloneExpandedDescription(standardize(description.expanded()), new SymbolMapper());
+        testLudiiLibrary();
+//        Description description = new Description(Files.readString(Path.of("./Common/res/lud/board/space/group/Omega.lud"))); //Omega.lud (alias), Bide.lud (probably infinity)
+//        Compiler.compile(description, new UserSelections(new ArrayList<>()), new Report(), false);
+//        System.out.println(description.expanded());
+//        printCallTree(description.callTree(), 0);
+//        GameNode gameNode = cloneExpandedDescription(standardize(description.expanded()), new SymbolMapper());
 
 //        System.out.println(standardize("0.0 hjbhjbjhj 9.70 9.09 (9.0) 8888.000  3.36000 3. (5.0} 9.2 or: 9 (game a  :     (g)"));
 
