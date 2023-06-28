@@ -20,6 +20,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -33,11 +34,13 @@ public class DescriptionCloner {
 
     public static GameNode cloneExpandedDescription(String expanded, SymbolMapper symbolMapper) {
 //        System.out.println("Expanded:" + expanded);
-        List<GeneratorNode> consistentGames = List.of(new GameNode());
+        Stack<GeneratorNode> consistentGames = new Stack<>();
+        consistentGames.add(new GameNode());
         while (true) {
             //System.out.println("\nConsistent games: " + consistentGames.size());
-            List<GeneratorNode> newConsistentGames = new ArrayList<>();
-            for (GeneratorNode node : consistentGames) {
+            boolean valid = false;
+            while (!valid && !consistentGames.isEmpty()) {
+                GeneratorNode node = consistentGames.pop();
                 //System.out.println("Node: " + node.buildDescription());
                 List<GeneratorNode> options = new ArrayList<>(node.nextPossibleParameters(symbolMapper));
 
@@ -87,7 +90,7 @@ public class DescriptionCloner {
                                     continue;
                                 }
                             }
-                            case BOOLEAN -> {
+                            case BOOLEAN -> { // TODO maybe check if after the True/False there is a space or bracket
                                 if (trailingDescription.startsWith("True")) {
                                     primitiveOption.setUnparsedValue("True");
                                 } else if (trailingDescription.startsWith("False")) {
@@ -102,11 +105,14 @@ public class DescriptionCloner {
                         GeneratorNode newNode = node.copyUp();
                         option.setParent(newNode);
                         newNode.addParameter(option);
-                        newConsistentGames.add(newNode);
+
+                        assert expanded.startsWith(newNode.root().buildDescription());
+
+                        consistentGames.add(newNode);
+                        valid = true;
 
 //                        System.out.println("Expanded:" + expanded);
 //                        System.out.println("New node:" + newNode.root().buildDescription());
-                        assert expanded.startsWith(newNode.root().buildDescription());
 
                     } else {
                         // Non-primitive option
@@ -114,7 +120,6 @@ public class DescriptionCloner {
                         GeneratorNode newNode = node.copyUp();
                         option.setParent(newNode);
                         newNode.addParameter(option);
-
 
                         if (!option.isComplete())
                             newNode = option;
@@ -155,13 +160,14 @@ public class DescriptionCloner {
 
                         if (isEnd && expanded.startsWith(newDescription)) {
 //                            System.out.println("path:" + newNode.symbol().path());
-                            newConsistentGames.add(newNode);
+                            consistentGames.add(newNode);
+                            valid = true;
                         }
                     }
                 }
             }
 
-            if (newConsistentGames.isEmpty()) {
+            if (consistentGames.isEmpty()) {
                 System.out.println("Expanded:" + expanded);
                 consistentGames.forEach(node -> System.out.println("Previous:" + node.root().buildDescription()));
                 System.out.println("last type: " + consistentGames.get(0).symbol().path());
@@ -169,11 +175,9 @@ public class DescriptionCloner {
                 throw new RuntimeException("No consistent games found");
             }
 
-            if (newConsistentGames.size() > 100) {
+            if (consistentGames.size() > 100) {
                 throw new RuntimeException("Too many consistent games found");
             }
-
-            consistentGames = newConsistentGames;
         }
     }
 
