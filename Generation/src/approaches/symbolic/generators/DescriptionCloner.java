@@ -37,11 +37,11 @@ public class DescriptionCloner {
         Stack<GeneratorNode> consistentGames = new Stack<>();
         consistentGames.add(new GameNode());
         while (true) {
-            //System.out.println("\nConsistent games: " + consistentGames.size());
+//            System.out.println("\nConsistent games: " + consistentGames.size());
             boolean valid = false;
             while (!valid && !consistentGames.isEmpty()) {
                 GeneratorNode node = consistentGames.pop();
-                //System.out.println("Node: " + node.buildDescription());
+//                System.out.println("Node: " + node.symbol().path() + " -> " + node.buildDescription());
                 List<GeneratorNode> options = new ArrayList<>(node.nextPossibleParameters(symbolMapper));
 
                 // Include aliases, (^ ... should also include (pow ...
@@ -51,6 +51,8 @@ public class DescriptionCloner {
 //                    System.out.println("Alias: " + noAlias);
                     return GeneratorNode.fromSymbol(noAlias, n.parent());
                 }).toList());
+
+//                System.out.println("Options: " + options.stream().map(GeneratorNode::symbol).map(Symbol::path).toList());
 
                 for (GeneratorNode option : options) {
                     //System.out.println("Option: " + option.symbol().path());
@@ -320,7 +322,7 @@ public class DescriptionCloner {
 //        DescriptionCloner.cloneExpandedDescription(squish(str), new SymbolMapper());
 
         testLudiiLibrary();
-//        Description description = new Description(Files.readString(Path.of("./Common/res/lud/board/space/group/Omega.lud"))); //Omega.lud (alias), Bide.lud (probably infinity)
+//        Description description = new Description(Files.readString(Path.of("./Common/res/lud/board/hunt/To Kinegi tou Lagou.lud"))); //Omega.lud (alias), Bide.lud (probably infinity)
 //        Compiler.compile(description, new UserSelections(new ArrayList<>()), new Report(), false);
 //        System.out.println(description.expanded());
 //        printCallTree(description.callTree(), 0);

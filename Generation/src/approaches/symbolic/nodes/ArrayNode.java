@@ -2,7 +2,6 @@ package approaches.symbolic.nodes;
 
 import approaches.symbolic.SymbolMapper;
 import approaches.symbolic.SymbolMapper.MappedSymbol;
-import game.functions.ints.IntFunction;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -50,7 +49,14 @@ public class ArrayNode extends GeneratorNode {
 
         List<GeneratorNode> options = new ArrayList<>();
         if (symbol.nesting() == 1) {
-            options.addAll(symbolMapper.getCompatibleSymbols(symbol).stream().map(s -> fromSymbol(new MappedSymbol(s, null), this)).toList());
+            switch (symbol.path()) {
+                case "int", "float", "boolean" -> {  // TODO not sure this is correct
+                    options.add(new PrimitiveNode(new MappedSymbol(symbol, 0, null), this));
+                }
+                default -> {
+                    options.addAll(symbolMapper.getCompatibleSymbols(symbol).stream().map(s -> fromSymbol(new MappedSymbol(s, null), this)).toList());
+                }
+            }
         } else {
             MappedSymbol childSymbol = new MappedSymbol(symbol, null);
             childSymbol.setNesting(symbol.nesting() - 1);

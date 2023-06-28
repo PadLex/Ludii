@@ -111,7 +111,7 @@ public class PrimitiveNode extends GeneratorNode {
 
     public static PrimitiveType typeOf(String path) {
         switch (path) {
-            case "java.lang.Integer", "game.functions.ints.IntConstant" -> {
+            case "int", "java.lang.Integer", "game.functions.ints.IntConstant" -> {
                 return PrimitiveType.INT;
             }
 
@@ -119,11 +119,11 @@ public class PrimitiveNode extends GeneratorNode {
                 return PrimitiveType.DIM;
             }
 
-            case "java.lang.Float", "game.functions.floats.FloatConstant" -> {
+            case "float", "java.lang.Float", "game.functions.floats.FloatConstant" -> {
                 return PrimitiveType.FLOAT;
             }
 
-            case "java.lang.Boolean", "game.functions.booleans.BooleanConstant" -> {
+            case "boolean", "java.lang.Boolean", "game.functions.booleans.BooleanConstant" -> {
                 return PrimitiveType.BOOLEAN;
             }
 
