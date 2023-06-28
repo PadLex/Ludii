@@ -17,6 +17,7 @@ import java.util.*;
 public class RandomGenerator {
     final Random random;
     final SymbolMapper symbolMapper;
+
     public RandomGenerator(SymbolMapper symbolMapper) {
         this.symbolMapper = symbolMapper;
         random = new Random();

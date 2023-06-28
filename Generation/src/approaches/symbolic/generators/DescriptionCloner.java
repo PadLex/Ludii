@@ -169,7 +169,7 @@ public class DescriptionCloner {
                 throw new RuntimeException("No consistent games found");
             }
 
-            if (newConsistentGames.size() > 1000) {
+            if (newConsistentGames.size() > 100) {
                 throw new RuntimeException("Too many consistent games found");
             }
 
@@ -180,7 +180,7 @@ public class DescriptionCloner {
     static void testLudiiLibrary() throws IOException {
         SymbolMapper symbolMapper = new SymbolMapper();
 
-        List<String> skip = List.of(); // "To Kinegi tou Lagou.lud"
+        List<String> skip = List.of("Kriegspiel (Chess).lud"); // "To Kinegi tou Lagou.lud"
 
         String gamesRoot = "./Common/res/lud/board";
         List<Path> paths = Files.walk(Paths.get(gamesRoot)).filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".lud")).sorted().limit(2000).toList();
@@ -271,6 +271,8 @@ public class DescriptionCloner {
             compile += endCompile - endClone;
             recompile += endRecompile - endCompile;
             fromString += endDescription - endRecompile;
+
+            System.out.println("My compilation time: " + (endDescription - endRecompile) + "ms");
         }
 
         System.out.println("Games: " + count);
