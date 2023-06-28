@@ -3,22 +3,12 @@ package approaches.symbolic.generators.string;
 import approaches.symbolic.SymbolMapper;
 import approaches.symbolic.nodes.GameNode;
 import approaches.symbolic.nodes.GeneratorNode;
-import compiler.Compiler;
 import game.Game;
-import main.grammar.Description;
-import main.grammar.Report;
-import main.options.UserSelections;
 import other.GameLoader;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.*;
 
 import static approaches.symbolic.generators.CallTreeCloner.cloneCallTree;
-import static approaches.symbolic.generators.Playground.printCallTree;
 
 /**
  * StringGenerator is a class that processes a game description in string format,
@@ -187,7 +177,7 @@ public class StringGenerator {
         Game hex = GameLoader.loadGameFromName("Hex.lud");
         System.out.println(hex.description().gameOptions());
         GameNode rootNode = cloneCallTree(hex.description().callTree(), symbolMapper);
-        String gameDescription = rootNode.buildDescription();
+        String gameDescription = rootNode.description();
         System.out.println(gameDescription);
         List<String> tokens = splitGameDescription(gameDescription);
         System.out.println(tokens);
@@ -204,9 +194,9 @@ public class StringGenerator {
 
         }
         System.out.println("Terminated on: " + generator.generationState.generationPaths.stream().map(p -> p.current).toList());
-        System.out.println("Final result: " + generator.generationState.generationPaths.stream().map(p -> p.current.root().buildDescription()).toList());
+        System.out.println("Final result: " + generator.generationState.generationPaths.stream().map(p -> p.current.root().description()).toList());
         System.out.println("Expected: " + gameDescription);
-        System.out.println("Identical? " + generator.generationState.generationPaths.get(0).current.buildDescription().equals(gameDescription));
+        System.out.println("Identical? " + generator.generationState.generationPaths.get(0).current.description().equals(gameDescription));
     }
 
     static boolean randomTest(SymbolMapper symbolMapper, int seed, boolean verbose) {
@@ -260,7 +250,7 @@ public class StringGenerator {
         GeneratorNode root = generator.generationState.generationPaths.get(0).current.root();
 
         if (verbose) {
-            System.out.println(root.buildDescription());
+            System.out.println(root.description());
             System.out.println("Root:\n" + root);
         }
 

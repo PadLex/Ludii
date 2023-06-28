@@ -6,11 +6,9 @@ import approaches.symbolic.nodes.GameNode;
 import approaches.symbolic.nodes.GeneratorNode;
 import approaches.symbolic.nodes.PrimitiveNode;
 import compiler.Compiler;
-import grammar.Grammar;
 import main.StringRoutines;
 import main.grammar.Description;
 import main.grammar.Report;
-import main.grammar.Symbol;
 import main.options.UserSelections;
 
 import java.io.IOException;
@@ -19,13 +17,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-import static approaches.symbolic.generators.Playground.printCallTree;
 
 public class DescriptionCloner {
     static final Pattern endOfParameter = Pattern.compile("[ )}]");
@@ -60,7 +54,7 @@ public class DescriptionCloner {
                     if (option instanceof PrimitiveNode primitiveOption) {
 //                        System.out.println("Primitive option: " + primitiveOption);
 //                        System.out.println(node.root().buildDescription());
-                        String trailingDescription = expanded.substring(node.root().buildDescription().length()).strip();
+                        String trailingDescription = expanded.substring(node.root().description().length()).strip();
                         if (option.symbol().label != null) {
                             String prefix = option.symbol().label + ":";
                             if (!trailingDescription.startsWith(prefix))
@@ -108,7 +102,7 @@ public class DescriptionCloner {
                         option.setParent(newNode);
                         newNode.addParameter(option);
 
-                        assert expanded.startsWith(newNode.root().buildDescription());
+                        assert expanded.startsWith(newNode.root().description());
 
                         consistentGames.add(newNode);
                         valid = true;
@@ -153,7 +147,7 @@ public class DescriptionCloner {
                         }
 
 //                        System.out.println(expanded.startsWith(newNode.root().buildDescription()) + ":" + newNode.root().buildDescription());
-                        String newDescription = newNode.root().buildDescription();
+                        String newDescription = newNode.root().description();
                         if (newDescription.length() >= expanded.length())
                             continue;
                         char nextChar = expanded.charAt(newDescription.length());
@@ -171,7 +165,7 @@ public class DescriptionCloner {
 
             if (consistentGames.isEmpty()) {
                 System.out.println("Expanded:" + expanded);
-                consistentGames.forEach(node -> System.out.println("Previous:" + node.root().buildDescription()));
+                consistentGames.forEach(node -> System.out.println("Previous:" + node.root().description()));
                 System.out.println("last type: " + consistentGames.get(0).symbol().path());
                 consistentGames.get(0).nextPossibleParameters(symbolMapper).forEach(node -> System.out.println("last option:" + node.symbol().path() + " " + node.symbol().label));
                 throw new RuntimeException("No consistent games found");
@@ -189,7 +183,7 @@ public class DescriptionCloner {
         List<String> skip = List.of("Kriegspiel (Chess).lud"); // "To Kinegi tou Lagou.lud"
 
         String gamesRoot = "./Common/res/lud/board";
-        List<Path> paths = Files.walk(Paths.get(gamesRoot)).filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".lud")).sorted().limit(2000).toList();
+        List<Path> paths = Files.walk(Paths.get(gamesRoot)).filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".lud")).sorted().limit(100).toList();
         int count = 0;
         int preCompilation = 0;
         int compile = 0;
@@ -241,7 +235,7 @@ public class DescriptionCloner {
             //System.out.println("My Compile: " + (endCompile - endClone) + "ms");
 
             try {
-                rootNode.rulesNode().clearCompilerCache();
+                rootNode.rulesNode().clearCache();
                 rootNode.compile();
             } catch (Exception e) {
                 System.out.println("Could not recompile " + path.getFileName());
@@ -251,10 +245,10 @@ public class DescriptionCloner {
             //System.out.println("My Recompile: " + (endRecompile - endCompile) + "ms");
 
             try {
-                Compiler.compile(new Description(rootNode.buildDescription()), new UserSelections(new ArrayList<>()), new Report(), false);
+                Compiler.compile(new Description(rootNode.description()), new UserSelections(new ArrayList<>()), new Report(), false);
             } catch (Exception e) {
                 System.out.println("Could not compile from description " + path.getFileName());
-                System.out.println(standardize(rootNode.buildDescription()));
+                System.out.println(standardize(rootNode.description()));
                 System.out.println(standardize(description.expanded()));
                 throw e;
                 //continue;
@@ -322,7 +316,7 @@ public class DescriptionCloner {
 //        DescriptionCloner.cloneExpandedDescription(squish(str), new SymbolMapper());
 
         testLudiiLibrary();
-//        Description description = new Description(Files.readString(Path.of("./Common/res/lud/board/hunt/To Kinegi tou Lagou.lud"))); //Omega.lud (alias), Bide.lud (probably infinity)
+//        Description description = new Description(Files.readString(Path.of("./Common/res/lud/board/race/escape/Chaupar.lud "))); //Omega.lud (alias), Bide.lud (probably infinity)
 //        Compiler.compile(description, new UserSelections(new ArrayList<>()), new Report(), false);
 //        System.out.println(description.expanded());
 //        printCallTree(description.callTree(), 0);

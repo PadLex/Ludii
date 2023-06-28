@@ -184,7 +184,7 @@ public class RandomGenerator {
             } catch (Throwable ignored) {}
 
             // Release memory
-            completion.clearCompilerCache();
+            completion.clearCache();
         }
 
         System.out.println("Compilable: " + compilable / (double) completionCount * 100 + "%");

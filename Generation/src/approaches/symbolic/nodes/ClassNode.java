@@ -8,11 +8,8 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
-import annotations.Name;
 import annotations.Opt;
 import annotations.Or;
 import annotations.Or2;
@@ -197,7 +194,7 @@ public class ClassNode extends GeneratorNode {
         if (symbol.label != null)
             label = symbol.label + ":";
 
-        String parameterString = String.join(" ", parameterSet.stream().filter(s -> !(s instanceof EmptyNode || s instanceof EndOfClauseNode)).map(GeneratorNode::buildDescription).toList());
+        String parameterString = String.join(" ", parameterSet.stream().filter(s -> !(s instanceof EmptyNode || s instanceof EndOfClauseNode)).map(GeneratorNode::description).toList());
         if (parameterString.length() > 0)
             parameterString = " " + parameterString;
 

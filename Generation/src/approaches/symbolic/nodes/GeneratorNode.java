@@ -14,6 +14,7 @@ public abstract class GeneratorNode {
     final List<GeneratorNode> parameterSet = new ArrayList<>();
     GeneratorNode parent;
     Object compilerCache = null;
+    String descriptionCache = null;
     boolean complete;
 
     GeneratorNode(MappedSymbol symbol, GeneratorNode parent) {
@@ -81,21 +82,22 @@ public abstract class GeneratorNode {
 
     public void popParameter() {
         parameterSet.remove(parameterSet.size() - 1);
-        clearCompilerCache();
+        clearCache();
         complete = false;
     }
 
     public void clearParameters() {
         parameterSet.clear();
-        clearCompilerCache();
+        clearCache();
         complete = false;
     }
 
-    public void clearCompilerCache() {
+    public void clearCache() {
         if (parent.compilerCache != null)
-            parent.clearCompilerCache();
+            parent.clearCache();
 
         compilerCache = null;
+        descriptionCache = null;
     }
 
     public boolean isComplete() {
@@ -159,6 +161,13 @@ public abstract class GeneratorNode {
         }
 
         return clone;
+    }
+
+    public String description() {
+        if (descriptionCache == null)
+            descriptionCache = buildDescription();
+
+        return descriptionCache;
     }
 
     public String buildDescription() {

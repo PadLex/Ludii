@@ -1,16 +1,13 @@
 package approaches.symbolic.generators;
 
-import approaches.ngram.facade.GramNode;
 import approaches.random.Generator;
 import approaches.symbolic.SymbolMapper;
 import approaches.symbolic.nodes.*;
 import compiler.Compiler;
 import game.Game;
-import game.functions.dim.DimConstant;
 import grammar.Grammar;
 import main.grammar.*;
 import main.options.UserSelections;
-import parser.Parser;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -18,7 +15,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
 
 public class CallTreeCloner {
     public static GameNode cloneCallTree(Call root, SymbolMapper symbolMapper) {
@@ -182,7 +178,7 @@ public class CallTreeCloner {
             //System.out.println("My Compile: " + (endCompile - endClone) + "ms");
 
             try {
-                rootNode.rulesNode().clearCompilerCache();
+                rootNode.rulesNode().clearCache();
                 rootNode.compile();
             } catch (Exception e) {
                 System.out.println("Could not recompile " + path.getFileName());
@@ -192,10 +188,10 @@ public class CallTreeCloner {
             //System.out.println("My Recompile: " + (endRecompile - endCompile) + "ms");
 
             try {
-                Compiler.compile(new Description(rootNode.buildDescription()), new UserSelections(new ArrayList<>()), new Report(), false);
+                Compiler.compile(new Description(rootNode.description()), new UserSelections(new ArrayList<>()), new Report(), false);
             } catch (Exception e) {
                 System.out.println("Could not compile from description " + path.getFileName());
-                System.out.println(squish(rootNode.buildDescription()));
+                System.out.println(squish(rootNode.description()));
                 System.out.println(squish(description.expanded()));
                 throw e;
                 //continue;
@@ -262,7 +258,7 @@ public class CallTreeCloner {
         final long endCompile = System.currentTimeMillis();
 
         //rootNode.equipmentNode().clearCompilerCache();
-        rootNode.rulesNode().clearCompilerCache();
+        rootNode.rulesNode().clearCache();
 
         Game game = rootNode.compile();
 

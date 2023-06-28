@@ -89,8 +89,9 @@ public class GameNode extends GeneratorNode {
     }
 
     @Override
-    public void clearCompilerCache() {
+    public void clearCache() {
         compilerCache = null;
+        descriptionCache = null;
     }
 
     @Override
@@ -100,7 +101,7 @@ public class GameNode extends GeneratorNode {
 
     @Override
     public String buildDescription() {
-        String parameterString = String.join(" ", parameterSet.stream().filter(s -> !(s instanceof EmptyNode || s instanceof EndOfClauseNode)).map(GeneratorNode::buildDescription).toList());
+        String parameterString = String.join(" ", parameterSet.stream().filter(s -> !(s instanceof EmptyNode || s instanceof EndOfClauseNode)).map(GeneratorNode::description).toList());
         if (parameterString.length() > 0)
             parameterString = " " + parameterString;
 

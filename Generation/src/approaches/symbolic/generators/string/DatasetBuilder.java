@@ -110,7 +110,7 @@ public class DatasetBuilder {
             if (rules.contains("\""))
                 continue;
 
-            String game = rootNode.buildDescription();
+            String game = rootNode.description();
             if (game.length() > maxGameLength)
                 continue;
 

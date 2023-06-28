@@ -84,7 +84,7 @@ public class ArrayNode extends GeneratorNode {
         if (complete)
             close = "}";
 
-        return label + "{" + String.join(" ", parameterSet.stream().filter(s -> !(s instanceof EmptyNode || s instanceof EndOfClauseNode)).map(GeneratorNode::buildDescription).toList()) + close;
+        return label + "{" + String.join(" ", parameterSet.stream().filter(s -> !(s instanceof EmptyNode || s instanceof EndOfClauseNode)).map(GeneratorNode::description).toList()) + close;
     }
 
 }
