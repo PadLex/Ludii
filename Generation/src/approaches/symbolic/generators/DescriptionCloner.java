@@ -186,7 +186,6 @@ public class DescriptionCloner {
         List<Path> paths = Files.walk(Paths.get(gamesRoot)).filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".lud")).sorted().limit(2000).toList();
         int count = 0;
         int preCompilation = 0;
-        int clone = 0;
         int compile = 0;
         int recompile = 0;
         int fromString = 0;
@@ -232,15 +231,6 @@ public class DescriptionCloner {
                 //throw e;
                 continue;
             }
-            final long endClone = System.currentTimeMillis();
-            //System.out.println("Clone: " + (endClone - endPreCompilation) + "ms");
-
-            try {
-                rootNode.compile();
-            } catch (Exception e) {
-                System.out.println("Could not compile " + path.getFileName());
-                throw e;
-            }
             final long endCompile = System.currentTimeMillis();
             //System.out.println("My Compile: " + (endCompile - endClone) + "ms");
 
@@ -267,17 +257,19 @@ public class DescriptionCloner {
 
             count += 1;
             preCompilation += endPreCompilation - startPreCompilation;
-            clone += endClone - endPreCompilation;
-            compile += endCompile - endClone;
+            compile += endCompile - endPreCompilation;
             recompile += endRecompile - endCompile;
             fromString += endDescription - endRecompile;
 
-            System.out.println("My compilation time: " + (endDescription - endRecompile) + "ms");
+            System.out.println("pre-compile: " + (endPreCompilation - startPreCompilation) + "ms");
+            System.out.println("my-compile: " + (endCompile - endPreCompilation) + "ms");
+            System.out.println("my-recompile: " + (endRecompile - endCompile) + "ms");
+            System.out.println("from-string: " + (endDescription - endRecompile) + "ms");
+
         }
 
         System.out.println("Games: " + count);
         System.out.println("Pre-compilation: " + preCompilation + "ms");
-        System.out.println("Clone: " + clone + "ms");
         System.out.println("Compile: " + compile + "ms");
         System.out.println("Recompile: " + recompile + "ms");
         System.out.println("From string: " + fromString + "ms");
