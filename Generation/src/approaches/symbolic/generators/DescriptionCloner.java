@@ -24,150 +24,123 @@ import java.util.regex.Pattern;
 public class DescriptionCloner {
     static final Pattern endOfParameter = Pattern.compile("[ )}]");
 
-    //static final List<Symbol> aliases = Grammar.grammar().symbols().stream().filter(Symbol::hasAlias).toList();
-
     public static GameNode cloneExpandedDescription(String expanded, SymbolMapper symbolMapper) {
-//        System.out.println("Expanded:" + expanded);
         Stack<GeneratorNode> consistentGames = new Stack<>();
         consistentGames.add(new GameNode());
+
+        // Loop until a consistent game's description matches the expanded description
         while (true) {
-//            System.out.println("\nConsistent games: " + consistentGames.size());
-            boolean valid = false;
-            while (!valid && !consistentGames.isEmpty()) {
-                GeneratorNode node = consistentGames.pop();
-//                System.out.println("Node: " + node.symbol().path() + " -> " + node.buildDescription());
-                List<GeneratorNode> options = new ArrayList<>(node.nextPossibleParameters(symbolMapper));
+            // Since we are performing a depth-first search, we can just pop the most recent partial game
+            GeneratorNode node = consistentGames.pop();
 
-                // Include aliases, (^ ... should also include (pow ...
-                options.addAll(options.stream().filter(n -> n.symbol().hasAlias()).map(n -> {
-                    MappedSymbol noAlias = new MappedSymbol(n.symbol());
-                    noAlias.setToken(StringRoutines.toDromedaryCase(noAlias.name()));
-//                    System.out.println("Alias: " + noAlias);
-                    return GeneratorNode.fromSymbol(noAlias, n.parent());
-                }).toList());
+            // Most intensive operation, it finds all possible options for the next parameter
+            List<GeneratorNode> options = new ArrayList<>(node.nextPossibleParameters(symbolMapper));
 
-//                System.out.println("Options: " + options.stream().map(GeneratorNode::symbol).map(Symbol::path).toList());
+            // Add aliases to the options (^ ... should also include (pow ...
+            options.addAll(options.stream().filter(n -> n.symbol().hasAlias()).map(n -> {
+                MappedSymbol noAlias = new MappedSymbol(n.symbol());
+                noAlias.setToken(StringRoutines.toDromedaryCase(noAlias.name()));
+                return GeneratorNode.fromSymbol(noAlias, n.parent());
+            }).toList());
 
-                for (GeneratorNode option : options) {
-                    //System.out.println("Option: " + option.symbol().path());
+            // Loops through all options and adds them to the stack if they are consistent with the expanded description
+            for (GeneratorNode option : options) {
 
-                    if (option instanceof PrimitiveNode primitiveOption) {
-//                        System.out.println("Primitive option: " + primitiveOption);
-//                        System.out.println(node.root().buildDescription());
-                        String trailingDescription = expanded.substring(node.root().description().length()).strip();
-                        if (option.symbol().label != null) {
-                            String prefix = option.symbol().label + ":";
-                            if (!trailingDescription.startsWith(prefix))
+                // Parse primitive options
+                if (option instanceof PrimitiveNode primitiveOption) {
+                    String trailingDescription = expanded.substring(node.root().description().length()).strip();
+                    if (option.symbol().label != null) {
+                        String prefix = option.symbol().label + ":";
+                        if (!trailingDescription.startsWith(prefix))
+                            continue;
+                        trailingDescription = trailingDescription.substring(prefix.length()).strip();
+                    }
+
+                    switch (primitiveOption.getType()) {
+                        case STRING -> {
+                            if (trailingDescription.charAt(0) != '"')
                                 continue;
-                            trailingDescription = trailingDescription.substring(prefix.length()).strip();
+
+                            int end = trailingDescription.indexOf('"', 1);
+                            if (end == -1)
+                                continue;
+
+                            primitiveOption.setValue(trailingDescription.substring(1, end));
                         }
-//                        System.out.println("Trailing description:" + trailingDescription);
+                        case INT, DIM, FLOAT -> {
+                            Matcher match = endOfParameter.matcher(trailingDescription);
 
-                        switch (primitiveOption.getType()) {
-                            case STRING -> {
-                                if (trailingDescription.charAt(0) != '"')
-                                    continue;
-
-                                int end = trailingDescription.indexOf('"', 1);
-                                if (end == -1)
-                                    continue;
-
-                                primitiveOption.setValue(trailingDescription.substring(1, end));
-                            }
-                            case INT, DIM, FLOAT -> {
-                                Matcher match = endOfParameter.matcher(trailingDescription);
-
-                                if (!match.find())
-                                    continue;
-
-                                try {
-                                    primitiveOption.setUnparsedValue(trailingDescription.substring(0, match.start()));
-                                } catch (NumberFormatException e) {
-                                    continue;
-                                }
-                            }
-                            case BOOLEAN -> { // TODO maybe check if after the True/False there is a space or bracket
-                                if (trailingDescription.startsWith("True")) {
-                                    primitiveOption.setUnparsedValue("True");
-                                } else if (trailingDescription.startsWith("False")) {
-                                    primitiveOption.setUnparsedValue("False");
-                                } else {
-                                    continue;
-                                }
-                            }
-                        }
-
-//                        System.out.println("Primitive option: " + primitiveOption);
-                        GeneratorNode newNode = node.copyUp();
-                        option.setParent(newNode);
-                        newNode.addParameter(option);
-
-                        assert expanded.startsWith(newNode.root().description());
-
-                        consistentGames.add(newNode);
-                        valid = true;
-
-//                        System.out.println("Expanded:" + expanded);
-//                        System.out.println("New node:" + newNode.root().buildDescription());
-
-                    } else {
-                        // Non-primitive option
-
-                        GeneratorNode newNode = node.copyUp();
-                        option.setParent(newNode);
-                        newNode.addParameter(option);
-
-                        if (!option.isComplete())
-                            newNode = option;
-                        else if (newNode.isComplete()) {
-                            assert newNode.isRecursivelyComplete();
+                            if (!match.find())
+                                continue;
 
                             try {
-                                newNode.compile();
-                            } catch (Exception e) {
-//                                System.out.println("Could not compile " + newNode);
-//                                System.out.println(e.getMessage());
-                                //throw e;
+                                primitiveOption.setUnparsedValue(trailingDescription.substring(0, match.start()));
+                            } catch (NumberFormatException e) {
                                 continue;
                             }
+                        }
+                        case BOOLEAN -> { // TODO maybe check if after the True/False there is a space or bracket
+                            if (trailingDescription.startsWith("True")) {
+                                primitiveOption.setUnparsedValue("True");
+                            } else if (trailingDescription.startsWith("False")) {
+                                primitiveOption.setUnparsedValue("False");
+                            } else {
+                                continue;
+                            }
+                        }
+                    }
 
-                            if (newNode instanceof GameNode gameNode) {
-                                if (consistentGames.size() > 1) {
-                                    System.out.println("WARNING multiple possibilities:");
-//                                    for (GeneratorNode previous: consistentGames) {
-//                                        System.out.println("Previous:" + previous.root());
-//                                    }
-                                }
+                    GeneratorNode newNode = node.copyUp();
+                    option.setParent(newNode);
+                    newNode.addParameter(option);
 
-                                //assert consistentGames.size() == 1;
-                                return gameNode;
+                    assert expanded.startsWith(newNode.root().description());
+
+                    consistentGames.add(newNode);
+                }
+
+                // Parse non-primitive options
+                else {
+                    GeneratorNode newNode = node.copyUp();
+                    option.setParent(newNode);
+                    newNode.addParameter(option);
+
+                    if (!option.isComplete())
+                        newNode = option;
+                    else if (newNode.isComplete()) {
+                        assert newNode.isRecursivelyComplete();
+
+                        try {
+                            newNode.compile();
+                        } catch (Exception e) {
+                            continue;
+                        }
+
+                        if (newNode instanceof GameNode gameNode) {
+                            if (consistentGames.size() > 1) {
+                                System.out.println("WARNING multiple possibilities:");
                             }
 
-                            newNode = newNode.parent();
+                            return gameNode;
                         }
 
-//                        System.out.println(expanded.startsWith(newNode.root().buildDescription()) + ":" + newNode.root().buildDescription());
-                        String newDescription = newNode.root().description();
-                        if (newDescription.length() >= expanded.length())
-                            continue;
-                        char nextChar = expanded.charAt(newDescription.length());
-                        char currentChar = expanded.charAt(newDescription.length() - 1);
-                        boolean isEnd = nextChar == ' ' || nextChar == ')' || nextChar == '}' || nextChar == '(' || nextChar == '{' || currentChar == '(' || currentChar == '{';
+                        newNode = newNode.parent();
+                    }
 
-                        if (isEnd && expanded.startsWith(newDescription)) {
-//                            System.out.println("path:" + newNode.symbol().path());
-                            consistentGames.add(newNode);
-                            valid = true;
-                        }
+                    String newDescription = newNode.root().description();
+                    if (newDescription.length() >= expanded.length())
+                        continue;
+                    char nextChar = expanded.charAt(newDescription.length());
+                    char currentChar = expanded.charAt(newDescription.length() - 1);
+                    boolean isEnd = nextChar == ' ' || nextChar == ')' || nextChar == '}' || nextChar == '(' || nextChar == '{' || currentChar == '(' || currentChar == '{';
+
+                    if (isEnd && expanded.startsWith(newDescription)) {
+                        consistentGames.add(newNode);
                     }
                 }
             }
 
             if (consistentGames.isEmpty()) {
-                System.out.println("Expanded:" + expanded);
-                consistentGames.forEach(node -> System.out.println("Previous:" + node.root().description()));
-                System.out.println("last type: " + consistentGames.get(0).symbol().path());
-                consistentGames.get(0).nextPossibleParameters(symbolMapper).forEach(node -> System.out.println("last option:" + node.symbol().path() + " " + node.symbol().label));
                 throw new RuntimeException("No consistent games found");
             }
 
