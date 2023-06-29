@@ -5,11 +5,12 @@ import approaches.symbolic.SymbolMapper.MappedSymbol;
 import approaches.symbolic.nodes.GameNode;
 import approaches.symbolic.nodes.GeneratorNode;
 import approaches.symbolic.nodes.PrimitiveNode;
+
 import compiler.Compiler;
 import main.StringRoutines;
 import main.grammar.Description;
-import main.grammar.Report;
 import main.options.UserSelections;
+import main.grammar.Report;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -21,17 +22,44 @@ import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+
 public class DescriptionCloner {
     static final Pattern endOfParameter = Pattern.compile("[ )}]");
 
-    public static GameNode cloneExpandedDescription(String expanded, SymbolMapper symbolMapper) {
+    public static GameNode compileDescription(String expanded, SymbolMapper symbolMapper) {
         Stack<GeneratorNode> consistentGames = new Stack<>();
         consistentGames.add(new GameNode());
+
+        PartialCompilation partialCompilation = compilePartialDescription(expanded, consistentGames, symbolMapper);
+
+        if (partialCompilation.consistentGames.size() > 1)
+            System.out.println("WARNING multiple possibilities:");
+
+        if (partialCompilation.exception != null)
+            throw new RuntimeException(partialCompilation.exception);
+
+        return partialCompilation.consistentGames.peek().root();
+    }
+
+    static class PartialCompilation {
+        Stack<GeneratorNode> consistentGames;
+        Exception exception;
+
+        public PartialCompilation(Stack<GeneratorNode> consistentGames, Exception exception) {
+            this.consistentGames = consistentGames;
+            this.exception = exception;
+        }
+    }
+
+    public static PartialCompilation compilePartialDescription(String expanded, Stack<GeneratorNode> consistentGames, SymbolMapper symbolMapper) {
+        // If a complete game isn't found, the state of the stack is returned
+        Stack<GeneratorNode> lastValidStack = consistentGames;
+        Stack<GeneratorNode> currentStack = (Stack<GeneratorNode>) consistentGames.clone();
 
         // Loop until a consistent game's description matches the expanded description
         while (true) {
             // Since we are performing a depth-first search, we can just pop the most recent partial game
-            GeneratorNode node = consistentGames.pop();
+            GeneratorNode node = currentStack.pop();
 
             // Most intensive operation, it finds all possible options for the next parameter
             List<GeneratorNode> options = new ArrayList<>(node.nextPossibleParameters(symbolMapper));
@@ -42,6 +70,8 @@ public class DescriptionCloner {
                 noAlias.setToken(StringRoutines.toDromedaryCase(noAlias.name()));
                 return GeneratorNode.fromSymbol(noAlias, n.parent());
             }).toList());
+
+            Exception compilationException = null;
 
             // Loops through all options and adds them to the stack if they are consistent with the expanded description
             for (GeneratorNode option : options) {
@@ -96,7 +126,7 @@ public class DescriptionCloner {
 
                     assert expanded.startsWith(newNode.root().description());
 
-                    consistentGames.add(newNode);
+                    currentStack.add(newNode);
                 }
 
                 // Parse non-primitive options
@@ -113,15 +143,14 @@ public class DescriptionCloner {
                         try {
                             newNode.compile();
                         } catch (Exception e) {
+                            compilationException = e;
                             continue;
                         }
 
-                        if (newNode instanceof GameNode gameNode) {
-                            if (consistentGames.size() > 1) {
-                                System.out.println("WARNING multiple possibilities:");
-                            }
-
-                            return gameNode;
+                        // Successful termination condition
+                        if (newNode instanceof GameNode) {
+                            currentStack.add(newNode);
+                            return new PartialCompilation(currentStack, null);
                         }
 
                         newNode = newNode.parent();
@@ -135,18 +164,20 @@ public class DescriptionCloner {
                     boolean isEnd = nextChar == ' ' || nextChar == ')' || nextChar == '}' || nextChar == '(' || nextChar == '{' || currentChar == '(' || currentChar == '{';
 
                     if (isEnd && expanded.startsWith(newDescription)) {
-                        consistentGames.add(newNode);
+                        currentStack.add(newNode);
                     }
                 }
             }
 
-            if (consistentGames.isEmpty()) {
-                throw new RuntimeException("No consistent games found");
+            if (currentStack.isEmpty()) {
+                if (compilationException == null)
+                    compilationException = new RuntimeException("Syntax error");
+
+                return new PartialCompilation(lastValidStack, compilationException);
             }
 
-            if (consistentGames.size() > 100) {
-                throw new RuntimeException("Too many consistent games found");
-            }
+            if (currentStack.size() >= lastValidStack.size())
+                lastValidStack = (Stack<GeneratorNode>) currentStack.clone();
         }
     }
 
@@ -156,7 +187,7 @@ public class DescriptionCloner {
         List<String> skip = List.of("Kriegspiel (Chess).lud"); // "To Kinegi tou Lagou.lud"
 
         String gamesRoot = "./Common/res/lud/board";
-        List<Path> paths = Files.walk(Paths.get(gamesRoot)).filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".lud")).sorted().limit(100).toList();
+        List<Path> paths = Files.walk(Paths.get(gamesRoot)).filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".lud")).sorted().limit(2000).toList();
         int count = 0;
         int preCompilation = 0;
         int compile = 0;
@@ -196,7 +227,7 @@ public class DescriptionCloner {
 
             GameNode rootNode;
             try {
-                rootNode = cloneExpandedDescription(standardize(description.expanded()), symbolMapper);
+                rootNode = compileDescription(standardize(description.expanded()), symbolMapper);
             } catch (Exception e) {
                 System.out.println("Could not clone " + path.getFileName());
                 System.out.println(e.getMessage());
@@ -234,18 +265,18 @@ public class DescriptionCloner {
             recompile += endRecompile - endCompile;
             fromString += endDescription - endRecompile;
 
-            System.out.println("pre-compile: " + (endPreCompilation - startPreCompilation) + "ms");
-            System.out.println("my-compile: " + (endCompile - endPreCompilation) + "ms");
+            System.out.println("pre-compile:  " + (endPreCompilation - startPreCompilation) + "ms");
+            System.out.println("my-compile:   " + (endCompile - endPreCompilation) + "ms");
             System.out.println("my-recompile: " + (endRecompile - endCompile) + "ms");
-            System.out.println("from-string: " + (endDescription - endRecompile) + "ms");
+            System.out.println("from-string:  " + (endDescription - endRecompile) + "ms");
 
         }
 
-        System.out.println("Games: " + count);
+        System.out.println("Games:           " + count);
         System.out.println("Pre-compilation: " + preCompilation + "ms");
-        System.out.println("Compile: " + compile + "ms");
-        System.out.println("Recompile: " + recompile + "ms");
-        System.out.println("From string: " + fromString + "ms");
+        System.out.println("Compile:         " + compile + "ms");
+        System.out.println("Recompile:       " + recompile + "ms");
+        System.out.println("From string:     " + fromString + "ms");
 
     }
 
