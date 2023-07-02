@@ -61,30 +61,47 @@ public abstract class GeneratorNode {
 
     public abstract List<GeneratorNode> nextPossibleParameters(SymbolMapper symbolMapper);
 
-    public List<GeneratorNode> nextPossibleParameters(SymbolMapper symbolMapper, List<GeneratorNode> partialArguments) {
-        int i = parameterSet.size();
-        parameterSet.addAll(partialArguments);
-        List<GeneratorNode> next = nextPossibleParameters(symbolMapper);
-        parameterSet.subList(i, parameterSet.size()).clear();
-        return next;
-    };
+    public List<GeneratorNode> nextPossibleParameters(SymbolMapper symbolMapper, List<GeneratorNode> partialArguments, boolean includeAliases, boolean expandEmpty) {
+        List<GeneratorNode> options;
 
-    public List<GeneratorNode> nextPossibleParametersWithAliases(SymbolMapper symbolMapper) {
-        List<GeneratorNode> options = new ArrayList<>(nextPossibleParameters(symbolMapper));
+        if (partialArguments == null || partialArguments.isEmpty()) {
+            options = nextPossibleParameters(symbolMapper);
+        } else {
+            int i = parameterSet.size();
+            parameterSet.addAll(partialArguments);
+            options = nextPossibleParameters(symbolMapper);
+            parameterSet.subList(i, parameterSet.size()).clear();
+        }
+
+        if (includeAliases || expandEmpty)
+            options = new ArrayList<>(options);
+
+        // Expand empty nodes
+        if (expandEmpty) {
+            EmptyNode empty = options.stream().filter(n -> n instanceof EmptyNode).map(n -> (EmptyNode) n).findFirst().orElse(null);
+            if (empty != null) {
+                options.remove(empty);
+                List<GeneratorNode> nextPartialArguments = partialArguments==null? new ArrayList<>() : new ArrayList<>(partialArguments);
+                nextPartialArguments.add(empty);
+                options.addAll(nextPossibleParameters(symbolMapper, nextPartialArguments, includeAliases, expandEmpty));
+            }
+        }
 
         // Add aliases to the options (^ ... should also include (pow ...
-        options.addAll(options.stream().filter(n -> n.symbol().hasAlias()).map(n -> {
-            MappedSymbol noAlias = new MappedSymbol(n.symbol());
-            noAlias.setToken(StringRoutines.toDromedaryCase(noAlias.name()));
-            return GeneratorNode.fromSymbol(noAlias, n.parent());
-        }).toList());
+        if (includeAliases) {
+            options.addAll(options.stream().filter(n -> n.symbol().hasAlias()).map(n -> {
+                MappedSymbol noAlias = new MappedSymbol(n.symbol());
+                noAlias.setToken(StringRoutines.toDromedaryCase(noAlias.name()));
+                return GeneratorNode.fromSymbol(noAlias, n.parent());
+            }).toList());
+        }
 
         return options;
     }
 
     public void addParameter(GeneratorNode param) {
         assert param != null;
-        assert param.parent == this;
+        param.parent = this;
 
         if (param instanceof EndOfClauseNode) {
             complete = true;
@@ -184,7 +201,7 @@ public abstract class GeneratorNode {
         return descriptionCache;
     }
 
-    public String buildDescription() {
+    String buildDescription() {
         if (symbol.label != null)
             return symbol.label + ":" + this.toString();
 

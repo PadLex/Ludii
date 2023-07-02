@@ -69,7 +69,7 @@ public class GenerationPath {
             options.remove(index);
             emptyNodes.add(emptyNode);
 
-            List<GeneratorNode> newOptions = filterParameters(current.nextPossibleParameters(symbolMapper, emptyNodes));
+            List<GeneratorNode> newOptions = filterParameters(current.nextPossibleParameters(symbolMapper, emptyNodes, false, false));
             options.addAll(newOptions);
             nulls.addAll(Collections.nCopies(newOptions.size(), emptyNodes.size()));
         }

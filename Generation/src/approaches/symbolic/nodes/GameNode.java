@@ -100,7 +100,7 @@ public class GameNode extends GeneratorNode {
     }
 
     @Override
-    public String buildDescription() {
+    String buildDescription() {
         String parameterString = String.join(" ", parameterSet.stream().filter(s -> !(s instanceof EmptyNode || s instanceof EndOfClauseNode)).map(GeneratorNode::description).toList());
         if (parameterString.length() > 0)
             parameterString = " " + parameterString;

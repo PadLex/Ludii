@@ -2,6 +2,7 @@ package approaches.symbolic.generators;
 
 import approaches.symbolic.SymbolMapper;
 import approaches.symbolic.SymbolMapper.MappedSymbol;
+import approaches.symbolic.nodes.EmptyNode;
 import approaches.symbolic.nodes.GameNode;
 import approaches.symbolic.nodes.GeneratorNode;
 import approaches.symbolic.nodes.PrimitiveNode;
@@ -33,8 +34,8 @@ public class DescriptionCloner {
     }
 
     static class PartialCompilation {
-        Stack<GeneratorNode> consistentGames;
-        CompilationException exception;
+        final Stack<GeneratorNode> consistentGames;
+        final CompilationException exception;
 
         public PartialCompilation(Stack<GeneratorNode> consistentGames, CompilationException exception) {
             this.consistentGames = consistentGames;
@@ -42,14 +43,42 @@ public class DescriptionCloner {
         }
     }
 
+    static class Completion {
+        final String completion;
+        final String description;
+
+        public Completion(String completion, String description) {
+            this.completion = completion;
+            this.description = description;
+        }
+    }
+
+    // TODO make it consider possibilities bellow the top of the stack
+    public static List<Completion> autocomplete(GeneratorNode node, SymbolMapper symbolMapper) {
+        List<Completion> completions = new ArrayList<>();
+
+//        System.out.println("Autocompleting: " + node.root().description());
+
+        for (GeneratorNode option: node.nextPossibleParameters(symbolMapper, null, false, true)) {
+
+            GeneratorNode newNode = node.copyUp();
+            newNode.addParameter(option);
+
+            String description = option.symbol().path() + "\n" + option.symbol().rule();
+            String completion = option.description();
+
+            completions.add(new Completion(completion, description));
+        }
+
+        return completions;
+    }
+
     public static GameNode compileDescription(String expanded, SymbolMapper symbolMapper) {
-        Stack<GeneratorNode> consistentGames = new Stack<>();
-        consistentGames.add(new GameNode());
+        PartialCompilation partialCompilation = compilePartialDescription(expanded, symbolMapper);
 
-        PartialCompilation partialCompilation = compilePartialDescription(expanded, consistentGames, symbolMapper);
-
-        if (partialCompilation.consistentGames.size() > 1)
-            System.out.println("WARNING multiple possibilities:");
+//        TODO
+//        if (partialCompilation.consistentGames.size() > 1)
+//            System.out.println("WARNING multiple possibilities:");
 
         if (partialCompilation.exception != null)
             throw new RuntimeException(partialCompilation.exception);
@@ -57,6 +86,13 @@ public class DescriptionCloner {
         return partialCompilation.consistentGames.peek().root();
     }
 
+    public static PartialCompilation compilePartialDescription(String expanded, SymbolMapper symbolMapper) {
+        Stack<GeneratorNode> consistentGames = new Stack<>();
+        consistentGames.add(new GameNode());
+        return compilePartialDescription(expanded, consistentGames, symbolMapper);
+    }
+
+    //TODO optimize by sorting options by frequency and performing dfs (remove option for loop)
     public static PartialCompilation compilePartialDescription(String expanded, Stack<GeneratorNode> consistentGames, SymbolMapper symbolMapper) {
         // If a complete game isn't found, the state of the stack is returned
         Stack<GeneratorNode> lastValidStack = consistentGames;
@@ -66,9 +102,10 @@ public class DescriptionCloner {
         while (true) {
             // Since we are performing a depth-first search, we can just pop the most recent partial game
             GeneratorNode node = currentStack.pop();
+//            System.out.println("Current node: " + node.root().description());
 
             // Most intensive operation, it finds all possible options for the next parameter
-            List<GeneratorNode> options = new ArrayList<>(node.nextPossibleParametersWithAliases(symbolMapper));
+            List<GeneratorNode> options = new ArrayList<>(node.nextPossibleParameters(symbolMapper, null, true, false));
 
             CompilationException compilationException = null;
 
@@ -89,14 +126,14 @@ public class DescriptionCloner {
             }
 
             if (currentStack.isEmpty()) {
-                System.out.println("No more options");
                 if (compilationException == null)
                     compilationException = new CompilationException("Syntax error");
 
                 return new PartialCompilation(lastValidStack, compilationException);
             }
 
-            if (currentStack.size() >= lastValidStack.size()) {
+            // TODO is it right
+            if (currentStack.peek().root().description().length() > lastValidStack.peek().root().description().length()) {
                 lastValidStack = (Stack<GeneratorNode>) currentStack.clone();
 //                System.out.println("New valid stack: " + lastValidStack.size());
             }
@@ -310,7 +347,6 @@ public class DescriptionCloner {
         str = str.replaceAll("([ ({])End([ )}])", "$1-2$2");
         str = str.replaceAll("([ ({])Undefined([ )}])", "$1-1$2");
 
-
         return str;
     }
 
@@ -330,31 +366,25 @@ public class DescriptionCloner {
 
 
     public static void main(String[] args) throws IOException {
-//        String str =
-//                "(game \"Hex\" \n" +
-//                        "    (players 2) \n" +
-//                        "    (equipment { \n" +
-//                        "        (board (hex Diamond 11)) \n" +
-//                        "        (piece \"Marker\" Each)\n" +
-//                        "        (regions P1 {(sites Side NE) (sites Side SW) })\n" +
-//                        "        (regions P2 {(sites Side NW) (sites Side SE) })\n" +
-//                        "    }) \n" +
-//                        "    (rules \n" +
-//                        "        (play (move Add (to (sites Empty))))\n" +
-//                        "        (end (if (is Connected Mover) (result Mover Win))) \n" +
-//                        "    )\n" +
-//                        ")";
-//
-//        DescriptionCloner.cloneExpandedDescription(squish(str), new SymbolMapper());
-
-        testLudiiLibrary();
-//        Description description = new Description(Files.readString(Path.of("./Common/res/lud/board/war/leaping/lines/Throngs.lud"))); //Omega.lud (alias), Bide.lud (probably infinity)
+//        testLudiiLibrary();
+//        Description description = new Description(Files.readString(Path.of("./Common/res/lud/board/space/connection/Hex.lud"))); // TODO Throngs.lud (memory error)
 //        Compiler.compile(description, new UserSelections(new ArrayList<>()), new Report(), false);
 //        System.out.println(description.expanded());
+//        System.out.println(standardize(description.expanded()));
 //        //printCallTree(description.callTree(), 0);
 //        GameNode gameNode = compileDescription(standardize(description.expanded()), new SymbolMapper());
 
 //        System.out.println(standardize("0.0 hjbhjbjhj 9.70 9.09 (9.0) 8888.000  3.36000 3. (5.0} 9.2 or: 9 (game a  :     (g)"));
 
+        String full    = "(game \"Hex\" (players 2) (equipment {(board (hex Diamond 11)) (piece \"Marker\" Each) (regions P1 {(sites Side NE) (sites Side SW)}) (regions P2 {(sites Side NW) (sites Side SE)})}) (rules (meta (swap)) (play (move Add (to (sites Empty)))) (end (if (is Connected Mover) (result Mover Win)))))";
+        String partial = "(game \"Hex\" (players 2) (equipment {(board (hex Diamond 11)) (piece \"Marker\" Ea";
+        SymbolMapper symbolMapper = new SymbolMapper();
+        PartialCompilation partialCompilation = compilePartialDescription(partial, symbolMapper);
+        ((Stack<GeneratorNode>)partialCompilation.consistentGames.clone()).forEach(n -> System.out.println(n.root().description()));
+        for (Completion completion : autocomplete(partialCompilation.consistentGames.peek(), symbolMapper)) {
+            System.out.println();
+            System.out.println(completion.completion);
+            System.out.println(completion.description);
+        }
     }
 }

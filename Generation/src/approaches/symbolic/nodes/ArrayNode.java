@@ -75,7 +75,7 @@ public class ArrayNode extends GeneratorNode {
     }
 
     @Override
-    public String buildDescription() {
+    String buildDescription() {
         String label = "";
         if (symbol.label != null)
             label = symbol.label + ":";
