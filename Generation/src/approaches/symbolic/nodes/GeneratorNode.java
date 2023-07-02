@@ -2,6 +2,7 @@ package approaches.symbolic.nodes;
 
 import approaches.symbolic.SymbolMapper;
 import approaches.symbolic.SymbolMapper.MappedSymbol;
+import main.StringRoutines;
 
 
 import java.util.ArrayList;
@@ -67,6 +68,19 @@ public abstract class GeneratorNode {
         parameterSet.subList(i, parameterSet.size()).clear();
         return next;
     };
+
+    public List<GeneratorNode> nextPossibleParametersWithAliases(SymbolMapper symbolMapper) {
+        List<GeneratorNode> options = new ArrayList<>(nextPossibleParameters(symbolMapper));
+
+        // Add aliases to the options (^ ... should also include (pow ...
+        options.addAll(options.stream().filter(n -> n.symbol().hasAlias()).map(n -> {
+            MappedSymbol noAlias = new MappedSymbol(n.symbol());
+            noAlias.setToken(StringRoutines.toDromedaryCase(noAlias.name()));
+            return GeneratorNode.fromSymbol(noAlias, n.parent());
+        }).toList());
+
+        return options;
+    }
 
     public void addParameter(GeneratorNode param) {
         assert param != null;

@@ -173,7 +173,8 @@ public class SymbolMapper {
             for (int i = 0; i < clause.args().size(); i++) {
                 ClauseArg arg = clause.args().get(i);
 
-                if (!arg.symbol().usedInGrammar()) System.out.println("Symbol " + arg.symbol().path() + " is not used in grammar");
+                // TODO what's up with this??
+                //if (!arg.symbol().usedInGrammar()) System.out.println("Symbol " + arg.symbol().path() + " is not used in grammar");
 
                 // TODO is if-else correct or should it just be a bunch of ifs?
                 if (arg.orGroup() == nextOrGroup) {
