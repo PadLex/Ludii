@@ -49,8 +49,14 @@ public class DescriptionParser {
     }
 
     // TODO make it consider possibilities bellow the top of the stack
-    public static List<Completion> autocomplete(GeneratorNode node, SymbolMapper symbolMapper) {
+    public static List<Completion> autocomplete(String rawInput, SymbolMapper symbolMapper) {
+        String standardInput = standardize(rawInput);
+        PartialCompilation partialCompilation = compilePartialDescription(standardInput, symbolMapper);
+        GeneratorNode node = partialCompilation.consistentGames.peek();
         List<Completion> completions = new ArrayList<>();
+
+        if (standardInput.chars().filter(c -> c == ' ').count() != node.root().description().chars().filter(c -> c == ' ').count())
+            return completions;
 
 //        System.out.println("Autocompleting: " + node.root().description());
 
@@ -358,9 +364,8 @@ public class DescriptionParser {
         SymbolMapper symbolMapper = new SymbolMapper();
 
         while (sc.hasNextLine()) {
-            PartialCompilation partialCompilation = compilePartialDescription(standardize(sc.nextLine()), symbolMapper);
             //System.out.println(partialCompilation.consistentGames.peek().description());
-            for (Completion completion : autocomplete(partialCompilation.consistentGames.peek(), symbolMapper)) {
+            for (Completion completion : autocomplete(sc.nextLine(), symbolMapper)) {
                 System.out.print(completion.completion + "|" + completion.description + "||");
             }
             System.out.println();
@@ -381,15 +386,15 @@ public class DescriptionParser {
 //        System.out.println(standardize("0.0 hjbhjbjhj 9.70 9.09 (9.0) 8888.000  3.36000 3. (5.0} 9.2 or: 9 (game a  :     (g)"));
 
 //        String full    = "(game \"Hex\" (players 2) (equipment {(board (hex Diamond 11)) (piece \"Marker\" Each) (regions P1 {(sites Side NE) (sites Side SW)}) (regions P2 {(sites Side NW) (sites Side SE)})}) (rules (meta (swap)) (play (move Add (to (sites Empty)))) (end (if (is Connected Mover) (result Mover Win)))))";
-        String partial = "(game \"Hex\" (players 2) (equipment {(board (hex Diamond 11)) (piece \"Marker\" Each";
-        SymbolMapper symbolMapper = new SymbolMapper();
-        PartialCompilation partialCompilation = compilePartialDescription(standardize(partial), symbolMapper);
-        ((Stack<GeneratorNode>)partialCompilation.consistentGames.clone()).forEach(n -> System.out.println(n.root().description()));
-        for (Completion completion : autocomplete(partialCompilation.consistentGames.peek(), symbolMapper)) {
-            System.out.print(completion.completion + "|" + completion.description + "||");
-        }
-        System.out.println();
+//        String partial = "(game \"Hex\" (players 2) (equipment {(board (hex Diamond 11)) (piece \"Marker\" Each";
+//        SymbolMapper symbolMapper = new SymbolMapper();
+//        compilePartialDescription(standardize(partial), symbolMapper).consistentGames.forEach(n -> System.out.println(n.root().description()));
+//
+//        for (Completion completion : autocomplete(partial, symbolMapper)) {
+//            System.out.print(completion.completion + "|" + completion.description + "||");
+//        }
+//        System.out.println();
 
-//        communicate();
+        communicate();
     }
 }
