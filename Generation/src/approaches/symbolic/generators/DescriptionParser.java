@@ -1,9 +1,7 @@
 package approaches.symbolic.generators;
 
 import approaches.symbolic.SymbolMapper;
-import approaches.symbolic.nodes.GameNode;
-import approaches.symbolic.nodes.GeneratorNode;
-import approaches.symbolic.nodes.PrimitiveNode;
+import approaches.symbolic.nodes.*;
 
 import compiler.Compiler;
 import main.grammar.Description;
@@ -28,50 +26,14 @@ public class DescriptionParser {
         }
     }
 
-    static class PartialCompilation {
-        final Stack<GeneratorNode> consistentGames;
-        final CompilationException exception;
+    public static class PartialCompilation {
+        public final Stack<GeneratorNode> consistentGames;
+        public final CompilationException exception;
 
         public PartialCompilation(Stack<GeneratorNode> consistentGames, CompilationException exception) {
             this.consistentGames = consistentGames;
             this.exception = exception;
         }
-    }
-
-    static class Completion {
-        final String completion;
-        final String description;
-
-        public Completion(String completion, String description) {
-            this.completion = completion;
-            this.description = description;
-        }
-    }
-
-    // TODO make it consider possibilities bellow the top of the stack
-    public static List<Completion> autocomplete(String rawInput, SymbolMapper symbolMapper) {
-        String standardInput = standardize(rawInput);
-        PartialCompilation partialCompilation = compilePartialDescription(standardInput, symbolMapper);
-        GeneratorNode node = partialCompilation.consistentGames.peek();
-        List<Completion> completions = new ArrayList<>();
-
-        if (standardInput.chars().filter(c -> c == ' ').count() != node.root().description().chars().filter(c -> c == ' ').count())
-            return completions;
-
-//        System.out.println("Autocompleting: " + node.root().description());
-
-        for (GeneratorNode option: node.nextPossibleParameters(symbolMapper, null, false, true)) {
-
-            GeneratorNode newNode = node.copyUp();
-            newNode.addParameter(option);
-
-            String description = option.symbol().path();
-            String completion = option.description();
-
-            completions.add(new Completion(completion, description));
-        }
-
-        return completions;
     }
 
     public static GameNode compileDescription(String expanded, SymbolMapper symbolMapper) {
@@ -156,7 +118,7 @@ public class DescriptionParser {
 
             switch (primitiveOption.getType()) {
                 case STRING -> {
-                    if (trailingDescription.charAt(0) != '"')
+                    if (trailingDescription.isEmpty() || trailingDescription.charAt(0) != '"')
                         return null;
 
                     int end = trailingDescription.indexOf('"', 1);
@@ -337,7 +299,7 @@ public class DescriptionParser {
 
     }
 
-    static String standardize(String str) {
+    public static String standardize(String str) {
         str = str.strip();
         str = str.replaceAll("\\s+", " ");
         str = str.replaceAll("\\( ", "(");
@@ -356,23 +318,6 @@ public class DescriptionParser {
 
         return str;
     }
-
-    public static void communicate() {
-        Scanner sc = new Scanner(System.in);
-        System.out.println("Ready");
-
-        SymbolMapper symbolMapper = new SymbolMapper();
-
-        while (sc.hasNextLine()) {
-            //System.out.println(partialCompilation.consistentGames.peek().description());
-            for (Completion completion : autocomplete(sc.nextLine(), symbolMapper)) {
-                System.out.print(completion.completion + "|" + completion.description + "||");
-            }
-            System.out.println();
-        }
-        sc.close();
-    }
-
 
     public static void main(String[] args) throws IOException {
 //        testLudiiLibrary();
@@ -394,7 +339,5 @@ public class DescriptionParser {
 //            System.out.print(completion.completion + "|" + completion.description + "||");
 //        }
 //        System.out.println();
-
-        communicate();
     }
 }
