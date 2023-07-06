@@ -180,12 +180,15 @@ public class DescriptionParser {
                 if (!trailingDescription.startsWith(option.description()))
                     return null;
 
-                char nextChar = trailingDescription.charAt(option.description().length());
-                char currentChar = trailingDescription.charAt(option.description().length() - 1);
-                boolean isEnd = nextChar == ' ' || nextChar == ')' || nextChar == '}' || nextChar == '(' || nextChar == '{' || currentChar == '(' || currentChar == '{';
-//                System.out.println(nextChar + ", " + currentChar + ", " + isEnd);
-                if (!isEnd)
-                    return null;
+                if (trailingDescription.length() < option.description().length()) {
+                    char nextChar = trailingDescription.charAt(option.description().length());
+                    char currentChar = trailingDescription.charAt(option.description().length() - 1);
+                    boolean isEnd = nextChar == ' ' || nextChar == ')' || nextChar == '}' || nextChar == '(' || nextChar == '{' || currentChar == '(' || currentChar == '{';
+//                  System.out.println(nextChar + ", " + currentChar + ", " + isEnd);
+                    if (!isEnd)
+                        return null;
+                }
+
             }
 
             if (option instanceof EndOfClauseNode) {

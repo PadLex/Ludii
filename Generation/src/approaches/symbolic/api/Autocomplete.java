@@ -37,7 +37,7 @@ public class Autocomplete {
         GeneratorNode node = partialCompilation.consistentGames.peek();
         List<Completion> completions = new ArrayList<>();
 
-        System.out.println(node.root().description());
+//        System.out.println(node.root().description());
 
         if (standardInput.chars().filter(c -> c == ' ').count() != node.root().description().chars().filter(c -> c == ' ').count())
             return completions;
@@ -51,11 +51,13 @@ public class Autocomplete {
             newNode.addParameter(option);
 
             String description = option.symbol().path();
-            String completion = option.description();
+            String completion;
 
             if (option instanceof EndOfClauseNode) {
                 description = "End of clause";
                 completion = option.parent() instanceof ArrayNode ? "}" : ")";
+            } else {
+                completion = option.description();
             }
 
             completions.add(new Completion(completion, description));
