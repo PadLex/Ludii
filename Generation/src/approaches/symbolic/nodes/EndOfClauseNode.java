@@ -29,4 +29,9 @@ public class EndOfClauseNode extends GeneratorNode {
     public String toString() {
         return "END";
     }
+
+    @Override
+    public String buildDescription() {
+        throw new RuntimeException("End nodes don't have a description");
+    }
 }

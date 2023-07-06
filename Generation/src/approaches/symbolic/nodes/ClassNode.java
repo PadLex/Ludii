@@ -8,7 +8,9 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import annotations.Opt;
 import annotations.Or;
@@ -46,13 +48,13 @@ public class ClassNode extends GeneratorNode {
             try {
                 return constructor.newInstance(arguments.toArray());
             }catch (IllegalArgumentException | IllegalAccessException | InstantiationException | InvocationTargetException ignored) {
-//                if (Objects.equals(symbol.toString(), "<operators.foreach.forEach>") && constructor.getParameterTypes().length == 11) {
-//                    System.out.println("Failed to instantiate " + symbol + " with " + arguments);
-//                    System.out.println(arguments.stream().map(o -> o==null? null:o.getClass()).toList());
-//                    System.out.println(Arrays.toString(constructor.getParameterTypes()));
-//
-//                    throw new RuntimeException(ignored);
-//                }
+                if (Objects.equals(symbol.path(), "int") && constructor.getParameterTypes().length == 11) {
+                    System.out.println("Failed to instantiate " + symbol + " with " + arguments);
+                    System.out.println(arguments.stream().map(o -> o==null? null:o.getClass()).toList());
+                    System.out.println(Arrays.toString(constructor.getParameterTypes()));
+
+                    throw new RuntimeException(ignored);
+                }
             }
 
 //            catch (InvocationTargetException e) {

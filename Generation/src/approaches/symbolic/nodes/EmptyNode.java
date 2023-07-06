@@ -29,4 +29,9 @@ public class EmptyNode extends GeneratorNode {
     public String toString() {
         return "NULL";
     }
+
+    @Override
+    public String buildDescription() {
+        throw new RuntimeException("Empty nodes don't have a description");
+    }
 }

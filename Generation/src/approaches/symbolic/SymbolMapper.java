@@ -1,6 +1,10 @@
 package approaches.symbolic;
 
+import game.functions.booleans.BooleanFunction;
+import game.functions.dim.DimFunction;
+import game.functions.floats.FloatFunction;
 import game.functions.ints.IntConstant;
+import game.functions.ints.IntFunction;
 import grammar.Grammar;
 import main.StringRoutines;
 import main.grammar.Clause;
@@ -81,10 +85,13 @@ public class SymbolMapper {
             MappedSymbol argSymbol = args.get(partialArguments.size());
             String argKey = "|" + argSymbol.nesting() + "|" + argSymbol.label;
 
+//            System.out.println("\n"+argSymbol.path() + argKey);
+
             if (argSymbol.nesting() > 0) {
                 possibilities.put(argSymbol.path() + argKey, argSymbol);
             } else {
                 for (Symbol symbol : compatibilityMap.get(argSymbol.path())) {
+//                    System.out.println("->" + symbol.path() + argKey);
                     // TODO do I need argSymbol.nesting()
                     possibilities.put(symbol.path() + argKey, new MappedSymbol(symbol, argSymbol.label));
                 }
@@ -110,6 +117,12 @@ public class SymbolMapper {
 
         for (Symbol symbol : symbols) {
             for (Symbol other : symbols) {
+//                if ((IntFunction.class.isAssignableFrom(symbol.cls()) || DimFunction.class.isAssignableFrom(symbol.cls()) ) && other.path().equals("int"))
+//                    continue;
+//                if (FloatFunction.class.isAssignableFrom(symbol.cls()) && other.path().equals("float"))
+//                    continue;
+//                if (BooleanFunction.class.isAssignableFrom(symbol.cls()) && other.path().equals("boolean"))
+//                    continue;
                 //boolean isCompatible = symbol.compatibleWith(other);
                 boolean isCompatible = symbol.cls().isAssignableFrom(other.cls()) || symbol.cls().isAssignableFrom(other.returnType().cls());
                 boolean isSubLudeme = other.ludemeType() == Symbol.LudemeType.SubLudeme;
@@ -222,6 +235,15 @@ public class SymbolMapper {
                     if (set.get(i)) {
                         ClauseArg arg = clause.args().get(i);
                         String label = arg.label() != null? StringRoutines.toDromedaryCase(arg.label()) : null;
+//                        if (arg.nesting() > 0)
+//                            System.out.println(symbol.path()+"--> arg:" + arg.symbol().path()+"|"+arg.nesting());
+
+                        // TODO for some reason nested function clauses also list java primitives as options even when
+                        //  they are not compatible. For example, Sites can only be instantiated with an array of
+                        //  DimFunction yet one of the possible argument sis an array of java int
+                        if (arg.nesting() > 0 && arg.symbol().path().indexOf('.') == -1)
+                            continue;
+
                         clauseSymbols.add(new MappedSymbol(arg.symbol(), arg.nesting(), label)); //TODO: check if label should be lower case
                     } else clauseSymbols.add(emptySymbol);
                 }
@@ -374,8 +396,8 @@ public class SymbolMapper {
 //            //System.out.println("          " + clauses.get(i).args().stream().map(ClauseArg::andGroup).toList());
 //        }
 //
-//        SymbolMapper symbolMapper = new SymbolMapper();
-//        System.out.println(symbolMapper.nextPossibilities(Grammar.grammar().findSymbolByPath("game.functions.booleans.math.NotEqual"), List.of(Grammar.grammar().findSymbolByPath("java.lang.Integer"))));
+        SymbolMapper symbolMapper = new SymbolMapper();
+        System.out.println(symbolMapper.nextPossibilities(Grammar.grammar().findSymbolByPath("game.functions.region.sites.Sites"), List.of()).stream().map(s -> s.path() + "|" + s.nesting()).toList());
 
 //        ArrayList<Symbol> partialSymbols = new ArrayList<>();
 //        partialSymbols.add(Grammar.grammar().findSymbolByPath("game.rules.end.ForEach"));

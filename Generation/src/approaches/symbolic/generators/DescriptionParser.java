@@ -4,9 +4,11 @@ import approaches.symbolic.SymbolMapper;
 import approaches.symbolic.nodes.*;
 
 import compiler.Compiler;
+import game.Game;
 import main.grammar.Description;
 import main.options.UserSelections;
 import main.grammar.Report;
+import other.GameLoader;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -76,7 +78,7 @@ public class DescriptionParser {
             for (GeneratorNode option : options) {
                 try {
                     GeneratorNode newNode = appendOption(node, option, expanded);
-//                    System.out.println("option: " + option.description() + " " + (newNode != null));
+//                    System.out.println("tried option:" + option + " -> " + (newNode != null) + "\n");
                     if (newNode != null)
                         currentStack.add(newNode);
 
@@ -106,9 +108,20 @@ public class DescriptionParser {
     }
 
     static GeneratorNode appendOption(GeneratorNode node, GeneratorNode option, String expanded) throws CompilationException {
+        String currentDescription = node.root().description();
+
+        if (currentDescription.length() >= expanded.length())
+            return null;
+
+        String trailingDescription = expanded.substring(currentDescription.length()).strip();
+
+//        System.out.println("Trying:" + option);
+//        System.out.println("Trailing:" + trailingDescription);
+
         // Parse primitive options
         if (option instanceof PrimitiveNode primitiveOption) {
-            String trailingDescription = expanded.substring(node.root().description().length()).strip();
+
+            // Manually deal with possible labels
             if (option.symbol().label != null) {
                 String prefix = option.symbol().label + ":";
                 if (!trailingDescription.startsWith(prefix))
@@ -160,44 +173,61 @@ public class DescriptionParser {
 
         // Parse non-primitive options
         else {
-            GeneratorNode newNode = node.copyUp();
-            option.setParent(newNode);
-            newNode.addParameter(option);
+            // option.description accounts for the label already
+            if (!(option instanceof EmptyNode) && !(option instanceof EndOfClauseNode)) {
+//                System.out.println("Starts:" + trailingDescription.startsWith(option.description()));
+
+                if (!trailingDescription.startsWith(option.description()))
+                    return null;
+
+                char nextChar = trailingDescription.charAt(option.description().length());
+                char currentChar = trailingDescription.charAt(option.description().length() - 1);
+                boolean isEnd = nextChar == ' ' || nextChar == ')' || nextChar == '}' || nextChar == '(' || nextChar == '{' || currentChar == '(' || currentChar == '{';
+//                System.out.println(nextChar + ", " + currentChar + ", " + isEnd);
+                if (!isEnd)
+                    return null;
+            }
+
+            if (option instanceof EndOfClauseNode) {
+                char currentChar = trailingDescription.charAt(0);
+                if (currentChar != ')' && currentChar != '}')
+                    return null;
+            }
+
+            GeneratorNode nodeCopy = node.copyUp();
+            option.setParent(nodeCopy);
+            nodeCopy.addParameter(option);
+
+            assert expanded.startsWith(nodeCopy.root().description());
 
             if (!option.isComplete())
-                newNode = option;
-            else if (newNode.isComplete()) {
-                assert newNode.isRecursivelyComplete();
+                return option;
+
+            if (nodeCopy.isComplete()) {
+                assert nodeCopy.isRecursivelyComplete();
 
                 try {
-                    newNode.compile();
+//                    System.out.println("nodeCopy:" + nodeCopy);
+//                    System.out.println(nodeCopy.parameterSet().stream().map(o -> o==null? null:o.symbol().path()).toList());
+
+                    nodeCopy.compile();
                 } catch (Exception e) {
+//                    throw e;
                     throw new CompilationException(e.getMessage());
                 }
 
-                if (newNode instanceof GameNode)
-                    return newNode;
+                if (nodeCopy instanceof GameNode)
+                    return nodeCopy;
 
-                newNode = newNode.parent();
+                return nodeCopy.parent();
             }
 
-            String newDescription = newNode.root().description();
+            return nodeCopy;
+
+//            String newDescription = newNode.root().description();
 //            System.out.println("newDescription: " + newDescription);
 
-            if (newDescription.length() == expanded.length() && newDescription.equals(expanded))
-                return newNode;
-
-            if (newDescription.length() < expanded.length()) {
-                char nextChar = expanded.charAt(newDescription.length());
-                char currentChar = expanded.charAt(newDescription.length() - 1);
-                boolean isEnd = nextChar == ' ' || nextChar == ')' || nextChar == '}' || nextChar == '(' || nextChar == '{' || currentChar == '(' || currentChar == '{';
-
-                if (isEnd && expanded.startsWith(newDescription))
-                    return newNode;
-            }
         }
-
-        return null;
     }
 
     static void testLudiiLibrary() throws IOException {
@@ -321,23 +351,19 @@ public class DescriptionParser {
 
     public static void main(String[] args) throws IOException {
 //        testLudiiLibrary();
-//        Description description = new Description(Files.readString(Path.of("./Common/res/lud/board/space/connection/Hex.lud"))); // TODO Throngs.lud (memory error)
-//        Compiler.compile(description, new UserSelections(new ArrayList<>()), new Report(), false);
-//        System.out.println(description.expanded());
-//        System.out.println(standardize(description.expanded()));
-//        //printCallTree(description.callTree(), 0);
-//        GameNode gameNode = compileDescription(standardize(description.expanded()), new SymbolMapper());
+        String gameName = "Throngs"; // TODO Throngs (memory error), There and Back, Pyrga, There and Back
+        Description description = new Description(Files.readString(Path.of("./Common/res/" + GameLoader.getFilePath(gameName))));
+
+
+        Compiler.compile(description, new UserSelections(new ArrayList<>()), new Report(), false);
+        System.out.println(description.expanded());
+        System.out.println(standardize(description.expanded()));
+        //printCallTree(description.callTree(), 0);
+        GameNode gameNode = compileDescription(standardize(description.expanded()), new SymbolMapper());
+        System.out.println(gameNode.isRecursivelyComplete());
 
 //        System.out.println(standardize("0.0 hjbhjbjhj 9.70 9.09 (9.0) 8888.000  3.36000 3. (5.0} 9.2 or: 9 (game a  :     (g)"));
 
-//        String full    = "(game \"Hex\" (players 2) (equipment {(board (hex Diamond 11)) (piece \"Marker\" Each) (regions P1 {(sites Side NE) (sites Side SW)}) (regions P2 {(sites Side NW) (sites Side SE)})}) (rules (meta (swap)) (play (move Add (to (sites Empty)))) (end (if (is Connected Mover) (result Mover Win)))))";
-//        String partial = "(game \"Hex\" (players 2) (equipment {(board (hex Diamond 11)) (piece \"Marker\" Each";
-//        SymbolMapper symbolMapper = new SymbolMapper();
-//        compilePartialDescription(standardize(partial), symbolMapper).consistentGames.forEach(n -> System.out.println(n.root().description()));
-//
-//        for (Completion completion : autocomplete(partial, symbolMapper)) {
-//            System.out.print(completion.completion + "|" + completion.description + "||");
-//        }
-//        System.out.println();
+
     }
 }
