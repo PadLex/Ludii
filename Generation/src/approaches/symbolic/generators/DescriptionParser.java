@@ -230,13 +230,13 @@ public class DescriptionParser {
         }
     }
 
-    static void testLudiiLibrary() throws IOException {
+    static void testLudiiLibrary(int limit) throws IOException {
         SymbolMapper symbolMapper = new SymbolMapper();
 
-        List<String> skip = List.of("Kriegspiel (Chess).lud"); // "To Kinegi tou Lagou.lud"
+        List<String> skip = List.of("Kriegspiel (Chess).lud", "Throngs.lud"); // "To Kinegi tou Lagou.lud"
 
         String gamesRoot = "./Common/res/lud/board";
-        List<Path> paths = Files.walk(Paths.get(gamesRoot)).filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".lud")).sorted().limit(2000).toList();
+        List<Path> paths = Files.walk(Paths.get(gamesRoot)).filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".lud")).sorted().limit(limit).toList();
         int count = 0;
         int preCompilation = 0;
         int compile = 0;
@@ -350,17 +350,15 @@ public class DescriptionParser {
     }
 
     public static void main(String[] args) throws IOException {
-//        testLudiiLibrary();
-        String gameName = "Throngs"; // TODO Throngs (memory error), There and Back, Pyrga, There and Back
-        Description description = new Description(Files.readString(Path.of("./Common/res/" + GameLoader.getFilePath(gameName))));
-
-
-        Compiler.compile(description, new UserSelections(new ArrayList<>()), new Report(), false);
-        System.out.println(description.expanded());
-        System.out.println(standardize(description.expanded()));
-        //printCallTree(description.callTree(), 0);
-        GameNode gameNode = compileDescription(standardize(description.expanded()), new SymbolMapper());
-        System.out.println(gameNode.isRecursivelyComplete());
+        testLudiiLibrary(100);
+//        String gameName = "Kriegspiel (Chess)"; // TODO Throngs (memory error), There and Back, Pyrga, There and Back
+//        Description description = new Description(Files.readString(Path.of("./Common/res/" + GameLoader.getFilePath(gameName))));
+//        Compiler.compile(description, new UserSelections(new ArrayList<>()), new Report(), false);
+//        System.out.println(description.expanded());
+//        System.out.println(standardize(description.expanded()));
+//        //printCallTree(description.callTree(), 0);
+//        GameNode gameNode = compileDescription(standardize(description.expanded()), new SymbolMapper());
+//        System.out.println(gameNode.isRecursivelyComplete());
 
 //        System.out.println(standardize("0.0 hjbhjbjhj 9.70 9.09 (9.0) 8888.000  3.36000 3. (5.0} 9.2 or: 9 (game a  :     (g)"));
 
