@@ -4,11 +4,9 @@ import approaches.symbolic.SymbolMapper;
 import approaches.symbolic.nodes.*;
 
 import compiler.Compiler;
-import game.Game;
 import main.grammar.Description;
 import main.options.UserSelections;
 import main.grammar.Report;
-import other.GameLoader;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -201,7 +199,8 @@ public class DescriptionParser {
             option.setParent(nodeCopy);
             nodeCopy.addParameter(option);
 
-            assert expanded.startsWith(nodeCopy.root().description());
+            if (!expanded.startsWith(nodeCopy.root().description())) // If slow, remove for complete games
+                return null;
 
             if (!option.isComplete())
                 return option;
@@ -335,14 +334,14 @@ public class DescriptionParser {
     public static String standardize(String str) {
         str = str.strip();
         str = str.replaceAll("\\s+", " ");
-        str = str.replaceAll("\\( ", "(");
-        str = str.replaceAll(" \\)", ")");
-        str = str.replaceAll("\\{ ", "{");
-        str = str.replaceAll(" \\}", "}");
+        str = str.replace("( ", "(");
+        str = str.replace(" )", ")");
+        str = str.replace("{ ", "{");
+        str = str.replace(" }", "}");
+        str = str.replaceAll("\\s:\\s", ":"); // (forEach of : (... -> (forEach of:(...
         str = str.replaceAll("(?<![\\d])\\.(\\d)", "0.$1"); // .5 -> 0.5    //TODO this is not correct 1 is not 1.0
         str = str.replaceAll("(\\d+\\.\\d*?)0+\\b", "$1"); // 0.50 -> 0.5
         str = str.replaceAll("(\\d)+\\.([^0-9])", "$1$2"); // 0. -> 0
-        str = str.replaceAll("\\s:\\s", ":"); // (forEach of : (... -> (forEach of:(...
 
         // Constants
         str = str.replaceAll("([ ({])Off([ )}])", "$1-1$2");
@@ -352,8 +351,31 @@ public class DescriptionParser {
         return str;
     }
 
+    public static String destandardize(String original, String standard) {
+        String regex = standard;
+        regex = regex.replace(" ", "\\s+");
+        regex = regex.replace("(", "\\(\\s*");
+        regex = regex.replace(")", "\\s*\\)");
+        regex = regex.replace("{", "\\{\\s*");
+        regex = regex.replace("}", "\\s*\\}");
+        regex = regex.replace(":", "\\s*:\\s*");
+        regex = regex.replaceAll("\\d+\\.?\\d*", "\\\\d+\\\\.?\\\\d*");
+        regex = regex.replaceAll("[ ({]-1[ )}]", "[ ({](Off)|(-1)[ )}]");
+        regex = regex.replaceAll("[ ({]-2[ )}]", "[ ({](End)|(-2)[ )}]");
+        regex = regex.replaceAll("[ ({]-1[ )}]", "[ ({](Undefined)|(-1)[ )}]");
+//        System.out.println(regex);
+
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(original);
+
+        if (matcher.lookingAt())
+            return original.substring(0, matcher.end());
+//        System.out.println("Could not unstandardize");
+        return "";
+    }
+
     public static void main(String[] args) throws IOException {
-        testLudiiLibrary(100);
+//        testLudiiLibrary(100);
 //        String gameName = "Kriegspiel (Chess)"; // TODO Throngs (memory error), There and Back, Pyrga, There and Back
 //        Description description = new Description(Files.readString(Path.of("./Common/res/" + GameLoader.getFilePath(gameName))));
 //        Compiler.compile(description, new UserSelections(new ArrayList<>()), new Report(), false);
@@ -365,6 +387,9 @@ public class DescriptionParser {
 
 //        System.out.println(standardize("0.0 hjbhjbjhj 9.70 9.09 (9.0) 8888.000  3.36000 3. (5.0} 9.2 or: 9 (game a  :     (g)"));
 
-
+        String gameString = "(game \"Hex\" (players 2)\n\n\n (equipment         { (board (hex Diamond 10)) (piece \"Marker\" Each) (regions P1 {(    sites Side NE) (sites Side SW)\n}) (regions P2 {(sites Side NW) (sites Side SE)    }\n\n)\n}    ) (rules (meta (swap\n\n\n)) (play (move \n\nAdd (to (sites \n\nEmpty)))) (end\n\n (if (is Connected      Mover   ) (   result Mover Win))   )))";
+//        String standard = standardize(gameString).substring(0, 289);
+//        System.out.println(standard);
+//        System.out.println(destandardize(gameString, standard));
     }
 }

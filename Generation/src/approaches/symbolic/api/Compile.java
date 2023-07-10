@@ -5,8 +5,7 @@ import approaches.symbolic.generators.DescriptionParser;
 
 import java.util.Scanner;
 
-import static approaches.symbolic.generators.DescriptionParser.compilePartialDescription;
-import static approaches.symbolic.generators.DescriptionParser.standardize;
+import static approaches.symbolic.generators.DescriptionParser.*;
 
 public class Compile {
     public static void main(String[] args) {
@@ -17,10 +16,13 @@ public class Compile {
 
         while (sc.hasNextLine()) {
             //System.out.println(partialCompilation.consistentGames.peek().description());
-            String standardInput = standardize(sc.nextLine());
-            DescriptionParser.PartialCompilation partialCompilation = compilePartialDescription(standardInput, symbolMapper);
+            String input = sc.nextLine();
+            input = input.replace("\\n", "\n");
+            DescriptionParser.PartialCompilation partialCompilation = compilePartialDescription(standardize(input), symbolMapper);
+            String compilingPortion = partialCompilation.consistentGames.peek().root().description();
             System.out.println(partialCompilation.exception == null? 1:0);
-            System.out.println(partialCompilation.consistentGames.peek().root().description());
+            System.out.println(compilingPortion.length() / 100.0);
+            System.out.println(destandardize(input, compilingPortion).replace("\n", "\\n"));
         }
         sc.close();
     }
