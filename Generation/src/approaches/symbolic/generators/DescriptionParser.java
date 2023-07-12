@@ -104,6 +104,7 @@ public class DescriptionParser {
                     assert !newNode.isComplete() || newNode instanceof GameNode;
                     List<GeneratorNode> nextOptions = newNode.nextPossibleParameters(symbolMapper, null, true, false);
                     currentStack.add(new CompilationState(newNode, nextOptions));
+//                    symbolMapper.increment(newNode.symbol());
                 }
 
                 // Successful termination condition
@@ -263,7 +264,7 @@ public class DescriptionParser {
     }
 
     static void testLudiiLibrary(SymbolMapper symbolMapper, int limit) throws IOException {
-        List<String> skip = List.of("Kriegspiel (Chess).lud", "Throngs.lud", "Tai Shogi.lud"); // "To Kinegi tou Lagou.lud"
+        List<String> skip = List.of("Kriegspiel (Chess).lud", "Throngs.lud", "Tai Shogi.lud", "Taikyoku Shogi.lud", "Yonin Seireigi.lud", "Yonin Shogi.lud"); // "To Kinegi tou Lagou.lud"
 
         String gamesRoot = "./Common/res/lud/board";
         List<Path> paths = Files.walk(Paths.get(gamesRoot)).filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".lud")).sorted().limit(limit).toList();
@@ -403,7 +404,7 @@ public class DescriptionParser {
     }
 
     public static void main(String[] args) throws IOException {
-        SymbolMapper symbolMapper = new SymbolMapper();
+        SymbolMapper symbolMapper = new CachedMapper();
         testLudiiLibrary(symbolMapper, 1000);
 //        testLudiiLibrary(symbolMapper, 100);
 //        String gameName = "Pagade Kayi Ata (Sixteen-handed)"; // TODO Throngs (memory error), There and Back, Pyrga, There and Back, Kriegspiel (Chess), Tai Shogi
