@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 public class CachedMapper extends SymbolMapper {
-    Map<String, List<MappedSymbol>> cachedQueries = new HashMap<>();
+    public Map<String, List<MappedSymbol>> cachedQueries = new HashMap<>();
 
     @Override
     public List<MappedSymbol> nextPossibilities(Symbol parent, List<? extends Symbol> partialArguments) {

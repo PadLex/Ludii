@@ -79,6 +79,9 @@ public class DescriptionParser {
 
         CompilationException compilationException = null;
 
+        int fails = 0;
+        int successes = 0;
+
         // Loop until a consistent game's description matches the expanded description
         while (true) {
             // Since we are performing a depth-first search, we can just pop the most recent partial game
@@ -104,12 +107,17 @@ public class DescriptionParser {
                     assert !newNode.isComplete() || newNode instanceof GameNode;
                     List<GeneratorNode> nextOptions = newNode.nextPossibleParameters(symbolMapper, null, true, false);
                     currentStack.add(new CompilationState(newNode, nextOptions));
-//                    symbolMapper.increment(newNode.symbol());
+                    successes++;
+                    symbolMapper.increment(newNode.symbol());
+                } else {
+                    fails++;
                 }
 
                 // Successful termination condition
-                if (newNode instanceof GameNode && newNode.isComplete())
+                if (newNode instanceof GameNode && newNode.isComplete()) {
+                    System.out.println("Successes: " + successes + " Fails: " + fails);
                     return new PartialCompilation(currentStack, null);
+                }
 
             } catch (CompilationException e) {
                 System.out.println("Compilation exception: " + e.getMessage());
@@ -404,8 +412,12 @@ public class DescriptionParser {
     }
 
     public static void main(String[] args) throws IOException {
-        SymbolMapper symbolMapper = new CachedMapper();
-        testLudiiLibrary(symbolMapper, 1000);
+        SortedMapper symbolMapper = new SortedMapper();
+        testLudiiLibrary(symbolMapper, 50);
+//        System.out.println("cache:" + symbolMapper.cachedQueries.size());
+        System.out.println("frequencies:" + symbolMapper.frequency.size());
+//        System.out.println("frequencies:" + symbolMapper.frequency);
+
 //        testLudiiLibrary(symbolMapper, 100);
 //        String gameName = "Pagade Kayi Ata (Sixteen-handed)"; // TODO Throngs (memory error), There and Back, Pyrga, There and Back, Kriegspiel (Chess), Tai Shogi
 //        Description description = new Description(Files.readString(Path.of("./Common/res/" + GameLoader.getFilePath(gameName))));

@@ -7,8 +7,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class SortedMapper extends SymbolMapper {
-    Map<String, Integer> frequency = new HashMap<>();
+public class SortedMapper extends CachedMapper {
+    public Map<String, Integer> frequency = new HashMap<>();
 
     @Override
     public List<MappedSymbol> nextPossibilities(Symbol parent, List<? extends Symbol> partialArguments) {
