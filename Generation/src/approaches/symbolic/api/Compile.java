@@ -19,7 +19,7 @@ public class Compile {
             String input = sc.nextLine();
             input = input.replace("\\n", "\n");
             DescriptionParser.PartialCompilation partialCompilation = compilePartialDescription(standardize(input), symbolMapper);
-            String compilingPortion = partialCompilation.consistentGames.peek().root().description();
+            String compilingPortion = partialCompilation.consistentGames.peek().consistentGame.root().description();
             System.out.println(partialCompilation.exception == null? 1:0);
             System.out.println(compilingPortion.length() / 100.0);
             System.out.println(destandardize(input, compilingPortion).replace("\n", "\\n"));

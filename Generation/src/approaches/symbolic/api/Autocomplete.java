@@ -34,7 +34,7 @@ public class Autocomplete {
         if (standardInput.length() < 5)
             return new ArrayList<>();
         DescriptionParser.PartialCompilation partialCompilation = compilePartialDescription(standardInput, symbolMapper);
-        GeneratorNode node = partialCompilation.consistentGames.peek();
+        GeneratorNode node = partialCompilation.consistentGames.peek().consistentGame;
         List<Completion> completions = new ArrayList<>();
 
 //        System.out.println(node.root().description());

@@ -429,5 +429,14 @@ public class SymbolMapper {
             this.label = label;
             this.setNesting(nesting);
         }
+
+        @Override
+        public String toString() {
+            return super.path() + "|" + super.nesting();
+        }
+    }
+
+    public void increment(MappedSymbol symbol) {
+        throw new RuntimeException("Not implemented");
     }
 }
