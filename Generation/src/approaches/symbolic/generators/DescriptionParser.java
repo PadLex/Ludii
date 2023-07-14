@@ -1,7 +1,6 @@
 package approaches.symbolic.generators;
 
 import approaches.symbolic.CachedMapper;
-import approaches.symbolic.SortedMapper;
 import approaches.symbolic.SymbolMapper;
 import approaches.symbolic.nodes.*;
 
@@ -9,8 +8,6 @@ import compiler.Compiler;
 import main.grammar.Description;
 import main.options.UserSelections;
 import main.grammar.Report;
-import other.GameLoader;
-import parser.Parser;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -19,7 +16,6 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 
 public class DescriptionParser {
     static final Pattern endOfParameter = Pattern.compile("[ )}]");
