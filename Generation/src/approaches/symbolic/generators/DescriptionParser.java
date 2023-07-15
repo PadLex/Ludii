@@ -106,7 +106,6 @@ public class DescriptionParser {
                 if (newNode instanceof GameNode && newNode.isComplete())
                     return new PartialCompilation(currentStack, null);
 
-
             } catch (CompilationException e) {
                 System.out.println("Compilation exception: " + e.getMessage());
                 compilationException = e;
