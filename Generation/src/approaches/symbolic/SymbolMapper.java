@@ -1,10 +1,5 @@
 package approaches.symbolic;
 
-import game.functions.booleans.BooleanFunction;
-import game.functions.dim.DimFunction;
-import game.functions.floats.FloatFunction;
-import game.functions.ints.IntConstant;
-import game.functions.ints.IntFunction;
 import grammar.Grammar;
 import main.StringRoutines;
 import main.grammar.Clause;
@@ -16,6 +11,11 @@ import java.util.*;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+/**
+ * Maps symbols to the symbols which can be used to initialize them.
+ *
+ * @author Alexander Padula
+ */
 public class SymbolMapper {
     public static final MappedSymbol emptySymbol = new EmptySymbol();
     public static final MappedSymbol endOfClauseSymbol = new EndOfClauseSymbol();
@@ -27,23 +27,23 @@ public class SymbolMapper {
             "java.lang.String",
             "java.lang.Boolean", "game.functions.booleans.BooleanConstant"
     };
-    private final Set<Symbol> symbols = new HashSet<>();
-    private final Set<String> paths = new HashSet<>();
-    private final Map<String, List<Symbol>> compatibilityMap = new HashMap<>();
 
     // To obtain every possible set of symbols which can be used to initialize another symbol, you would need replace
     // each base-symbol with it's corresponding source symbols and take their cartesian product. Unfortunately,
     // this is too intensive to pre-compute.
     // Maps symbols to every possible set of base-symbols (aka parameters) that can be used to initialize them.
     // eg game.util.graph.Graph can be initialized using [<Float>, null], [<Float>, <Integer>], [], or [<graph>]
-    private final Map<String, List<List<MappedSymbol>>> parameterMap = new HashMap<>();
+    final Map<String, List<List<MappedSymbol>>> parameterMap = new HashMap<>();
+    private final Set<Symbol> symbols = new HashSet<>();
+    private final Set<String> paths = new HashSet<>();
+    private final Map<String, List<Symbol>> compatibilityMap = new HashMap<>();
 
     public SymbolMapper() {
         this(Grammar.grammar().symbols().stream().filter(s ->
                 (s.usedInGrammar()  // Includes most symbols, including types
-                || !s.usedInMetadata())  // Includes even more types and many constants
-                //&& !s.isAbstract()  // Excludes abstract classes
-                && !s.path().equals("game.rules.start.set.SetStartSitesType.Phase")  // Excluded because its grammar label collides with game.rules.phase.Phase
+                        || !s.usedInMetadata())  // Includes even more types and many constants
+                        //&& !s.isAbstract()  // Excludes abstract classes
+                        && !s.path().equals("game.rules.start.set.SetStartSitesType.Phase")  // Excluded because its grammar label collides with game.rules.phase.Phase
         ).toList());
     }
 
@@ -53,14 +53,15 @@ public class SymbolMapper {
 
         buildSymbolMap();
         buildCompatibilityMap();
-//
-//        System.out.println(symbols.stream().map(Symbol::path).toList().contains("game.rules.start.set.SetStartSitesType.Phase"));
-//        System.out.println(compatibilityMap.values().stream().anyMatch(l -> l.stream().map(Symbol::path).toList().contains("game.rules.start.set.SetStartSitesType.Phase")));
-
-        //parameterMap.get("game.functions.region.sites.Sites").stream().map(s -> s.path()).forEach(System.out::println);
-        //compatibilityMap.get("game.functions.region.sites.around.Around").forEach(System.out::println);
     }
 
+    /**
+     * Primary method of the SymbolMapper.
+     *
+     * @param parent The symbol to complete.
+     * @param partialArguments A list of symbols which have already been selected to complete the parent.
+     * @return A list of symbols which could be the next argument for the parent.
+     */
     public List<MappedSymbol> nextPossibilities(Symbol parent, List<? extends Symbol> partialArguments) {
         assert !partialArguments.contains(endOfClauseSymbol);
         Stream<List<MappedSymbol>> parameterSets = parameterMap.get(parent.path()).stream();
@@ -69,11 +70,10 @@ public class SymbolMapper {
             if (partialArguments.size() >= completeArguments.size()) return false;
 
             for (int i = 0; i < partialArguments.size(); i++) {
-                if (!completeArguments.get(i).compatibleWith(partialArguments.get(i))) return false;
-                if (completeArguments.get(i).nesting() != partialArguments.get(i).nesting()) {
-                    //System.out.println(parent.grammarLabel() + " Nesting mismatch: " + completeArguments.get(i).nesting() + " " + partialArguments.get(i).nesting());
+                Symbol partialArg = partialArguments.get(i);
+                Symbol completeArg = completeArguments.get(i);
+                if (!completeArg.compatibleWith(partialArg) || completeArg.nesting() != partialArg.nesting())
                     return false;
-                }
             }
 
             return true;
@@ -85,23 +85,15 @@ public class SymbolMapper {
             MappedSymbol argSymbol = args.get(partialArguments.size());
             String argKey = "|" + argSymbol.nesting() + "|" + argSymbol.label;
 
-//            System.out.println("\n"+argSymbol.path() + argKey);
-
             if (argSymbol.nesting() > 0) {
                 possibilities.put(argSymbol.path() + argKey, argSymbol);
             } else {
                 for (Symbol symbol : compatibilityMap.get(argSymbol.path())) {
-//                    System.out.println("->" + symbol.path() + argKey);
                     // TODO do I need argSymbol.nesting()
                     possibilities.put(symbol.path() + argKey, new MappedSymbol(symbol, argSymbol.label));
                 }
             }
         });
-
-//        System.out.println(possibilities.values().stream().map(Symbol::grammarLabel).toList());
-//        System.out.println(possibilities.values().stream().map(Symbol::grammarLabel).distinct().toList());
-//        System.out.println(possibilities.values().stream().map(Symbol::path).toList());
-//        assert possibilities.values().stream().map(Symbol::grammarLabel).distinct().count() == possibilities.size();
 
         return possibilities.values().stream().sorted(Comparator.comparing(Symbol::path)).toList();
     }
@@ -117,21 +109,14 @@ public class SymbolMapper {
 
         for (Symbol symbol : symbols) {
             for (Symbol other : symbols) {
-//                if ((IntFunction.class.isAssignableFrom(symbol.cls()) || DimFunction.class.isAssignableFrom(symbol.cls()) ) && other.path().equals("int"))
-//                    continue;
-//                if (FloatFunction.class.isAssignableFrom(symbol.cls()) && other.path().equals("float"))
-//                    continue;
-//                if (BooleanFunction.class.isAssignableFrom(symbol.cls()) && other.path().equals("boolean"))
-//                    continue;
-                //boolean isCompatible = symbol.compatibleWith(other);
                 boolean isCompatible = symbol.cls().isAssignableFrom(other.cls()) || symbol.cls().isAssignableFrom(other.returnType().cls());
                 boolean isSubLudeme = other.ludemeType() == Symbol.LudemeType.SubLudeme;
                 boolean isInitializable =
                         !Modifier.isAbstract(other.cls().getModifiers())
-                        && !Modifier.isInterface(other.cls().getModifiers())
-                        && (
+                                && !Modifier.isInterface(other.cls().getModifiers())
+                                && (
                                 other.cls().getConstructors().length > 0
-                                || Arrays.stream(other.cls().getMethods()).anyMatch(m -> m.getName().equals("construct"))
+                                        || Arrays.stream(other.cls().getMethods()).anyMatch(m -> m.getName().equals("construct"))
                         );
                 boolean isEnumValue = other.cls().isEnum() && !other.cls().getTypeName().equals(other.path());
                 boolean isPrimitive = Arrays.stream(primitives).anyMatch(p -> p.equals(other.path()));
@@ -159,20 +144,16 @@ public class SymbolMapper {
     private List<List<MappedSymbol>> findParameterSets(Symbol symbol) {
         List<List<MappedSymbol>> constructorSets = new ArrayList<>();
 
-        if (symbol.isTerminal()) {
-            //System.out.println("Symbol " + symbol.name() + " is terminal " + symbol.ludemeType());
+        if (symbol.isTerminal())
             return constructorSets;
-        }
 
-        if (symbol.rule() == null) {
-            //System.out.println("Symbol " + symbol.name() + " has no rule " + symbol.ludemeType() + " " + symbol.isAbstract());
+        if (symbol.rule() == null)
             return constructorSets;
-        }
 
         for (Clause clause : symbol.rule().rhs()) {
-            if (clause.args() == null) {
+            if (clause.args() == null)
                 continue;
-            }
+
             // Find flags
             // eg.                    *           *              *
             // orGroup:           [0, 1, 1, 0, 0, 2, 2, 2, 2, 2, 3, 3, 0, 0, 0]
@@ -186,7 +167,7 @@ public class SymbolMapper {
             for (int i = 0; i < clause.args().size(); i++) {
                 ClauseArg arg = clause.args().get(i);
 
-                // TODO what's up with this??
+                // TODO why do some symbols claim not to be part of the grammar despite being part of a clause?
                 //if (!arg.symbol().usedInGrammar()) System.out.println("Symbol " + arg.symbol().path() + " is not used in grammar");
 
                 // TODO is if-else correct or should it just be a bunch of ifs?
@@ -204,15 +185,10 @@ public class SymbolMapper {
                 }
             }
 
-            //System.out.println("optional flags:\n" + IntStream.range(0, clause.args().size()).mapToObj(i -> optionalFlags.get(i)? 1:0).toList());
-            //System.out.println("mandatory flags:\n" + IntStream.range(0, clause.args().size()).mapToObj(i -> mandatoryFlags.get(i)? 1:0).toList());
-
             // Permute optional flags
             // optionalIndexes: [3, 4, 5, 10, 12, 13, 14]
             // possibleSets: [[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], ..., [1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1] ]
             List<BitSet> flagPermutations = permuteFlags(optionalFlags, mandatoryFlags);
-            //System.out.println("permuted flags: ");
-            //flagPermutations.forEach(set -> System.out.println(IntStream.range(0, clause.args().size()).mapToObj(i -> set.get(i)? 1:0).toList()));
 
             // Complete selected andGroups
             completeAndGroups(clause.args(), flagPermutations);
@@ -221,26 +197,19 @@ public class SymbolMapper {
             // MUST BE for i as we are modifying the list
             List<BitSet> shiftedSets = new ArrayList<>();
             for (BitSet flagPermutation : flagPermutations) {
-                //System.out.println("Shifting: "  + IntStream.range(0, clause.args().size()).mapToObj(i -> flagPermutation.get(i)? 1:0).toList());
                 recursivelyShiftOrGroups(flagPermutation, 1, clause.args(), shiftedSets);
             }
-
-            //System.out.println("shifted: ");
-            //shiftedSets.forEach(set -> System.out.println(IntStream.range(0, clause.args().size()).mapToObj(i -> set.get(i)? 1:0).toList()));
-
 
             constructorSets.addAll(shiftedSets.stream().map(set -> {
                 List<MappedSymbol> clauseSymbols = new ArrayList<>(clause.args().size() + 1);
                 for (int i = 0; i < clause.args().size(); i++) {
                     if (set.get(i)) {
                         ClauseArg arg = clause.args().get(i);
-                        String label = arg.label() != null? StringRoutines.toDromedaryCase(arg.label()) : null;
-//                        if (arg.nesting() > 0)
-//                            System.out.println(symbol.path()+"--> arg:" + arg.symbol().path()+"|"+arg.nesting());
+                        String label = arg.label() != null ? StringRoutines.toDromedaryCase(arg.label()) : null;
 
                         // TODO for some reason nested function clauses also list java primitives as options even when
                         //  they are not compatible. For example, Sites can only be instantiated with an array of
-                        //  DimFunction yet one of the possible argument sis an array of java int
+                        //  DimFunction yet one of the possible arguments is an array of java int
                         if (arg.nesting() > 0 && arg.symbol().path().indexOf('.') == -1)
                             continue;
 
@@ -303,7 +272,6 @@ public class SymbolMapper {
         int groupIndex = IntStream.range(0, clauseArgs.size()).filter(i -> clauseArgs.get(i).orGroup() == currentOrGroup).findFirst().orElse(-1);
 
         if (groupIndex == -1) {
-            //System.out.println(IntStream.range(0, clauseArgs.size()).mapToObj(i -> currentSet.get(i)? 1:0).toList());
             possibleSets.add(currentSet);
             return;
         }
@@ -356,54 +324,6 @@ public class SymbolMapper {
         public Symbol returnType() {
             return this;
         }
-    }
-
-    public static void main(String[] args) {
-
-//        System.out.println(Grammar.grammar().symbols().stream().filter(s -> !s.usedInGrammar() && s.usedInDescription()).toList());
-//        System.out.println(Grammar.grammar().symbols().stream().filter(s -> s.usedInGrammar() && !s.usedInDescription()).toList());
-//        System.out.println(Grammar.grammar().symbols().stream().filter(s -> !s.usedInGrammar() && !s.usedInMetadata()).toList());
-
-        //SymbolMapper symbolMapper = new SymbolMapper();
-//        System.out.println("Finished mapping symbols. Found " + symbolMapper.parameterMap.values().stream().mapToInt(List::size).sum() + " parameter sets.");
-//
-//        // TODO WHY is it used in grammar??
-//        Symbol trackStep = Grammar.grammar().findSymbolByPath("game.util.equipment.TrackStep");
-//        //Symbol trackStep = Grammar.grammar().findSymbolByPath("game.functions.trackStep.TrackStep");
-//        System.out.println(trackStep);
-//        System.out.println(trackStep.rule());
-//        System.out.println(trackStep.usedInGrammar());
-//        System.out.println(symbolMapper.nextPossibilities(trackStep, List.of()));
-
-        // TODO, is int handled correctly? I don't think so.
-//        Grammar.grammar().symbols().stream().max(Comparator.comparingInt(s -> s.rule() == null? 0:s.rule().rhs().size())).ifPresent(s -> System.out.println(s.path() + " " + s.rule().rhs()));
-//        System.out.println(symbolMapper.parameterMap.get("int"));
-//        System.out.println(symbolMapper.nextPossibilities(Grammar.grammar().findSymbolByPath("java.lang.Integer"), new ArrayList<>()));
-
-        // TODO I don't understand and groups
-//        List<Clause> clauses = Grammar.grammar().findSymbolByPath("game.rules.play.moves.decision.Move").rule().rhs();
-//        for (int i = 0; i < clauses.size(); i++) {
-//            System.out.println("Clause " + i + ": " + clauses.get(i));
-//            System.out.println("          " + clauses.get(i).args().stream().map(ClauseArg::andGroup).toList());
-//        }
-
-        //System.out.println(Grammar.grammar().findSymbolByPath("game.functions.graph.operators.Add").hasAlias());
-
-
-//        List<Clause> clauses = Grammar.grammar().findSymbolByPath("game.functions.booleans.math.NotEqual").rule().rhs();
-//        for (int i = 0; i < clauses.size(); i++) {
-//            System.out.println("Clause " + i + ": " + clauses.get(i));
-//            //System.out.println("          " + clauses.get(i).args().stream().map(ClauseArg::andGroup).toList());
-//        }
-//
-        SymbolMapper symbolMapper = new SymbolMapper();
-        System.out.println(symbolMapper.nextPossibilities(Grammar.grammar().findSymbolByPath("game.functions.region.sites.Sites"), List.of()).stream().map(s -> s.path() + "|" + s.nesting()).toList());
-
-//        ArrayList<Symbol> partialSymbols = new ArrayList<>();
-//        partialSymbols.add(Grammar.grammar().findSymbolByPath("game.rules.end.ForEach"));
-//        partialSymbols.add(endOfClauseSymbol);
-//        System.out.println(symbolMapper.nextPossibilities(Grammar.grammar().findSymbolByPath("game.Game"), partialSymbols));
-
     }
 
     public static class MappedSymbol extends Symbol {

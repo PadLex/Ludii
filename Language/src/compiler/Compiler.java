@@ -105,7 +105,7 @@ public class Compiler
 		} 
 		catch (final CompilerException e)
 		{
-			//if (isVerbose)
+			if (isVerbose)
 				e.printStackTrace();
 			throw new CompilerException(e.getMessageBody(description.raw()), e);
 		}

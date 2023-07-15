@@ -1,7 +1,7 @@
 package approaches.symbolic.api;
 
 import approaches.symbolic.SymbolMapper;
-import approaches.symbolic.generators.DescriptionParser;
+import approaches.symbolic.DescriptionParser;
 import approaches.symbolic.nodes.ArrayNode;
 import approaches.symbolic.nodes.EmptyNode;
 import approaches.symbolic.nodes.EndOfClauseNode;
@@ -11,8 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
-import static approaches.symbolic.generators.DescriptionParser.compilePartialDescription;
-import static approaches.symbolic.generators.DescriptionParser.standardize;
+import static approaches.symbolic.DescriptionParser.compilePartialDescription;
+import static approaches.symbolic.DescriptionParser.standardize;
 
 public class Autocomplete {
 
